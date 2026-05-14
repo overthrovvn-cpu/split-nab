@@ -111,19 +111,27 @@ input[type="number"] {
 
 /* ── Mobile layout ───────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
-  /* Card fills the screen width with comfortable padding */
-  .tx-card {
-    width: calc(100vw - 2rem) !important;
-    min-width: 0 !important;
+  /* Prevent anything from causing horizontal scroll */
+  html, body {
+    overflow-x: hidden;
+    max-width: 100%;
   }
 
-  /* Card rail scrolls vertically on mobile — one card per screen */
+  /* Card fills screen minus page gutters (16px each side) */
+  .tx-card {
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Card rail: full width, no horizontal scroll, vertical stack */
   #cardRailScroll {
     overflow-x: hidden !important;
     overflow-y: visible !important;
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
     width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   #cardRail {
@@ -131,6 +139,13 @@ input[type="number"] {
     width: 100% !important;
     align-items: stretch !important;
     margin: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Outer content wrapper — tighter gutters on small screens */
+  .mobile-content {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
   }
 
   /* Always show the full form on mobile — no collapse */
@@ -141,9 +156,6 @@ input[type="number"] {
   .card-details-inner {
     overflow: visible !important;
   }
-
-  /* Tighter top padding on mobile */
-  .mobile-pt { padding-top: 1rem !important; }
 
   /* Safe area padding for iPhone home bar */
   .mobile-footer {
@@ -156,14 +168,36 @@ input[type="number"] {
     height: 2.5rem !important;
   }
 
-  /* Amount input in split row — full width on mobile */
+  /* Amount input in split row — constrained on small screens */
   .amount-input {
-    width: 7rem !important;
+    width: 6rem !important;
+    min-width: 0 !important;
+  }
+
+  /* Category input — allow it to shrink */
+  .category-input {
+    min-width: 0 !important;
+  }
+
+  /* Split row flex — prevent overflow */
+  .split-row .flex {
+    flex-wrap: nowrap !important;
+    min-width: 0 !important;
   }
 
   /* Memo textarea — slightly taller default on mobile */
   .memo-expand {
     height: 2.75rem;
+  }
+
+  /* Action bar buttons — full width on mobile */
+  #actionBar .flex {
+    width: 100%;
+  }
+  #createTransactionBtn,
+  #savePresetBtn {
+    flex: 1 !important;
+    text-align: center !important;
   }
 }
   </style>
@@ -171,7 +205,7 @@ input[type="number"] {
 <body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col">
 
   <!-- Main content — pushed toward upper-center with overflow room for dropdowns -->
-  <div class="flex-1 flex flex-col items-center px-6 pt-8 sm:pt-16 pb-64 space-y-8" style="overflow: visible;">
+  <div class="flex-1 flex flex-col items-center px-4 sm:px-6 pt-8 sm:pt-16 pb-64 space-y-8 mobile-content w-full" style="overflow: visible; box-sizing: border-box;">
 
     <!-- Title + Add button -->
     <div class="flex items-center gap-4">
@@ -188,7 +222,7 @@ input[type="number"] {
     <!-- Card rail — overflow visible so dropdowns escape freely -->
     <div class="w-full overflow-visible">
       <div id="cardRailScroll"
-     class="overflow-x-auto overflow-y-visible pb-3 pt-2 w-screen px-6" style="scroll-snap-type: x mandatory; overflow-y: visible;">
+     class="overflow-x-auto overflow-y-visible pb-3 pt-2 w-full px-0 sm:w-screen sm:px-6" style="scroll-snap-type: x mandatory; overflow-y: visible;">
         <div id="cardRail"
   class="flex gap-4 pt-2"
   style="overflow: visible; width: max-content; margin: 0 auto;">
@@ -230,17 +264,16 @@ input[type="number"] {
       <p class="text-xs text-zinc-500">
         Assign each split entry to yourself or a friend. One grouped Splitwise expense will be created &mdash; you paid the full amount, each person owes their assigned portion.
       </p>
-      <div class="rounded-xl bg-zinc-950 border border-zinc-700 px-4 py-3 text-xs text-zinc-400 space-y-1">
-        <p class="font-semibold text-zinc-300">Proxy required</p>
-        <p>Run <code class="bg-zinc-800 px-1 py-0.5 rounded text-zinc-200">python3 splitwise_proxy.py</code> from the project folder to enable Splitwise calls.</p>
-      </div>
     </div>
 
     <!-- Settings panel (expands above the footer bar) -->
     <div id="settingsPanel" class="hidden w-full max-w-xl space-y-5">
+
+      <!-- YNAB section -->
+      <p class="text-xs font-semibold text-zinc-500 uppercase tracking-widest">YNAB</p>
       <div class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-end">
         <div class="space-y-2">
-          <label class="text-sm text-zinc-400">YNAB Personal Access Token</label>
+          <label class="text-sm text-zinc-400">Personal Access Token</label>
           <input id="tokenInput" type="password"
             class="w-full rounded-2xl bg-zinc-900 border border-zinc-700 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             placeholder="Paste your YNAB token">
@@ -257,6 +290,41 @@ input[type="number"] {
           <option value="">Select Budget</option>
         </select>
       </div>
+
+      <!-- Divider -->
+      <div class="border-t border-zinc-800"></div>
+
+      <!-- Splitwise section -->
+      <p class="text-xs font-semibold text-zinc-500 uppercase tracking-widest">Splitwise</p>
+      <div class="space-y-2">
+        <label class="text-sm text-zinc-400">API Key</label>
+        <input id="swApiKeyInput" type="password"
+          class="w-full rounded-2xl bg-zinc-900 border border-zinc-700 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          placeholder="Paste your Splitwise API key">
+        <p class="text-xs text-zinc-500">
+          Get yours at
+          <a href="https://secure.splitwise.com/apps" target="_blank" class="text-emerald-400 underline">secure.splitwise.com/apps</a>
+          → Register your app → API key.
+        </p>
+      </div>
+      <div class="space-y-2">
+        <label class="text-sm text-zinc-400">Proxy URL <span class="text-zinc-600">(Cloudflare Worker)</span></label>
+        <input id="swProxyUrlInput" type="url"
+          class="w-full rounded-2xl bg-zinc-900 border border-zinc-700 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          placeholder="https://splitwise-proxy.yourname.workers.dev">
+        <p class="text-xs text-zinc-500">
+          Deploy the included <code class="bg-zinc-800 px-1 py-0.5 rounded text-zinc-200">splitwise-worker/</code> to Cloudflare Workers (free).
+          Paste the worker URL here.
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button id="swSaveBtn"
+          class="px-6 py-3 rounded-2xl bg-zinc-700 hover:bg-zinc-600 text-zinc-100 font-semibold transition-colors">
+          Save &amp; Test
+        </button>
+        <p id="swConnectStatus" class="text-xs text-zinc-500"></p>
+      </div>
+
     </div>
 
   </div>
@@ -326,8 +394,10 @@ input[type="number"] {
   <script>
 
     const API_BASE = "https://api.ynab.com/v1";
-    const SW_API_BASE = "http://localhost:5001/splitwise"; // local proxy only — not used on mobile
-    const SW_API_KEY = ""; // removed — set locally if running the desktop proxy
+
+    // Splitwise config is stored in localStorage — never hardcoded
+    // SW_API_BASE is set by the user in Settings (their Cloudflare Worker URL)
+    // SW_API_KEY  is set by the user in Settings (their Splitwise API key)
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -365,7 +435,9 @@ input[type="number"] {
       splitwise: {
         enabled: false,
         currentUser: null,
-        friends: []
+        friends: [],
+        apiKey:   localStorage.getItem("sw_api_key")   || "",
+        proxyUrl: localStorage.getItem("sw_proxy_url") || "",
       }
     };
 
@@ -387,7 +459,11 @@ input[type="number"] {
       splitwiseUserBadge:   document.getElementById("splitwiseUserBadge"),
       globalBudgetSelect:   document.getElementById("globalBudgetSelect"),
       settingsToggleBtn:    document.getElementById("settingsToggleBtn"),
-      settingsPanel:        document.getElementById("settingsPanel")
+      settingsPanel:        document.getElementById("settingsPanel"),
+      swApiKeyInput:        document.getElementById("swApiKeyInput"),
+      swProxyUrlInput:      document.getElementById("swProxyUrlInput"),
+      swSaveBtn:            document.getElementById("swSaveBtn"),
+      swConnectStatus:      document.getElementById("swConnectStatus"),
     };
 
     els.tokenInput.value = state.token;
@@ -877,7 +953,7 @@ input[type="number"] {
 
       const isExpanded = !!(card.payeeName || card.accountName || card.memo);
       return `
-        <div class="w-[480px] shrink-0 bg-zinc-900 border border-zinc-800 rounded-3xl p-5 space-y-4 relative overflow-visible tx-card" data-card-index="${ci}" style="scroll-snap-align: start;">
+        <div class="w-[480px] shrink-0 bg-zinc-900 border border-zinc-800 rounded-3xl p-4 sm:p-5 space-y-4 relative overflow-visible tx-card" data-card-index="${ci}" style="scroll-snap-align: start;">
 
           <!-- Card top bar: flag bookmark (left) + remove card (right) -->
           <div class="flex items-center justify-between">
@@ -1623,10 +1699,15 @@ input[type="number"] {
     // ── Splitwise ─────────────────────────────────────────────────────────────
 
     async function splitwiseFetch(endpoint, options = {}) {
-      const response = await fetch(SW_API_BASE + endpoint, {
+      const proxyUrl = state.splitwise.proxyUrl.replace(/\/$/, "");
+      const apiKey   = state.splitwise.apiKey;
+      if (!proxyUrl) throw new Error("Splitwise proxy URL not set. Add it in Settings.");
+      if (!apiKey)   throw new Error("Splitwise API key not set. Add it in Settings.");
+
+      const response = await fetch(proxyUrl + "/splitwise" + endpoint, {
         ...options,
         headers: {
-          "Authorization": "Bearer " + SW_API_KEY,
+          "Authorization": "Bearer " + apiKey,
           ...(options.headers || {})
         }
       });
@@ -1649,13 +1730,24 @@ input[type="number"] {
         els.splitwiseUserBadge.textContent = "Logged in as " + name;
         els.splitwiseUserBadge.classList.remove("hidden");
         els.splitwiseStatus.textContent = state.splitwise.friends.length + " friend(s) loaded";
+        if (els.swConnectStatus) {
+          els.swConnectStatus.textContent = "Connected as " + name;
+          els.swConnectStatus.className = "text-xs text-emerald-400 mt-1";
+        }
         renderCards();
       } catch (err) {
         console.error(err);
-        const isProxyDown = err.message === "Failed to fetch" || err.message.includes("NetworkError") || err.message.includes("ERR_CONNECTION_REFUSED");
-        els.splitwiseStatus.textContent = isProxyDown
-          ? "Proxy not running — start splitwise_proxy.py first."
-          : "Error: " + err.message;
+        const isMissingConfig = err.message.includes("not set");
+        const isNetworkError  = err.message === "Failed to fetch" || err.message.includes("NetworkError");
+        els.splitwiseStatus.textContent = isMissingConfig
+          ? "Configure Splitwise in Settings first."
+          : isNetworkError
+            ? "Could not reach proxy — check the URL in Settings."
+            : "Error: " + err.message;
+        if (els.swConnectStatus) {
+          els.swConnectStatus.textContent = err.message;
+          els.swConnectStatus.className = "text-xs text-red-400 mt-1";
+        }
       }
     }
 
@@ -2292,7 +2384,37 @@ input[type="number"] {
       }
     });
 
+    // Splitwise settings — Save & Test
+    els.swSaveBtn.addEventListener("click", async () => {
+      const key     = els.swApiKeyInput.value.trim();
+      const proxy   = els.swProxyUrlInput.value.trim().replace(/\/$/, "");
+
+      if (!key || !proxy) {
+        els.swConnectStatus.textContent = "Both fields are required.";
+        els.swConnectStatus.className   = "text-xs text-red-400 mt-1";
+        return;
+      }
+
+      localStorage.setItem("sw_api_key",   key);
+      localStorage.setItem("sw_proxy_url", proxy);
+      state.splitwise.apiKey   = key;
+      state.splitwise.proxyUrl = proxy;
+
+      // Reset cached user so loadSplitwiseData re-fetches
+      state.splitwise.currentUser = null;
+      state.splitwise.friends     = [];
+
+      els.swConnectStatus.textContent = "Testing connection…";
+      els.swConnectStatus.className   = "text-xs text-zinc-400 mt-1";
+
+      await loadSplitwiseData();
+    });
+
     // ── Init ──────────────────────────────────────────────────────────────────
+
+    // Populate Splitwise settings inputs from localStorage
+    if (els.swApiKeyInput)   els.swApiKeyInput.value   = state.splitwise.apiKey;
+    if (els.swProxyUrlInput) els.swProxyUrlInput.value = state.splitwise.proxyUrl;
 
     renderMemoSuggestions();
     renderCards();
