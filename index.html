@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Split-NAB"/>
   <title>YNAB Split Transaction Helper</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -105,16 +108,74 @@ input[type="number"] {
   height: 5rem;
   overflow-y: auto;
 }
+
+/* ── Mobile layout ───────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* Card fills the screen width with comfortable padding */
+  .tx-card {
+    width: calc(100vw - 2rem) !important;
+    min-width: 0 !important;
+  }
+
+  /* Card rail scrolls vertically on mobile — one card per screen */
+  #cardRailScroll {
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    width: 100% !important;
+  }
+
+  #cardRail {
+    flex-direction: column !important;
+    width: 100% !important;
+    align-items: stretch !important;
+    margin: 0 !important;
+  }
+
+  /* Always show the full form on mobile — no collapse */
+  .card-details {
+    grid-template-rows: 1fr !important;
+    overflow: visible !important;
+  }
+  .card-details-inner {
+    overflow: visible !important;
+  }
+
+  /* Tighter top padding on mobile */
+  .mobile-pt { padding-top: 1rem !important; }
+
+  /* Safe area padding for iPhone home bar */
+  .mobile-footer {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Larger tap targets for split row buttons */
+  .remove-split-btn {
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+  }
+
+  /* Amount input in split row — full width on mobile */
+  .amount-input {
+    width: 7rem !important;
+  }
+
+  /* Memo textarea — slightly taller default on mobile */
+  .memo-expand {
+    height: 2.75rem;
+  }
+}
   </style>
 </head>
 <body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col">
 
   <!-- Main content — pushed toward upper-center with overflow room for dropdowns -->
-  <div class="flex-1 flex flex-col items-center px-6 pt-16 pb-64 space-y-8" style="overflow: visible;">
+  <div class="flex-1 flex flex-col items-center px-6 pt-8 sm:pt-16 pb-64 space-y-8" style="overflow: visible;">
 
     <!-- Title + Add button -->
     <div class="flex items-center gap-4">
-      <h1 class="text-5xl font-bold tracking-tight text-white">Split-NAB</h1>
+      <h1 class="text-3xl sm:text-5xl font-bold tracking-tight text-white">Split-NAB</h1>
       <button id="addCardBtn"
         class="w-10 h-10 rounded-2xl bg-zinc-800 hover:bg-emerald-500 hover:text-black
                transition-all flex items-center justify-center text-xl text-zinc-300
@@ -201,7 +262,7 @@ input[type="number"] {
   </div>
 
   <!-- Footer bar — fixed bottom, settings icon left + status bubble beside it -->
-  <div class="fixed bottom-0 left-0 right-0 flex items-center gap-3 px-6 py-4 pointer-events-none">
+  <div class="fixed bottom-0 left-0 right-0 flex items-center gap-3 px-6 py-4 pointer-events-none mobile-footer" style="padding-bottom: max(1rem, calc(1rem + env(safe-area-inset-bottom)))">
     <div class="flex items-center gap-3 pointer-events-auto">
       <button id="settingsToggleBtn"
         class="w-9 h-9 rounded-2xl bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700
@@ -492,10 +553,12 @@ input[type="number"] {
         renderMemoSuggestions();
         refreshCardsData();
 
-        // Re-focus amount field if nothing else is focused
-        if (!document.activeElement || document.activeElement === document.body) {
-          const firstAmount = els.cardRail.querySelector(".card-total-input");
-          if (firstAmount) firstAmount.focus();
+        // Re-focus amount field if nothing else is focused (desktop only)
+        if (window.innerWidth >= 640) {
+          if (!document.activeElement || document.activeElement === document.body) {
+            const firstAmount = els.cardRail.querySelector(".card-total-input");
+            if (firstAmount) firstAmount.focus();
+          }
         }
 
         setStatus(`Loaded ${state.accounts.length} accounts and ${state.categories.length} categories.`);
@@ -797,7 +860,7 @@ input[type="number"] {
           <div class="split-row bg-zinc-950 border border-zinc-800 rounded-2xl p-3 space-y-2">
             <div class="flex gap-2 items-center">
               ${buildCategoryInputHTML(row, ri)}
-              <input type="number" step="0.01" value="${row.amount}" data-row-index="${ri}" placeholder="0.00"
+              <input type="number" step="0.01" inputmode="decimal" value="${row.amount}" data-row-index="${ri}" placeholder="0.00"
                 class="amount-input w-32 rounded-xl bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500">
               <button data-row-index="${ri}" class="remove-split-btn w-8 h-8 rounded-xl border border-zinc-700 flex items-center justify-center text-zinc-500 hover:bg-red-950 hover:border-red-700 hover:text-red-400 transition-colors shrink-0" title="Remove">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -814,7 +877,7 @@ input[type="number"] {
 
       const isExpanded = !!(card.payeeName || card.accountName || card.memo);
       return `
-        <div class="w-[480px] shrink-0 bg-zinc-900 border border-zinc-800 rounded-3xl p-5 space-y-4 relative overflow-visible" data-card-index="${ci}" style="scroll-snap-align: start;">
+        <div class="w-[480px] shrink-0 bg-zinc-900 border border-zinc-800 rounded-3xl p-5 space-y-4 relative overflow-visible tx-card" data-card-index="${ci}" style="scroll-snap-align: start;">
 
           <!-- Card top bar: flag bookmark (left) + remove card (right) -->
           <div class="flex items-center justify-between">
@@ -836,7 +899,7 @@ input[type="number"] {
           <div class="grid grid-cols-2 gap-3">
             <div class="space-y-1">
               <label class="text-xs text-zinc-400">Total Amount</label>
-              <input type="number" step="0.01" value="${card.totalAmount}" placeholder="0.00"
+              <input type="number" step="0.01" inputmode="decimal" value="${card.totalAmount}" placeholder="0.00"
                 class="card-total-input w-full rounded-2xl bg-zinc-950 border border-zinc-700 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
             </div>
             <div class="space-y-1 relative">
@@ -938,7 +1001,7 @@ input[type="number"] {
         flatpickr(dateInput, {
           dateFormat: "Y-m-d",
           defaultDate: card.date || new Date(),
-          disableMobile: true,
+          disableMobile: false,
           animate: true,
           onChange: (selectedDates, dateStr) => {
             state.txCards[ci].date = dateStr;
@@ -1292,7 +1355,7 @@ input[type="number"] {
         rowEl.innerHTML = `
           <div class="flex gap-2 items-center">
             ${buildCategoryInputHTML(row, ri)}
-            <input type="number" step="0.01" value="${row.amount}" data-row-index="${ri}" placeholder="0.00"
+            <input type="number" step="0.01" inputmode="decimal" value="${row.amount}" data-row-index="${ri}" placeholder="0.00"
               class="amount-input w-32 rounded-xl bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500">
             <button data-row-index="${ri}" class="remove-split-btn w-8 h-8 rounded-xl border border-zinc-700 flex items-center justify-center text-zinc-500 hover:bg-red-950 hover:border-red-700 hover:text-red-400 transition-colors shrink-0" title="Remove">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1411,7 +1474,7 @@ input[type="number"] {
       flatpickr(cardEl.querySelector(".card-date-input"), {
         dateFormat: "Y-m-d",
         defaultDate: state.txCards[ci].date || new Date(),
-        disableMobile: true,
+        disableMobile: false,
         animate: true,
         onChange: (_, dateStr) => { state.txCards[ci].date = dateStr; }
       });
@@ -2059,7 +2122,7 @@ input[type="number"] {
         flatpickr(cardEl.querySelector(".card-date-input"), {
           dateFormat: "Y-m-d",
           defaultDate: card.date || new Date(),
-          disableMobile: true,
+          disableMobile: false,
           animate: true,
           onChange: (_, dateStr) => { state.txCards[ci].date = dateStr; }
         });
@@ -2234,10 +2297,12 @@ input[type="number"] {
     renderMemoSuggestions();
     renderCards();
 
-    // Focus the amount field of the first card on load
+    // Focus the amount field of the first card on load (desktop only)
     setTimeout(() => {
-      const firstAmount = els.cardRail.querySelector(".card-total-input");
-      if (firstAmount) firstAmount.focus();
+      if (window.innerWidth >= 640) {
+        const firstAmount = els.cardRail.querySelector(".card-total-input");
+        if (firstAmount) firstAmount.focus();
+      }
     }, 100);
 
     if (state.token) {
@@ -2247,4 +2312,3 @@ input[type="number"] {
   </script>
 </body>
 </html>
-  
