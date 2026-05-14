@@ -199,6 +199,26 @@ input[type="number"] {
     flex: 1 !important;
     text-align: center !important;
   }
+
+  /* Prevent iOS auto-zoom on input focus (triggered when font-size < 16px) */
+  @media (max-width: 640px) {
+    input[type="text"],
+    input[type="number"],
+    input[type="password"],
+    input[type="url"],
+    input[type="email"],
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+  }
+
+  /* Flatpickr wrapper must not escape its grid cell */
+  .flatpickr-wrapper {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
 }
   </style>
 </head>
@@ -387,6 +407,32 @@ input[type="number"] {
   <div id="toast"
     class="fixed bottom-6 right-6 translate-y-10 opacity-0 pointer-events-none transition-all duration-300 bg-emerald-500 text-black font-semibold px-5 py-3 rounded-2xl shadow-2xl z-50">
     Transaction created successfully.
+  </div>
+
+  <!-- ── Bottom sheet (mobile searchable dropdown) ── -->
+  <div id="bottomSheet"
+    class="fixed inset-0 z-[9999] hidden flex-col justify-end"
+    style="background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);">
+    <div id="bottomSheetPanel"
+      class="bg-zinc-900 rounded-t-3xl flex flex-col"
+      style="max-height: 80vh; transform: translateY(100%); transition: transform 0.28s cubic-bezier(0.32,0.72,0,1);">
+      <!-- Handle bar -->
+      <div class="flex justify-center pt-3 pb-1 shrink-0">
+        <div class="w-10 h-1 rounded-full bg-zinc-700"></div>
+      </div>
+      <!-- Search input -->
+      <div class="px-4 pb-3 shrink-0">
+        <input id="bottomSheetSearch" type="text" autocomplete="off"
+          placeholder="Search…"
+          class="w-full rounded-2xl bg-zinc-950 border border-zinc-700 px-4 py-3 text-base text-zinc-100
+                 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+      </div>
+      <!-- Options list -->
+      <div id="bottomSheetList"
+        class="overflow-y-auto flex-1 px-2 pb-6"
+        style="overscroll-behavior: contain; -webkit-overflow-scrolling: touch;">
+      </div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -709,6 +755,103 @@ input[type="number"] {
 
     // ── Searchable dropdown (reusable, card-scoped) ───────────────────────────
 
+    // ── Mobile detection ──────────────────────────────────────────────────────
+    function isMobile() { return window.innerWidth < 640; }
+
+    // ── Bottom sheet (mobile replacement for floating portal) ─────────────────
+
+    const _bs = {
+      overlay:   document.getElementById("bottomSheet"),
+      panel:     document.getElementById("bottomSheetPanel"),
+      search:    document.getElementById("bottomSheetSearch"),
+      list:      document.getElementById("bottomSheetList"),
+      onSelect:  null,   // callback(item)
+      items:     [],     // full item list for current invocation
+      getUsage:  null,
+    };
+
+    function _bsRender(filter) {
+      const q = filter.toLowerCase();
+      const filtered = _bs.items
+        .filter(item => item.name.toLowerCase().includes(q))
+        .sort((a, b) => (_bs.getUsage ? _bs.getUsage(b) - _bs.getUsage(a) : 0));
+
+      _bs.list.innerHTML = "";
+      if (!filtered.length) {
+        _bs.list.innerHTML = '<p class="px-4 py-6 text-sm text-zinc-500 text-center">No results</p>';
+        return;
+      }
+      filtered.forEach(item => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "w-full text-left px-4 py-3.5 text-base text-zinc-100 rounded-2xl active:bg-zinc-800 hover:bg-zinc-800 transition-colors";
+        btn.textContent = item.name;
+        btn.addEventListener("click", () => {
+          _bsClose();
+          if (_bs.onSelect) _bs.onSelect(item);
+        });
+        _bs.list.appendChild(btn);
+      });
+    }
+
+    function openBottomSheet({ items, getUsage, onSelect, placeholder }) {
+      _bs.items    = items;
+      _bs.getUsage = getUsage || null;
+      _bs.onSelect = onSelect;
+
+      _bs.search.value       = "";
+      _bs.search.placeholder = placeholder || "Search…";
+      _bsRender("");
+
+      _bs.overlay.classList.remove("hidden");
+      _bs.overlay.classList.add("flex");
+
+      // Animate in
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          _bs.panel.style.transform = "translateY(0)";
+        });
+      });
+
+      // Focus search after animation
+      setTimeout(() => _bs.search.focus(), 120);
+    }
+
+    function _bsClose() {
+      _bs.panel.style.transform = "translateY(100%)";
+      setTimeout(() => {
+        _bs.overlay.classList.add("hidden");
+        _bs.overlay.classList.remove("flex");
+        _bs.list.innerHTML = "";
+      }, 280);
+    }
+
+    // Search input wiring
+    _bs.search.addEventListener("input", () => _bsRender(_bs.search.value));
+
+    // Close on backdrop tap
+    _bs.overlay.addEventListener("click", e => {
+      if (e.target === _bs.overlay) _bsClose();
+    });
+
+    // Swipe down to close
+    let _bsTouchStartY = 0;
+    _bs.panel.addEventListener("touchstart", e => {
+      _bsTouchStartY = e.touches[0].clientY;
+    }, { passive: true });
+    _bs.panel.addEventListener("touchmove", e => {
+      const dy = e.touches[0].clientY - _bsTouchStartY;
+      if (dy > 0) _bs.panel.style.transform = `translateY(${dy}px)`;
+    }, { passive: true });
+    _bs.panel.addEventListener("touchend", e => {
+      const dy = e.changedTouches[0].clientY - _bsTouchStartY;
+      if (dy > 80) {
+        _bsClose();
+      } else {
+        _bs.panel.style.transform = "translateY(0)";
+      }
+    });
+
     // ── Shared floating dropdown portal ──────────────────────────────────────
     // One dropdown element lives on <body> at z-index 9999.
     // It's repositioned under whichever input is active.
@@ -765,10 +908,22 @@ input[type="number"] {
     });
 
     function setupSearchableDropdown({ inputEl, dropdownEl, optionsEl, items, getUsage, onSelect }) {
-      // dropdownEl / optionsEl are kept in the DOM for structural reasons
-      // but we render into the portal instead
+      // Mobile: tap → bottom sheet (no keyboard). Desktop: floating portal.
       let activeIndex = -1;
       let filtered    = [];
+
+      function openMobileSheet() {
+        inputEl.blur(); // prevent keyboard
+        openBottomSheet({
+          items:       items(),
+          getUsage:    getUsage || null,
+          placeholder: inputEl.placeholder || "Search…",
+          onSelect: (item) => {
+            inputEl.value = item.name;
+            if (onSelect) onSelect(item);
+          }
+        });
+      }
 
       function renderOptions(filter = "") {
         filtered = items()
@@ -789,7 +944,7 @@ input[type="number"] {
           btn.className = "dropdown-option w-full text-left px-4 py-3 text-sm hover:bg-zinc-800 text-zinc-100";
           btn.textContent = item.name;
           btn.addEventListener("mousedown", e => {
-            e.preventDefault(); // prevent blur before click
+            e.preventDefault();
             inputEl.value = item.name;
             closePortal();
             if (onSelect) onSelect(item);
@@ -810,25 +965,31 @@ input[type="number"] {
       }
 
       inputEl.addEventListener("focus", () => {
+        if (isMobile()) { openMobileSheet(); return; }
         inputEl.select();
         renderOptions(inputEl.value);
         openPortal(inputEl);
       });
 
+      inputEl.addEventListener("click", () => {
+        if (isMobile()) openMobileSheet();
+      });
+
       inputEl.addEventListener("input", () => {
+        if (isMobile()) return;
         renderOptions(inputEl.value);
         openPortal(inputEl);
       });
 
       inputEl.addEventListener("blur", () => {
-        // Small delay so mousedown on option fires first
+        if (isMobile()) return;
         setTimeout(() => {
           if (_portalOwner === inputEl) closePortal();
         }, 150);
       });
 
       inputEl.addEventListener("keydown", e => {
-        if (_portalOwner !== inputEl) return;
+        if (isMobile() || _portalOwner !== inputEl) return;
         if (e.key === "ArrowDown") {
           e.preventDefault();
           activeIndex = Math.min(activeIndex + 1, filtered.length - 1);
@@ -994,7 +1155,7 @@ input[type="number"] {
 
               <!-- Account / Date -->
               <div class="grid grid-cols-2 gap-3">
-                <div class="space-y-1 relative">
+                <div class="space-y-1 relative min-w-0">
                   <label class="text-xs text-zinc-400">Account</label>
                   <input type="text" value="${card.accountName.replace(/"/g,'&quot;')}" autocomplete="off" placeholder="Search account"
                     class="card-account-input w-full rounded-2xl bg-zinc-950 border border-zinc-700 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
@@ -1002,10 +1163,10 @@ input[type="number"] {
                     <div class="card-account-options max-h-56 overflow-y-auto py-2 custom-scrollbar"></div>
                   </div>
                 </div>
-                <div class="space-y-1">
+                <div class="space-y-1 min-w-0 overflow-hidden">
                   <label class="text-xs text-zinc-400">Date</label>
                   <input type="text" value="${card.date}" placeholder="Select date"
-                    class="card-date-input w-full rounded-2xl bg-zinc-950 border border-zinc-700 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    class="card-date-input w-full min-w-0 rounded-2xl bg-zinc-950 border border-zinc-700 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
                 </div>
               </div>
 
@@ -1240,13 +1401,41 @@ input[type="number"] {
         });
       }
 
-      // Category searchable dropdowns — use the shared portal
+      // Category searchable dropdowns — use the shared portal (desktop) or bottom sheet (mobile)
       cardEl.querySelectorAll(".category-input").forEach(inputEl => {
         const ri         = Number(inputEl.dataset.rowIndex);
         const rowWrapper = inputEl.closest(".split-row");
 
         let activeIndex = -1;
         let filtered    = [];
+
+        function clearSuggestion() {
+          if (card.splitRows[ri].suggestedCategoryId) {
+            card.splitRows[ri].suggestedCategoryId = "";
+            const overlay   = rowWrapper.querySelector(".category-suggestion");
+            const acceptBtn = rowWrapper.querySelector(".accept-suggestion-btn");
+            if (overlay)   overlay.remove();
+            if (acceptBtn) acceptBtn.remove();
+            inputEl.classList.remove("border-amber-600/50");
+            inputEl.classList.add("border-zinc-700");
+          }
+        }
+
+        function openMobileCategorySheet() {
+          inputEl.blur();
+          const sortedCats = getSortedCategories(card.payeeName);
+          openBottomSheet({
+            items:       sortedCats,
+            getUsage:    null,
+            placeholder: "Search category…",
+            onSelect: (cat) => {
+              inputEl.value = cat.name;
+              card.splitRows[ri].categoryId      = cat.id;
+              card.splitRows[ri].categoryAutoSet = false;
+              clearSuggestion();
+            }
+          });
+        }
 
         function renderCategoryOptions(filter = "") {
           const sortedCats = getSortedCategories(card.payeeName);
@@ -1285,28 +1474,26 @@ input[type="number"] {
         }
 
         inputEl.addEventListener("focus", () => {
+          if (isMobile()) { openMobileCategorySheet(); return; }
           inputEl.select();
           renderCategoryOptions(inputEl.value);
           openPortal(inputEl);
         });
 
+        inputEl.addEventListener("click", () => {
+          if (isMobile()) openMobileCategorySheet();
+        });
+
         inputEl.addEventListener("input", () => {
+          if (isMobile()) return;
           renderCategoryOptions(inputEl.value);
           openPortal(inputEl);
           card.splitRows[ri].categoryId = "";
-          if (card.splitRows[ri].suggestedCategoryId) {
-            card.splitRows[ri].suggestedCategoryId = "";
-            const overlay   = rowWrapper.querySelector(".category-suggestion");
-            const acceptBtn = rowWrapper.querySelector(".accept-suggestion-btn");
-            if (overlay)   overlay.remove();
-            if (acceptBtn) acceptBtn.remove();
-            inputEl.classList.remove("border-amber-600/50");
-            inputEl.classList.add("border-zinc-700");
-          }
+          clearSuggestion();
         });
 
         inputEl.addEventListener("keydown", e => {
-          if (_portalOwner !== inputEl) return;
+          if (isMobile() || _portalOwner !== inputEl) return;
           if (e.key === "ArrowDown") {
             e.preventDefault();
             activeIndex = Math.min(activeIndex + 1, filtered.length - 1);
@@ -1330,6 +1517,7 @@ input[type="number"] {
         });
 
         inputEl.addEventListener("blur", () => {
+          if (isMobile()) return;
           setTimeout(() => {
             if (_portalOwner === inputEl) {
               closePortal();
