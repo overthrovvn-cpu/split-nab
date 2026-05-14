@@ -241,9 +241,23 @@ input[type="number"] {
     box-sizing: border-box !important;
   }
 
-  /* Stack account + date vertically on mobile so date gets full width */
-  .grid.sm\\:grid-cols-2 {
-    grid-template-columns: 1fr !important;
+  /* Native date input on mobile — left-aligned, no excess padding */
+  input[type="date"].card-date-input {
+    text-align: left !important;
+    padding-left: 0.75rem !important;
+    padding-right: 0.5rem !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    color: #f4f4f5 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Remove the native date picker arrow/icon extra space on iOS */
+  input[type="date"].card-date-input::-webkit-date-and-time-value {
+    text-align: left !important;
+    margin: 0 !important;
   }
 }
   </style>
@@ -1262,6 +1276,33 @@ input[type="number"] {
         </div>`;
     }
 
+    // ── Date input initializer ────────────────────────────────────────────────
+    // On mobile: use a plain <input type="date"> — no flatpickr wrapper,
+    // no padding issues, left-aligned value, native iOS date wheel.
+    // On desktop: use flatpickr for the custom dark calendar.
+
+    function initDateInput(inputEl, cardIndex) {
+      if (isMobile()) {
+        // Switch to native date input — no flatpickr wrapper, no sizing issues
+        inputEl.type  = "date";
+        inputEl.value = state.txCards[cardIndex]?.date || todayString();
+        inputEl.classList.remove("flatpickr-input");
+        inputEl.addEventListener("change", () => {
+          if (inputEl.value) state.txCards[cardIndex].date = inputEl.value;
+        });
+      } else {
+        flatpickr(inputEl, {
+          dateFormat: "Y-m-d",
+          defaultDate: state.txCards[cardIndex]?.date || new Date(),
+          disableMobile: true,
+          animate: true,
+          onChange: (_, dateStr) => {
+            state.txCards[cardIndex].date = dateStr;
+          }
+        });
+      }
+    }
+
     function renderCards() {
       els.cardRail.innerHTML = "";
 
@@ -1280,15 +1321,7 @@ input[type="number"] {
         els.cardRail.appendChild(cardEl);
         attachCardListeners(ci, cardEl);
         const dateInput = cardEl.querySelector(".card-date-input");
-        flatpickr(dateInput, {
-          dateFormat: "Y-m-d",
-          defaultDate: card.date || new Date(),
-          disableMobile: false,
-          animate: true,
-          onChange: (selectedDates, dateStr) => {
-            state.txCards[ci].date = dateStr;
-          }
-        });
+        initDateInput(dateInput, ci);
         renderPresetButtonsForCard(ci, cardEl);
         updateCardTotals(ci, cardEl);
       });
@@ -1780,13 +1813,7 @@ input[type="number"] {
       }
 
       attachCardListeners(ci, cardEl);
-      flatpickr(cardEl.querySelector(".card-date-input"), {
-        dateFormat: "Y-m-d",
-        defaultDate: state.txCards[ci].date || new Date(),
-        disableMobile: false,
-        animate: true,
-        onChange: (_, dateStr) => { state.txCards[ci].date = dateStr; }
-      });
+      initDateInput(cardEl.querySelector(".card-date-input"), ci);
       renderPresetButtonsForCard(ci, cardEl);
       updateCardTotals(ci, cardEl);
 
@@ -2444,13 +2471,7 @@ input[type="number"] {
         els.cardRail.insertBefore(cardEl, els.cardRail.lastElementChild);
 
         attachCardListeners(ci, cardEl);
-        flatpickr(cardEl.querySelector(".card-date-input"), {
-          dateFormat: "Y-m-d",
-          defaultDate: card.date || new Date(),
-          disableMobile: false,
-          animate: true,
-          onChange: (_, dateStr) => { state.txCards[ci].date = dateStr; }
-        });
+        initDateInput(cardEl.querySelector(".card-date-input"), ci);
         renderPresetButtonsForCard(ci, cardEl);
         updateCardTotals(ci, cardEl);
       });
