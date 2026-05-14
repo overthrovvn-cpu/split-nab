@@ -1,0 +1,2249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>YNAB Split Transaction Helper</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <style>
+.preset-scroll-wrapper { position: relative; }
+.preset-scroll-wrapper::after {
+  content: "";
+  position: absolute;
+  top: 0; right: 0;
+  width: 48px; height: 100%;
+  pointer-events: none;
+  background: linear-gradient(to right, rgba(24,24,27,0), rgba(24,24,27,1));
+}
+.flatpickr-calendar { background: #18181b; border: 1px solid #3f3f46; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+.flatpickr-months .flatpickr-month,
+.flatpickr-current-month,
+.flatpickr-current-month input.cur-year,
+.flatpickr-monthDropdown-months,
+.flatpickr-weekdays,
+.flatpickr-weekday,
+.flatpickr-day,
+.flatpickr-time input,
+.flatpickr-time .flatpickr-am-pm { color: #f4f4f5 !important; }
+.flatpickr-current-month input.cur-year::selection { background: #10b981; }
+.flatpickr-monthDropdown-months:hover,
+.flatpickr-current-month input.cur-year:hover { background: #27272a; }
+.flatpickr-day:hover { background: #27272a; }
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
+.flatpickr-day.endRange { background: #10b981; border-color: #10b981; color: black !important; }
+.flatpickr-day.today { border-color: #10b981; }
+.flatpickr-day.today:hover { background: #10b981; color: black !important; }
+.flatpickr-prev-month svg, .flatpickr-next-month svg { fill: #f4f4f5; }
+.flatpickr-prev-month:hover svg, .flatpickr-next-month:hover svg { fill: #10b981; }
+.numInputWrapper span { color: #f4f4f5; }
+.numInputWrapper span:hover { background: #27272a; }
+.flatpickr-time input:hover, .flatpickr-time .flatpickr-am-pm:hover { background: #27272a; }
+.flatpickr-time input:focus, .flatpickr-time .flatpickr-am-pm:focus { background: #27272a; outline: none; }
+.custom-scrollbar::-webkit-scrollbar { width: 8px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: #18181b; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 999px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #52525b; }
+.card-enter {
+  animation: cardEnter 0.25s ease forwards;
+}
+.card-exit {
+  animation: cardExit 0.2s ease forwards;
+}
+@keyframes cardEnter {
+  from { opacity: 0; transform: translateX(24px) scale(0.97); }
+  to   { opacity: 1; transform: translateX(0)    scale(1); }
+}
+@keyframes cardExit {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.95); }
+}
+.card-active {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+/* Hide number input spinners */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+* {
+  scrollbar-width: none;       /* Firefox */
+  -ms-overflow-style: none;    /* IE/Edge */
+}
+*::-webkit-scrollbar {
+  display: none;               /* Chrome/Safari/Opera */
+}
+.card-details {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease;
+  overflow: hidden;
+}
+.card-details.expanded {
+  grid-template-rows: 1fr;
+  overflow: visible;
+}
+.card-details-inner {
+  min-height: 0;
+  overflow: visible;
+}
+.memo-expand {
+  transition: height 0.2s ease;
+  height: 2.375rem;
+  resize: none;
+  overflow: hidden;
+  display: block;
+}
+.memo-expand:focus {
+  height: 5rem;
+  overflow-y: auto;
+}
+  </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col">
+
+  <!-- Main content — pushed toward upper-center with overflow room for dropdowns -->
+  <div class="flex-1 flex flex-col items-center px-6 pt-16 pb-64 space-y-8" style="overflow: visible;">
+
+    <!-- Title + Add button -->
+    <div class="flex items-center gap-4">
+      <h1 class="text-5xl font-bold tracking-tight text-white">Split-NAB</h1>
+      <button id="addCardBtn"
+        class="w-10 h-10 rounded-2xl bg-zinc-800 hover:bg-emerald-500 hover:text-black
+               transition-all flex items-center justify-center text-xl text-zinc-300
+               border border-dashed border-zinc-700 cursor-pointer shrink-0"
+        title="Add transaction  ·  Drop xlsx / csv to import">
+        +
+      </button>
+    </div>
+
+    <!-- Card rail — overflow visible so dropdowns escape freely -->
+    <div class="w-full overflow-visible">
+      <div id="cardRailScroll"
+     class="overflow-x-auto overflow-y-visible pb-3 pt-2 w-screen px-6" style="scroll-snap-type: x mandatory; overflow-y: visible;">
+        <div id="cardRail"
+  class="flex gap-4 pt-2"
+  style="overflow: visible; width: max-content; margin: 0 auto;">
+        </div>
+      </div>
+    </div>
+
+    <!-- Action buttons — hidden until a card is expanded -->
+    <div id="actionBar" class="hidden flex-col items-center gap-3">
+      <div class="flex flex-wrap gap-3 items-center justify-center">
+        <button id="createTransactionBtn"
+          class="px-6 py-3 rounded-2xl bg-emerald-500 text-black font-semibold hover:bg-emerald-400 transition-colors">
+          Create Split Transaction
+        </button>
+        <button id="savePresetBtn"
+          class="px-6 py-3 rounded-2xl border border-zinc-700 hover:bg-zinc-800 transition-colors">
+          Save Preset
+        </button>
+      </div>
+      <label class="flex items-center gap-2 cursor-pointer select-none">
+        <div class="relative">
+          <input type="checkbox" id="splitwiseToggle" class="sr-only peer">
+          <div class="w-10 h-6 rounded-full bg-zinc-700 peer-checked:bg-emerald-500 transition-colors"></div>
+          <div class="absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform peer-checked:translate-x-4"></div>
+        </div>
+        <span class="text-sm text-zinc-300">Also log to Splitwise</span>
+      </label>
+    </div>
+
+    <!-- Splitwise panel -->
+    <div id="splitwisePanel" class="hidden w-full max-w-xl rounded-2xl border border-zinc-700 bg-zinc-900 p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="space-y-0.5">
+          <p class="text-sm font-semibold text-zinc-200">Splitwise</p>
+          <p id="splitwiseStatus" class="text-xs text-zinc-500">Loading friends&hellip;</p>
+        </div>
+        <div id="splitwiseUserBadge" class="hidden text-xs bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-1.5 text-zinc-300"></div>
+      </div>
+      <p class="text-xs text-zinc-500">
+        Assign each split entry to yourself or a friend. One grouped Splitwise expense will be created &mdash; you paid the full amount, each person owes their assigned portion.
+      </p>
+      <div class="rounded-xl bg-zinc-950 border border-zinc-700 px-4 py-3 text-xs text-zinc-400 space-y-1">
+        <p class="font-semibold text-zinc-300">Proxy required</p>
+        <p>Run <code class="bg-zinc-800 px-1 py-0.5 rounded text-zinc-200">python3 splitwise_proxy.py</code> from the project folder to enable Splitwise calls.</p>
+      </div>
+    </div>
+
+    <!-- Settings panel (expands above the footer bar) -->
+    <div id="settingsPanel" class="hidden w-full max-w-xl space-y-5">
+      <div class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-end">
+        <div class="space-y-2">
+          <label class="text-sm text-zinc-400">YNAB Personal Access Token</label>
+          <input id="tokenInput" type="password"
+            class="w-full rounded-2xl bg-zinc-900 border border-zinc-700 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            placeholder="Paste your YNAB token">
+        </div>
+        <button id="connectBtn"
+          class="px-6 py-3 rounded-2xl bg-emerald-500 text-black font-semibold hover:bg-emerald-400 transition-colors">
+          Connect
+        </button>
+      </div>
+      <div class="space-y-2">
+        <label class="text-sm text-zinc-400">Budget</label>
+        <select id="globalBudgetSelect"
+          class="w-full rounded-2xl bg-zinc-900 border border-zinc-700 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          <option value="">Select Budget</option>
+        </select>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer bar — fixed bottom, settings icon left + status bubble beside it -->
+  <div class="fixed bottom-0 left-0 right-0 flex items-center gap-3 px-6 py-4 pointer-events-none">
+    <div class="flex items-center gap-3 pointer-events-auto">
+      <button id="settingsToggleBtn"
+        class="w-9 h-9 rounded-2xl bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700
+               flex items-center justify-center text-zinc-500 hover:text-zinc-300 transition-colors"
+        title="Settings">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+      </button>
+      <div id="statusBox"
+        class="rounded-2xl bg-zinc-900 border border-zinc-800 px-3 py-1.5 text-xs text-zinc-500 max-w-xs truncate">
+        Not connected.
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden mobile status (kept for setStatus compat) -->
+  <div id="statusBoxMobile" class="hidden"></div>
+
+  <!-- Import account picker modal -->
+  <div id="importModal"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-6 w-full max-w-sm mx-4 space-y-5 shadow-2xl">
+      <div class="space-y-1">
+        <h2 class="text-lg font-semibold">Import Transactions</h2>
+        <p id="importModalDesc" class="text-sm text-zinc-400"></p>
+      </div>
+      <div class="space-y-2">
+        <label class="text-sm text-zinc-400">Assign to Account</label>
+        <div class="relative">
+          <input id="importAccountInput" type="text" autocomplete="off" placeholder="Search account"
+            class="w-full rounded-2xl bg-zinc-950 border border-zinc-700 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          <div id="importAccountDropdown"
+            class="absolute z-50 mt-1 w-full hidden bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl overflow-hidden">
+            <div id="importAccountOptions" class="max-h-48 overflow-y-auto py-2 custom-scrollbar"></div>
+          </div>
+        </div>
+      </div>
+      <div class="flex gap-3 justify-end">
+        <button id="importCancelBtn"
+          class="px-5 py-2.5 rounded-2xl border border-zinc-700 hover:bg-zinc-800 transition-colors text-sm">
+          Cancel
+        </button>
+        <button id="importConfirmBtn"
+          class="px-5 py-2.5 rounded-2xl bg-emerald-500 text-black font-semibold hover:bg-emerald-400 transition-colors text-sm">
+          Import
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"
+    class="fixed bottom-6 right-6 translate-y-10 opacity-0 pointer-events-none transition-all duration-300 bg-emerald-500 text-black font-semibold px-5 py-3 rounded-2xl shadow-2xl z-50">
+    Transaction created successfully.
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script>
+
+    const API_BASE = "https://api.ynab.com/v1";
+    const SW_API_BASE = "http://localhost:5001/splitwise"; // local proxy only — not used on mobile
+    const SW_API_KEY = ""; // removed — set locally if running the desktop proxy
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    function todayString() {
+      const d = new Date();
+      return d.toISOString().slice(0, 10);
+    }
+
+    function makeCard(overrides = {}) {
+      return {
+        budgetId:    overrides.budgetId    || "",
+        accountName: overrides.accountName || "",
+        payeeName:   overrides.payeeName   || "",
+        date:        overrides.date        || todayString(),
+        totalAmount: overrides.totalAmount || "",
+        memo:        overrides.memo        || "",
+        flag:        overrides.flag        || "",
+        splitRows: [{ categoryId: "", amount: "", memo: "", splitwiseUserId: "", categoryAutoSet: false, suggestedCategoryId: "" }]
+      };
+    }
+
+    // ── State ─────────────────────────────────────────────────────────────────
+
+    const state = {
+      token:    localStorage.getItem("ynab_token") || "",
+      budgets:  [],
+      accounts: [],
+      categories: [],
+      transactions: [],
+      payees: [],
+      memos: JSON.parse(localStorage.getItem("ynab_memo_history") || "[]"),
+      usage: {},
+      activeCardIndex: 0,
+      txCards: [ makeCard() ],
+      splitwise: {
+        enabled: false,
+        currentUser: null,
+        friends: []
+      }
+    };
+
+    // ── els (only global/singleton elements) ─────────────────────────────────
+
+    const els = {
+      tokenInput:           document.getElementById("tokenInput"),
+      connectBtn:           document.getElementById("connectBtn"),
+      statusBox:            document.getElementById("statusBox"),
+      statusBoxMobile:      document.getElementById("statusBoxMobile"),
+      cardRail:             document.getElementById("cardRail"),
+      addCardBtn:           document.getElementById("addCardBtn"),
+      actionBar:            document.getElementById("actionBar"),
+      createTransactionBtn: document.getElementById("createTransactionBtn"),
+      savePresetBtn:        document.getElementById("savePresetBtn"),
+      splitwiseToggle:      document.getElementById("splitwiseToggle"),
+      splitwisePanel:       document.getElementById("splitwisePanel"),
+      splitwiseStatus:      document.getElementById("splitwiseStatus"),
+      splitwiseUserBadge:   document.getElementById("splitwiseUserBadge"),
+      globalBudgetSelect:   document.getElementById("globalBudgetSelect"),
+      settingsToggleBtn:    document.getElementById("settingsToggleBtn"),
+      settingsPanel:        document.getElementById("settingsPanel")
+    };
+
+    els.tokenInput.value = state.token;
+
+    // ── Status / Toast ────────────────────────────────────────────────────────
+
+    function setStatus(message, error = false) {
+      els.statusBox.textContent = message;
+      els.statusBox.className =
+        "rounded-2xl bg-zinc-900 border px-3 py-1.5 text-xs max-w-xs truncate " +
+        (error ? "border-red-700 text-red-400" : "border-zinc-800 text-zinc-500");
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.remove("opacity-0", "translate-y-10", "pointer-events-none");
+      toast.classList.add("opacity-100", "translate-y-0");
+      setTimeout(() => {
+        toast.classList.remove("opacity-100", "translate-y-0");
+        toast.classList.add("opacity-0", "translate-y-10", "pointer-events-none");
+      }, 2500);
+    }
+
+    // ── Utility ───────────────────────────────────────────────────────────────
+
+    function buildUsageMaps(transactions) {
+      const accountUsage = {}, payeeUsage = {}, categoryUsage = {};
+      const payeeCategoryMap = {}, payeeAccountMap = {};
+      for (const t of transactions) {
+        if (t.account_id) accountUsage[t.account_id] = (accountUsage[t.account_id] || 0) + 1;
+        if (t.payee_name)  payeeUsage[t.payee_name]  = (payeeUsage[t.payee_name]  || 0) + 1;
+        if (t.payee_name && t.account_id) {
+          if (!payeeAccountMap[t.payee_name]) payeeAccountMap[t.payee_name] = {};
+          payeeAccountMap[t.payee_name][t.account_id] = (payeeAccountMap[t.payee_name][t.account_id] || 0) + 1;
+        }
+        if (t.subtransactions?.length) {
+          for (const st of t.subtransactions) {
+            if (st.category_id) {
+              categoryUsage[st.category_id] = (categoryUsage[st.category_id] || 0) + 1;
+              if (t.payee_name) {
+                if (!payeeCategoryMap[t.payee_name]) payeeCategoryMap[t.payee_name] = {};
+                payeeCategoryMap[t.payee_name][st.category_id] = (payeeCategoryMap[t.payee_name][st.category_id] || 0) + 1;
+              }
+            }
+          }
+        } else if (t.category_id) {
+          categoryUsage[t.category_id] = (categoryUsage[t.category_id] || 0) + 1;
+          if (t.payee_name) {
+            if (!payeeCategoryMap[t.payee_name]) payeeCategoryMap[t.payee_name] = {};
+            payeeCategoryMap[t.payee_name][t.category_id] = (payeeCategoryMap[t.payee_name][t.category_id] || 0) + 1;
+          }
+        }
+      }
+      return { accountUsage, payeeUsage, categoryUsage, payeeCategoryMap, payeeAccountMap };
+    }
+
+    function formatPHP(value) {
+      return new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(value || 0);
+    }
+
+    function amountToMilliunits(value) {
+      return Math.round(Number(value) * 1000);
+    }
+
+    function getSortedCategories(payeeName) {
+      const globalUsage  = state.usage?.categoryUsage   || {};
+      const payeeMap     = state.usage?.payeeCategoryMap || {};
+      const payeeUsage   = payeeName ? (payeeMap[payeeName] || {}) : {};
+      const hasPayeeData = Object.keys(payeeUsage).length > 0;
+      return state.categories.slice().sort((a, b) => {
+        if (hasPayeeData) {
+          const scoreA = (payeeUsage[a.id] || 0) * 10 + (globalUsage[a.id] || 0);
+          const scoreB = (payeeUsage[b.id] || 0) * 10 + (globalUsage[b.id] || 0);
+          return scoreB - scoreA;
+        }
+        return (globalUsage[b.id] || 0) - (globalUsage[a.id] || 0);
+      });
+    }
+
+    // ── YNAB API ──────────────────────────────────────────────────────────────
+
+    async function ynabFetch(endpoint, options = {}) {
+      const response = await fetch(API_BASE + endpoint, {
+        ...options,
+        headers: {
+          "Authorization": "Bearer " + state.token,
+          "Content-Type": "application/json",
+          ...(options.headers || {})
+        }
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error?.detail || "YNAB API request failed");
+      return data;
+    }
+
+    async function connectYNAB() {
+      try {
+        const token = els.tokenInput.value.trim();
+        if (!token) { setStatus("Please enter a YNAB token.", true); return; }
+        state.token = token;
+        localStorage.setItem("ynab_token", token);
+        setStatus("Connecting to YNAB...");
+        const result = await ynabFetch("/budgets");
+        state.budgets = result.data.budgets || [];
+        renderBudgets();
+        setStatus("Connected successfully. Loaded " + state.budgets.length + " budget(s).");
+      } catch (err) {
+        console.error(err);
+        setStatus(err.message, true);
+      }
+    }
+
+    function renderBudgets() {
+      // Populate the global budget select in settings
+      const prev = els.globalBudgetSelect.value;
+      els.globalBudgetSelect.innerHTML = '<option value="">Select Budget</option>';
+      state.budgets.forEach(b => {
+        const opt = document.createElement("option");
+        opt.value = b.id; opt.textContent = b.name;
+        els.globalBudgetSelect.appendChild(opt);
+      });
+      if (prev) els.globalBudgetSelect.value = prev;
+
+      const lastBudgetId = localStorage.getItem("ynab_last_budget");
+      if (lastBudgetId) {
+        const match = state.budgets.find(b => b.id === lastBudgetId);
+        if (match) {
+          els.globalBudgetSelect.value = lastBudgetId;
+          state.txCards.forEach(c => { if (!c.budgetId) c.budgetId = lastBudgetId; });
+          // Don't call renderCards here — loadBudgetData will do it
+          loadBudgetData(lastBudgetId);
+        }
+      }
+    }
+
+    async function loadBudgetData(budgetId) {
+      try {
+        setStatus("Loading accounts and categories...");
+        const [accountsResult, categoriesResult, payeesResult, transactionsResult] = await Promise.all([
+          ynabFetch(`/budgets/${budgetId}/accounts`),
+          ynabFetch(`/budgets/${budgetId}/categories`),
+          ynabFetch(`/budgets/${budgetId}/payees`),
+          ynabFetch(`/budgets/${budgetId}/transactions`)
+        ]);
+        state.accounts     = accountsResult.data.accounts || [];
+        state.payees       = payeesResult.data.payees || [];
+        state.categories   = [];
+        state.transactions = transactionsResult.data.transactions || [];
+
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 30);
+        const recentTransactions = state.transactions.filter(t => t.date && new Date(t.date) >= cutoff);
+        state.usage        = buildUsageMaps(recentTransactions);
+        state.usageAllTime = buildUsageMaps(state.transactions);
+
+        (categoriesResult.data.category_groups || []).forEach(group => {
+          (group.categories || []).forEach(cat => {
+            if (!cat.hidden && !cat.deleted) state.categories.push(cat);
+          });
+        });
+
+        renderMemoSuggestions();
+        refreshCardsData();
+
+        // Re-focus amount field if nothing else is focused
+        if (!document.activeElement || document.activeElement === document.body) {
+          const firstAmount = els.cardRail.querySelector(".card-total-input");
+          if (firstAmount) firstAmount.focus();
+        }
+
+        setStatus(`Loaded ${state.accounts.length} accounts and ${state.categories.length} categories.`);
+      } catch (err) {
+        console.error(err);
+        setStatus(err.message, true);
+      }
+    }
+
+    // ── Memo suggestions ─────────────────────────────────────────────────────
+
+    // Refresh card data after budget loads without re-rendering cards
+    // (preserves focus, input values, and card state)
+    function refreshCardsData() {
+      state.txCards.forEach((card, ci) => {
+        const cardEl = els.cardRail.querySelector(`[data-card-index="${ci}"]`);
+        if (!cardEl) return;
+
+        // If card has a payee, re-apply defaults silently
+        if (card.payeeName) {
+          const categoryMap = state.usage?.payeeCategoryMap?.[card.payeeName];
+          const accountMap  = state.usage?.payeeAccountMap?.[card.payeeName];
+
+          // Auto-fill account if still blank
+          if (accountMap && !card.accountName.trim()) {
+            const topAccountId = Object.entries(accountMap).sort((a,b) => b[1]-a[1])[0]?.[0];
+            const topAccount   = topAccountId && state.accounts.find(a => a.id === topAccountId && !a.closed && !a.deleted);
+            if (topAccount) {
+              card.accountName = topAccount.name;
+              const accountInput = cardEl.querySelector(".card-account-input");
+              if (accountInput) accountInput.value = topAccount.name;
+            }
+          }
+
+          // Auto-fill empty/auto-set split row categories
+          if (categoryMap) {
+            const topCategoryId = Object.entries(categoryMap).sort((a,b) => b[1]-a[1])[0]?.[0];
+            if (topCategoryId) {
+              card.splitRows.forEach(row => {
+                if (!row.categoryId || row.categoryAutoSet) {
+                  row.categoryId     = topCategoryId;
+                  row.categoryAutoSet = true;
+                }
+              });
+            }
+          }
+
+          // Re-render just the split rows (not the whole card)
+          renderSplits(ci, cardEl);
+
+          // Expand card if it has a payee but isn't expanded yet
+          expandCard(ci, cardEl);
+        }
+      });
+    }
+
+    function renderMemoSuggestions() {
+      // We use a shared datalist; each card's memo input references it by id
+      let dl = document.getElementById("sharedMemoList");
+      if (!dl) {
+        dl = document.createElement("datalist");
+        dl.id = "sharedMemoList";
+        document.body.appendChild(dl);
+      }
+      dl.innerHTML = "";
+      state.memos.forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m;
+        dl.appendChild(opt);
+      });
+    }
+
+    // ── Searchable dropdown (reusable, card-scoped) ───────────────────────────
+
+    // ── Shared floating dropdown portal ──────────────────────────────────────
+    // One dropdown element lives on <body> at z-index 9999.
+    // It's repositioned under whichever input is active.
+
+    const _portal = document.createElement("div");
+    _portal.id = "dropdownPortal";
+    _portal.className = "fixed z-[9999] hidden bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl overflow-hidden";
+    _portal.style.minWidth = "200px";
+    _portal.style.maxHeight = "240px";
+    _portal.style.overflowY = "auto";
+    document.body.appendChild(_portal);
+
+    let _portalOwner = null; // the inputEl currently using the portal
+
+    function positionPortal(inputEl) {
+      const rect = inputEl.getBoundingClientRect();
+      _portal.style.left  = rect.left + "px";
+      _portal.style.width = rect.width + "px";
+      // Open downward by default; flip up if not enough room
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const portalH    = Math.min(240, _portal.scrollHeight || 240);
+      if (spaceBelow < portalH + 8 && rect.top > portalH + 8) {
+        _portal.style.top    = (rect.top - portalH - 4) + "px";
+      } else {
+        _portal.style.top    = (rect.bottom + 4) + "px";
+      }
+    }
+
+    function openPortal(inputEl) {
+      _portalOwner = inputEl;
+      _portal.classList.remove("hidden");
+      positionPortal(inputEl);
+    }
+
+    function closePortal() {
+      _portal.classList.add("hidden");
+      _portal.innerHTML = "";
+      _portalOwner = null;
+    }
+
+    // Reposition on scroll/resize
+    window.addEventListener("scroll", () => {
+      if (_portalOwner) positionPortal(_portalOwner);
+    }, true);
+    window.addEventListener("resize", () => {
+      if (_portalOwner) positionPortal(_portalOwner);
+    });
+
+    // Close on outside click
+    document.addEventListener("mousedown", e => {
+      if (_portalOwner && e.target !== _portalOwner && !_portal.contains(e.target)) {
+        closePortal();
+      }
+    });
+
+    function setupSearchableDropdown({ inputEl, dropdownEl, optionsEl, items, getUsage, onSelect }) {
+      // dropdownEl / optionsEl are kept in the DOM for structural reasons
+      // but we render into the portal instead
+      let activeIndex = -1;
+      let filtered    = [];
+
+      function renderOptions(filter = "") {
+        filtered = items()
+          .filter(item => item.name.toLowerCase().includes(filter.toLowerCase()))
+          .sort((a, b) => (getUsage ? getUsage(b) - getUsage(a) : 0));
+
+        _portal.innerHTML = "";
+        activeIndex = -1;
+
+        if (!filtered.length) {
+          _portal.innerHTML = '<div class="px-4 py-3 text-sm text-zinc-500">No results found</div>';
+          return;
+        }
+
+        filtered.forEach(item => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "dropdown-option w-full text-left px-4 py-3 text-sm hover:bg-zinc-800 text-zinc-100";
+          btn.textContent = item.name;
+          btn.addEventListener("mousedown", e => {
+            e.preventDefault(); // prevent blur before click
+            inputEl.value = item.name;
+            closePortal();
+            if (onSelect) onSelect(item);
+          });
+          _portal.appendChild(btn);
+        });
+      }
+
+      function updateActiveOption() {
+        _portal.querySelectorAll(".dropdown-option").forEach((opt, i) => {
+          if (i === activeIndex) {
+            opt.classList.add("bg-emerald-500", "text-black");
+            opt.scrollIntoView({ block: "nearest" });
+          } else {
+            opt.classList.remove("bg-emerald-500", "text-black");
+          }
+        });
+      }
+
+      inputEl.addEventListener("focus", () => {
+        inputEl.select();
+        renderOptions(inputEl.value);
+        openPortal(inputEl);
+      });
+
+      inputEl.addEventListener("input", () => {
+        renderOptions(inputEl.value);
+        openPortal(inputEl);
+      });
+
+      inputEl.addEventListener("blur", () => {
+        // Small delay so mousedown on option fires first
+        setTimeout(() => {
+          if (_portalOwner === inputEl) closePortal();
+        }, 150);
+      });
+
+      inputEl.addEventListener("keydown", e => {
+        if (_portalOwner !== inputEl) return;
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          activeIndex = Math.min(activeIndex + 1, filtered.length - 1);
+          updateActiveOption();
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          activeIndex = Math.max(activeIndex - 1, 0);
+          updateActiveOption();
+        } else if (e.key === "Enter" && activeIndex >= 0) {
+          e.preventDefault();
+          const item = filtered[activeIndex];
+          inputEl.value = item.name;
+          closePortal();
+          if (onSelect) onSelect(item);
+        } else if (e.key === "Escape") {
+          closePortal();
+        }
+      });
+    }
+
+    // ── Card rendering ────────────────────────────────────────────────────────
+
+    // ── Flag colors (fetched from YNAB API flag_color field labels) ──────────
+    // YNAB API uses these exact string values for flag_color
+    const FLAG_COLORS = [
+      { value: "",         label: "No Flag",  color: "#52525b", fill: "none" },
+      { value: "red",      label: "Red",      color: "#ef4444", fill: "#ef4444" },
+      { value: "orange",   label: "Orange",   color: "#f97316", fill: "#f97316" },
+      { value: "yellow",   label: "Yellow",   color: "#facc15", fill: "#facc15" },
+      { value: "green",    label: "Green",    color: "#10b981", fill: "#10b981" },
+      { value: "blue",     label: "Blue",     color: "#3b82f6", fill: "#3b82f6" },
+      { value: "purple",   label: "Purple",   color: "#a855f7", fill: "#a855f7" }
+    ];
+
+    function flagBookmarkSVG(flagValue) {
+      const f = FLAG_COLORS.find(c => c.value === flagValue) || FLAG_COLORS[0];
+      const stroke = f.value ? f.color : "#52525b";
+      const fill   = f.value ? f.fill  : "none";
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18"
+        fill="${fill}" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+      </svg>`;
+    }
+
+    function flagDropdownHTML(currentFlag, ci) {
+      return FLAG_COLORS.map(f => `
+        <button type="button" data-flag-value="${f.value}" data-card-index="${ci}"
+          class="flag-option flex items-center gap-2 w-full px-3 py-2 text-xs hover:bg-zinc-800 rounded-xl transition-colors ${f.value === currentFlag ? "bg-zinc-800" : ""}">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="${f.value ? f.fill : "none"}"
+            stroke="${f.value ? f.color : "#52525b"}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+          </svg>
+          <span style="color:${f.value ? f.color : "#a1a1aa"}">${f.label}</span>
+        </button>`).join("");
+    }
+
+    function buildCategoryInputHTML(row, ri) {
+      const cats    = getSortedCategories("");
+      const catName = cats.find(c => c.id === row.categoryId)?.name || "";
+      const sugName = row.suggestedCategoryId
+        ? (state.categories.find(c => c.id === row.suggestedCategoryId)?.name || "")
+        : "";
+      const hasSuggestion = !row.categoryId && sugName;
+
+      return `
+        <div class="relative flex-1">
+          <input type="text"
+            value="${catName.replace(/"/g,'&quot;')}"
+            data-row-index="${ri}"
+            autocomplete="off"
+            placeholder="${hasSuggestion ? "" : "Search category"}"
+            class="category-input w-full rounded-xl bg-zinc-950 border ${hasSuggestion ? "border-amber-600/50" : "border-zinc-700"} px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          ${hasSuggestion ? `
+            <div class="category-suggestion pointer-events-none absolute inset-0 flex items-center px-3 py-2">
+              <span class="text-sm text-zinc-600 truncate">${sugName}</span>
+            </div>
+            <button type="button" data-row-index="${ri}" data-suggested-id="${row.suggestedCategoryId}" data-suggested-name="${sugName.replace(/"/g,'&quot;')}"
+              class="accept-suggestion-btn absolute right-2 top-1/2 -translate-y-1/2
+                     flex items-center gap-1 px-2 py-0.5 rounded-lg
+                     bg-amber-600/20 hover:bg-amber-600/40 border border-amber-600/40
+                     text-amber-400 text-xs transition-colors"
+              title="Accept suggestion: ${sugName.replace(/"/g,'&quot;')}">
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              Accept
+            </button>` : ""}
+          <div class="category-dropdown absolute z-40 mt-1 w-full hidden bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl overflow-hidden">
+            <div class="category-options max-h-48 overflow-y-auto py-1 custom-scrollbar"></div>
+          </div>
+        </div>`;
+    }
+
+    function buildCardHTML(card, ci) {
+
+      const splitRowsHTML = card.splitRows.map((row, ri) => {
+        const swSelect = state.splitwise.enabled ? `
+          <div class="flex items-center gap-2 pt-1">
+            <span class="text-xs text-zinc-500 shrink-0">Splitwise →</span>
+            <select data-row-index="${ri}" class="sw-user-select flex-1 rounded-2xl bg-zinc-900 border border-zinc-600 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none cursor-pointer">
+              ${getSplitwiseUserOptions(row.splitwiseUserId)}
+            </select>
+          </div>` : "";
+        return `
+          <div class="split-row bg-zinc-950 border border-zinc-800 rounded-2xl p-3 space-y-2">
+            <div class="flex gap-2 items-center">
+              ${buildCategoryInputHTML(row, ri)}
+              <input type="number" step="0.01" value="${row.amount}" data-row-index="${ri}" placeholder="0.00"
+                class="amount-input w-32 rounded-xl bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <button data-row-index="${ri}" class="remove-split-btn w-8 h-8 rounded-xl border border-zinc-700 flex items-center justify-center text-zinc-500 hover:bg-red-950 hover:border-red-700 hover:text-red-400 transition-colors shrink-0" title="Remove">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                </svg>
+              </button>
+            </div>
+            <textarea data-row-index="${ri}" placeholder="Split note (optional)"
+              class="split-memo-input memo-expand w-full rounded-xl bg-zinc-950 border border-zinc-700 px-3 py-1.5 text-xs text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >${(row.memo || "").replace(/</g,'&lt;')}</textarea>
+            ${swSelect}
+          </div>`;
+      }).join("");
+
+      const isExpanded = !!(card.payeeName || card.accountName || card.memo);
+      return `
+        <div class="w-[480px] shrink-0 bg-zinc-900 border border-zinc-800 rounded-3xl p-5 space-y-4 relative overflow-visible" data-card-index="${ci}" style="scroll-snap-align: start;">
+
+          <!-- Card top bar: flag bookmark (left) + remove card (right) -->
+          <div class="flex items-center justify-between">
+            <div class="relative">
+              <button class="card-flag-btn flex items-center gap-1.5 px-2 py-1 rounded-xl hover:bg-zinc-800 transition-colors" title="Set flag">
+                <span class="card-flag-icon">${flagBookmarkSVG(card.flag || "")}</span>
+                <span class="card-flag-label text-xs text-zinc-500">${FLAG_COLORS.find(f=>f.value===(card.flag||""))?.label || "No Flag"}</span>
+              </button>
+              <div class="card-flag-dropdown hidden absolute left-0 top-full mt-1 z-50 bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl p-1 w-36">
+                ${flagDropdownHTML(card.flag || "", ci)}
+              </div>
+            </div>
+            <button class="remove-card-btn w-7 h-7 rounded-xl bg-zinc-800 hover:bg-red-900 hover:text-red-300 text-zinc-400 text-sm flex items-center justify-center transition-colors ${state.txCards.length <= 1 ? "invisible" : ""}">
+              &times;
+            </button>
+          </div>
+
+          <!-- Always visible: Amount + Payee -->
+          <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-1">
+              <label class="text-xs text-zinc-400">Total Amount</label>
+              <input type="number" step="0.01" value="${card.totalAmount}" placeholder="0.00"
+                class="card-total-input w-full rounded-2xl bg-zinc-950 border border-zinc-700 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+            <div class="space-y-1 relative">
+              <label class="text-xs text-zinc-400">Payee</label>
+              <input type="text" value="${card.payeeName.replace(/"/g,'&quot;')}" autocomplete="off" placeholder="Search payee"
+                class="card-payee-input w-full rounded-2xl bg-zinc-950 border border-zinc-700 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <div class="card-payee-dropdown absolute z-40 mt-1 w-full hidden bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl overflow-hidden">
+                <div class="card-payee-options max-h-56 overflow-y-auto py-2 custom-scrollbar"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Collapsible details — shown once payee is filled -->
+          <div class="card-details ${isExpanded ? "expanded" : ""}" ${isExpanded ? 'style="overflow:visible"' : ""}>
+            <div class="card-details-inner space-y-4">
+
+              <!-- Account / Date -->
+              <div class="grid grid-cols-2 gap-3">
+                <div class="space-y-1 relative">
+                  <label class="text-xs text-zinc-400">Account</label>
+                  <input type="text" value="${card.accountName.replace(/"/g,'&quot;')}" autocomplete="off" placeholder="Search account"
+                    class="card-account-input w-full rounded-2xl bg-zinc-950 border border-zinc-700 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                  <div class="card-account-dropdown absolute z-40 mt-1 w-full hidden bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl overflow-hidden">
+                    <div class="card-account-options max-h-56 overflow-y-auto py-2 custom-scrollbar"></div>
+                  </div>
+                </div>
+                <div class="space-y-1">
+                  <label class="text-xs text-zinc-400">Date</label>
+                  <input type="text" value="${card.date}" placeholder="Select date"
+                    class="card-date-input w-full rounded-2xl bg-zinc-950 border border-zinc-700 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+              </div>
+
+              <!-- Memo -->
+              <div class="space-y-1">
+                <label class="text-xs text-zinc-400">Memo</label>
+                <textarea list="sharedMemoList" autocomplete="off" placeholder="Optional note"
+                  class="card-memo-input memo-expand w-full rounded-2xl bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >${(card.memo || "").replace(/</g,'&lt;')}</textarea>
+              </div>
+
+              <!-- Split entries header -->
+              <div class="flex items-center justify-between">
+                <h2 class="text-sm font-semibold text-zinc-300">Split Entries</h2>
+                <div class="flex gap-2">
+                  <button class="card-auto-balance-btn px-3 py-1.5 rounded-xl border border-zinc-700 hover:bg-zinc-800 transition-colors text-xs text-zinc-300">Auto Balance</button>
+                  <button class="card-add-split-btn px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 transition-colors text-xs text-zinc-300">+ Add Split</button>
+                </div>
+              </div>
+
+              <!-- Presets -->
+              <div class="card-preset-area">
+                <div class="card-preset-buttons flex flex-wrap gap-1.5"></div>
+              </div>
+
+              <!-- Split rows -->
+              <div class="card-split-container space-y-2">${splitRowsHTML}</div>
+
+              <!-- Totals -->
+              <div class="grid grid-cols-3 gap-3">
+                <div class="bg-zinc-950 border border-zinc-800 rounded-2xl p-3">
+                  <div class="text-xs text-zinc-400">Total</div>
+                  <div class="card-total-display text-xl font-bold">${formatPHP(card.totalAmount)}</div>
+                </div>
+                <div class="bg-zinc-950 border border-zinc-800 rounded-2xl p-3">
+                  <div class="text-xs text-zinc-400">Split Total</div>
+                  <div class="card-split-total-display text-xl font-bold">${formatPHP(card.splitRows.reduce((s,r)=>s+Number(r.amount||0),0))}</div>
+                </div>
+                <div class="bg-zinc-950 border border-emerald-500/30 rounded-2xl p-3">
+                  <div class="text-xs text-emerald-300">Remaining</div>
+                  <div class="card-remaining-display text-xl font-bold text-emerald-300">${formatPHP(Number(card.totalAmount||0) - card.splitRows.reduce((s,r)=>s+Number(r.amount||0),0))}</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>`;
+    }
+
+    function renderCards() {
+      els.cardRail.innerHTML = "";
+
+      // Center align
+      els.cardRail.className = "flex gap-4 pt-2";
+      els.cardRail.style.width = "max-content";
+      els.cardRail.style.margin = "0 auto";
+      els.cardRail.style.overflow = "visible";
+      //els.cardRail.style.minWidth = "max-content";
+
+      state.txCards.forEach((card, ci) => {
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = buildCardHTML(card, ci);
+        const cardEl = wrapper.firstElementChild;
+        cardEl.classList.add("card-enter");
+        els.cardRail.appendChild(cardEl);
+        attachCardListeners(ci, cardEl);
+        const dateInput = cardEl.querySelector(".card-date-input");
+        flatpickr(dateInput, {
+          dateFormat: "Y-m-d",
+          defaultDate: card.date || new Date(),
+          disableMobile: true,
+          animate: true,
+          onChange: (selectedDates, dateStr) => {
+            state.txCards[ci].date = dateStr;
+          }
+        });
+        renderPresetButtonsForCard(ci, cardEl);
+        updateCardTotals(ci, cardEl);
+      });
+
+      // Wire drag-drop import on the static + button in the title area
+      els.addCardBtn = document.getElementById("addCardBtn");
+      if (els.addCardBtn) {
+        els.addCardBtn.addEventListener("click", addCard);
+        setupAddButtonDragDrop();
+      }
+    }
+
+    // ── Card listeners ────────────────────────────────────────────────────────
+
+    function expandCard(ci, cardEl) {
+      const details = cardEl.querySelector(".card-details");
+      if (details && !details.classList.contains("expanded")) {
+        details.classList.add("expanded");
+        // After animation completes, allow overflow so dropdowns aren't clipped
+        details.addEventListener("transitionend", () => {
+          details.style.overflow = "visible";
+        }, { once: true });
+      }
+      // Show action bar once any card is expanded
+      if (els.actionBar) {
+        els.actionBar.classList.remove("hidden");
+        els.actionBar.classList.add("flex");
+      }
+    }
+
+    function attachCardListeners(ci, cardEl) {
+      const card = state.txCards[ci];
+
+      // Set active card index on any interaction (no ring)
+      cardEl.addEventListener("mousedown", () => { state.activeCardIndex = ci; }, true);
+      cardEl.addEventListener("focusin",   () => { state.activeCardIndex = ci; }, true);
+
+      // Remove card button
+      const removeCardBtn = cardEl.querySelector(".remove-card-btn");
+      if (removeCardBtn) {
+        removeCardBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          removeCard(ci);
+        });
+      }
+
+      // Budget select — removed from card, now global
+      // (handled by globalBudgetSelect listener below)
+
+      // Account searchable dropdown
+      const accountInput    = cardEl.querySelector(".card-account-input");
+      const accountDropdown = cardEl.querySelector(".card-account-dropdown");
+      const accountOptions  = cardEl.querySelector(".card-account-options");
+      setupSearchableDropdown({
+        inputEl:    accountInput,
+        dropdownEl: accountDropdown,
+        optionsEl:  accountOptions,
+        items:      () => state.accounts.filter(a => !a.closed && !a.deleted),
+        getUsage:   (item) => state.usage?.accountUsage?.[item.id] || 0,
+        onSelect:   (item) => {
+          state.txCards[ci].accountName = item.name;
+          applyPayeeDefaults(ci, cardEl);
+        }
+      });
+      accountInput.addEventListener("change", () => {
+        state.txCards[ci].accountName = accountInput.value;
+      });
+
+      // Payee searchable dropdown
+      const payeeInput    = cardEl.querySelector(".card-payee-input");
+      const payeeDropdown = cardEl.querySelector(".card-payee-dropdown");
+      const payeeOptions  = cardEl.querySelector(".card-payee-options");
+      setupSearchableDropdown({
+        inputEl:    payeeInput,
+        dropdownEl: payeeDropdown,
+        optionsEl:  payeeOptions,
+        items:      () => state.payees.filter(p => !p.deleted),
+        getUsage:   (item) => state.usage?.payeeUsage?.[item.name] || 0,
+        onSelect:   (item) => {
+          state.txCards[ci].payeeName = item.name;
+          expandCard(ci, cardEl);
+          applyPayeeDefaults(ci, cardEl);
+        }
+      });
+      payeeInput.addEventListener("change", () => {
+        state.txCards[ci].payeeName = payeeInput.value;
+        if (!payeeInput.value.trim()) renderSplits(ci, cardEl);
+      });
+
+      // Total amount
+      const totalInput = cardEl.querySelector(".card-total-input");
+      totalInput.addEventListener("input", () => {
+        state.txCards[ci].totalAmount = totalInput.value;
+        updateCardTotals(ci, cardEl);
+      });
+
+      // Memo
+      const memoInput = cardEl.querySelector(".card-memo-input");
+      memoInput.addEventListener("input", () => {
+        state.txCards[ci].memo = memoInput.value;
+      });
+
+      // Add split
+      const addSplitBtn = cardEl.querySelector(".card-add-split-btn");
+      addSplitBtn.addEventListener("click", () => {
+        renderPresetButtonsForCard(ci, cardEl);
+        addSplitRow(ci, cardEl);
+      });
+
+      // Auto balance
+      const autoBalanceBtn = cardEl.querySelector(".card-auto-balance-btn");
+      autoBalanceBtn.addEventListener("click", () => {
+        autoBalance(ci, cardEl);
+      });
+
+      // Wire split row listeners
+      attachSplitListeners(ci, cardEl);
+    }
+
+    // ── Split row listeners (card-scoped) ─────────────────────────────────────
+
+    function attachSplitListeners(ci, cardEl) {
+      const card = state.txCards[ci];
+
+      // Card-level flag bookmark
+      const flagBtn      = cardEl.querySelector(".card-flag-btn");
+      const flagDropdown = cardEl.querySelector(".card-flag-dropdown");
+      if (flagBtn && flagDropdown) {
+        flagBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          flagDropdown.classList.toggle("hidden");
+        });
+        flagDropdown.querySelectorAll(".flag-option").forEach(btn => {
+          btn.addEventListener("click", e => {
+            e.stopPropagation();
+            const val = btn.dataset.flagValue;
+            card.flag = val;
+            // Update icon + label
+            const iconEl  = cardEl.querySelector(".card-flag-icon");
+            const labelEl = cardEl.querySelector(".card-flag-label");
+            if (iconEl)  iconEl.innerHTML  = flagBookmarkSVG(val);
+            if (labelEl) labelEl.textContent = FLAG_COLORS.find(f => f.value === val)?.label || "No Flag";
+            // Highlight selected option
+            flagDropdown.querySelectorAll(".flag-option").forEach(b => {
+              b.classList.toggle("bg-zinc-800", b.dataset.flagValue === val);
+            });
+            flagDropdown.classList.add("hidden");
+          });
+        });
+        // Close on outside click
+        document.addEventListener("click", e => {
+          if (!flagDropdown.contains(e.target) && e.target !== flagBtn) {
+            flagDropdown.classList.add("hidden");
+          }
+        });
+      }
+
+      // Category searchable dropdowns — use the shared portal
+      cardEl.querySelectorAll(".category-input").forEach(inputEl => {
+        const ri         = Number(inputEl.dataset.rowIndex);
+        const rowWrapper = inputEl.closest(".split-row");
+
+        let activeIndex = -1;
+        let filtered    = [];
+
+        function renderCategoryOptions(filter = "") {
+          const sortedCats = getSortedCategories(card.payeeName);
+          filtered = sortedCats.filter(c =>
+            c.name.toLowerCase().includes(filter.toLowerCase())
+          );
+          _portal.innerHTML = "";
+          activeIndex = -1;
+          if (!filtered.length) {
+            _portal.innerHTML = '<div class="px-4 py-3 text-sm text-zinc-500">No results found</div>';
+            return;
+          }
+          filtered.forEach(cat => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "cat-option w-full text-left px-4 py-2.5 text-sm hover:bg-zinc-800 text-zinc-100";
+            btn.textContent = cat.name;
+            btn.addEventListener("mousedown", e => {
+              e.preventDefault();
+              inputEl.value = cat.name;
+              card.splitRows[ri].categoryId     = cat.id;
+              card.splitRows[ri].categoryAutoSet = false;
+              closePortal();
+              activeIndex = -1;
+            });
+            _portal.appendChild(btn);
+          });
+        }
+
+        function updateActive() {
+          _portal.querySelectorAll(".cat-option").forEach((el, i) => {
+            el.classList.toggle("bg-emerald-500", i === activeIndex);
+            el.classList.toggle("text-black",     i === activeIndex);
+            if (i === activeIndex) el.scrollIntoView({ block: "nearest" });
+          });
+        }
+
+        inputEl.addEventListener("focus", () => {
+          inputEl.select();
+          renderCategoryOptions(inputEl.value);
+          openPortal(inputEl);
+        });
+
+        inputEl.addEventListener("input", () => {
+          renderCategoryOptions(inputEl.value);
+          openPortal(inputEl);
+          card.splitRows[ri].categoryId = "";
+          if (card.splitRows[ri].suggestedCategoryId) {
+            card.splitRows[ri].suggestedCategoryId = "";
+            const overlay   = rowWrapper.querySelector(".category-suggestion");
+            const acceptBtn = rowWrapper.querySelector(".accept-suggestion-btn");
+            if (overlay)   overlay.remove();
+            if (acceptBtn) acceptBtn.remove();
+            inputEl.classList.remove("border-amber-600/50");
+            inputEl.classList.add("border-zinc-700");
+          }
+        });
+
+        inputEl.addEventListener("keydown", e => {
+          if (_portalOwner !== inputEl) return;
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            activeIndex = Math.min(activeIndex + 1, filtered.length - 1);
+            updateActive();
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            activeIndex = Math.max(activeIndex - 1, 0);
+            updateActive();
+          } else if (e.key === "Enter" && activeIndex >= 0) {
+            e.preventDefault();
+            const cat = filtered[activeIndex];
+            inputEl.value = cat.name;
+            card.splitRows[ri].categoryId     = cat.id;
+            card.splitRows[ri].categoryAutoSet = false;
+            closePortal();
+            activeIndex = -1;
+          } else if (e.key === "Escape") {
+            closePortal();
+            activeIndex = -1;
+          }
+        });
+
+        inputEl.addEventListener("blur", () => {
+          setTimeout(() => {
+            if (_portalOwner === inputEl) {
+              closePortal();
+              const match = state.categories.find(
+                c => c.name.toLowerCase() === inputEl.value.toLowerCase()
+              );
+              if (!match) {
+                inputEl.value = "";
+                card.splitRows[ri].categoryId = "";
+              } else {
+                inputEl.value = match.name;
+                card.splitRows[ri].categoryId = match.id;
+              }
+            }
+          }, 150);
+        });
+      });
+
+      // Amount inputs
+      cardEl.querySelectorAll(".amount-input").forEach(el => {
+        el.addEventListener("input", e => {
+          const ri = Number(e.target.dataset.rowIndex);
+          card.splitRows[ri].amount = Number(e.target.value || 0);
+          updateCardTotals(ci, cardEl);
+        });
+      });
+
+      // Split memo inputs
+      cardEl.querySelectorAll(".split-memo-input").forEach(el => {
+        el.addEventListener("input", e => {
+          const ri = Number(e.target.dataset.rowIndex);
+          card.splitRows[ri].memo = e.target.value;
+        });
+      });
+
+      // Accept suggestion buttons
+      cardEl.querySelectorAll(".accept-suggestion-btn").forEach(btn => {
+        btn.addEventListener("click", e => {
+          e.stopPropagation();
+          const ri      = Number(btn.dataset.rowIndex);
+          const catId   = btn.dataset.suggestedId;
+          const catName = btn.dataset.suggestedName;
+          const row     = card.splitRows[ri];
+          row.categoryId            = catId;
+          row.categoryAutoSet       = true;
+          row.suggestedCategoryId   = "";
+          // Update the input value and re-render the row cleanly
+          renderSplits(ci, cardEl);
+        });
+      });
+
+      // Remove split buttons
+      cardEl.querySelectorAll(".remove-split-btn").forEach(el => {
+        el.addEventListener("click", e => {
+          const ri = Number(e.target.closest("[data-row-index]")?.dataset.rowIndex
+                        ?? e.target.dataset.rowIndex);
+          removeSplitRow(ci, ri, cardEl);
+        });
+      });
+
+      // Splitwise user selects
+      cardEl.querySelectorAll(".sw-user-select").forEach(el => {
+        el.addEventListener("change", e => {
+          const ri = Number(e.target.dataset.rowIndex);
+          card.splitRows[ri].splitwiseUserId = e.target.value;
+        });
+      });
+    }
+
+    // ── Card-aware split operations ───────────────────────────────────────────
+
+    function addSplitRow(ci, cardEl) {
+      state.txCards[ci].splitRows.push({
+        categoryId: "", amount: "", flag: "", memo: "", splitwiseUserId: "", categoryAutoSet: false, suggestedCategoryId: ""
+      });
+      renderSplits(ci, cardEl);
+    }
+
+    function removeSplitRow(ci, ri, cardEl) {
+      state.txCards[ci].splitRows.splice(ri, 1);
+      renderSplits(ci, cardEl);
+    }
+
+    function renderSplits(ci, cardEl) {
+      const card = state.txCards[ci];
+      const splitContainer = cardEl.querySelector(".card-split-container");
+
+      splitContainer.innerHTML = "";
+      card.splitRows.forEach((row, ri) => {
+        const swSelect = state.splitwise.enabled ? `
+          <div class="flex items-center gap-2 pt-1">
+            <span class="text-xs text-zinc-500 shrink-0">Splitwise →</span>
+            <select data-row-index="${ri}" class="sw-user-select flex-1 rounded-2xl bg-zinc-900 border border-zinc-600 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none cursor-pointer">
+              ${getSplitwiseUserOptions(row.splitwiseUserId)}
+            </select>
+          </div>` : "";
+        const rowEl = document.createElement("div");
+        rowEl.className = "split-row bg-zinc-950 border border-zinc-800 rounded-2xl p-3 space-y-2";
+        rowEl.innerHTML = `
+          <div class="flex gap-2 items-center">
+            ${buildCategoryInputHTML(row, ri)}
+            <input type="number" step="0.01" value="${row.amount}" data-row-index="${ri}" placeholder="0.00"
+              class="amount-input w-32 rounded-xl bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <button data-row-index="${ri}" class="remove-split-btn w-8 h-8 rounded-xl border border-zinc-700 flex items-center justify-center text-zinc-500 hover:bg-red-950 hover:border-red-700 hover:text-red-400 transition-colors shrink-0" title="Remove">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+              </svg>
+            </button>
+          </div>
+          <textarea data-row-index="${ri}" placeholder="Split note (optional)"
+            class="split-memo-input memo-expand w-full rounded-xl bg-zinc-950 border border-zinc-700 px-3 py-1.5 text-xs text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >${(row.memo || "").replace(/</g,'&lt;')}</textarea>
+          ${swSelect}`;
+        splitContainer.appendChild(rowEl);
+      });
+      attachSplitListeners(ci, cardEl);
+      updateCardTotals(ci, cardEl);
+    }
+
+    function updateCardTotals(ci, cardEl) {
+      const card = state.txCards[ci];
+      const total = Number(card.totalAmount || 0);
+      const splitTotal = card.splitRows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+      const remaining = total - splitTotal;
+      const totalDisp    = cardEl.querySelector(".card-total-display");
+      const splitDisp    = cardEl.querySelector(".card-split-total-display");
+      const remainDisp   = cardEl.querySelector(".card-remaining-display");
+      if (totalDisp)  totalDisp.textContent  = formatPHP(total);
+      if (splitDisp)  splitDisp.textContent  = formatPHP(splitTotal);
+      if (remainDisp) {
+        remainDisp.textContent = formatPHP(remaining);
+        remainDisp.className = "text-xl font-bold " + (
+          Math.abs(remaining) < 0.009 ? "text-emerald-300" :
+          remaining < 0 ? "text-red-300" : "text-yellow-300"
+        );
+      }
+    }
+
+    function autoBalance(ci, cardEl) {
+      const card = state.txCards[ci];
+      const total = Number(card.totalAmount || 0);
+      if (!card.splitRows.length) return;
+      const filledRows = card.splitRows.filter(r => r.amount !== "" && r.amount !== null && !isNaN(Number(r.amount)) && Number(r.amount) > 0);
+      const emptyRows  = card.splitRows.filter(r => r.amount === "" || r.amount === null || Number(r.amount) === 0);
+      if (!emptyRows.length) return;
+      const lockedTotal = filledRows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+      const remaining = total - lockedTotal;
+      if (remaining < 0) { setStatus("Entered split amounts already exceed total amount.", true); return; }
+      const splitAmount = remaining / emptyRows.length;
+      let runningTotal = 0;
+      emptyRows.forEach((row, index) => {
+        if (index === emptyRows.length - 1) {
+          row.amount = Number((remaining - runningTotal).toFixed(2));
+        } else {
+          row.amount = Number(splitAmount.toFixed(2));
+          runningTotal += row.amount;
+        }
+      });
+      renderSplits(ci, cardEl);
+    }
+
+    function applyPayeeDefaults(ci, cardEl) {
+      const card = state.txCards[ci];
+      const payeeName = card.payeeName;
+      const categoryMap = state.usage?.payeeCategoryMap?.[payeeName];
+      const accountMap  = state.usage?.payeeAccountMap?.[payeeName];
+
+      // Auto-fill account if blank
+      if (accountMap && !card.accountName.trim()) {
+        const topAccountId = Object.entries(accountMap).sort((a, b) => b[1] - a[1])[0]?.[0];
+        const topAccount = topAccountId && state.accounts.find(a => a.id === topAccountId && !a.closed && !a.deleted);
+        if (topAccount) {
+          card.accountName = topAccount.name;
+          const accountInput = cardEl.querySelector(".card-account-input");
+          if (accountInput) accountInput.value = topAccount.name;
+        }
+      }
+
+      if (!categoryMap) { renderSplits(ci, cardEl); return; }
+
+      const topCategoryId = Object.entries(categoryMap).sort((a, b) => b[1] - a[1])[0]?.[0];
+      if (topCategoryId) {
+        card.splitRows.forEach(row => {
+          if (!row.categoryId || row.categoryAutoSet) {
+            row.categoryId = topCategoryId;
+            row.categoryAutoSet = true;
+          }
+        });
+      }
+      renderSplits(ci, cardEl);
+    }
+
+    // ── Add / Remove cards ────────────────────────────────────────────────────
+
+    function addCard() {
+      const last = state.txCards[state.txCards.length - 1];
+      state.txCards.push(makeCard({ date: last?.date || todayString() }));
+      const ci = state.txCards.length - 1;
+      state.activeCardIndex = ci;
+
+      // Build and insert the new card before the + button
+      const wrapper = document.createElement("div");
+      wrapper.innerHTML = buildCardHTML(state.txCards[ci], ci);
+      const cardEl = wrapper.firstElementChild;
+      cardEl.classList.add("card-enter");
+
+      // Insert before the + button (last child)
+      els.cardRail.insertBefore(cardEl, els.cardRail.lastElementChild);
+
+      // Switch rail from centered to left-aligned if now multiple
+      if (state.txCards.length > 1) {
+        els.cardRail.className = "flex gap-4 pt-2 w-full";
+        els.cardRail.style.overflow = "visible";
+        els.cardRail.style.minWidth = "max-content";
+      }
+
+      attachCardListeners(ci, cardEl);
+      flatpickr(cardEl.querySelector(".card-date-input"), {
+        dateFormat: "Y-m-d",
+        defaultDate: state.txCards[ci].date || new Date(),
+        disableMobile: true,
+        animate: true,
+        onChange: (_, dateStr) => { state.txCards[ci].date = dateStr; }
+      });
+      renderPresetButtonsForCard(ci, cardEl);
+      updateCardTotals(ci, cardEl);
+
+      // Show remove buttons on all cards now that there are multiple
+      els.cardRail.querySelectorAll(".remove-card-btn").forEach(btn => {
+        btn.classList.remove("invisible");
+      });
+
+      // Re-wire drag-drop on the + button (static, no re-wire needed)
+
+      requestAnimationFrame(() => {
+      const scrollContainer = document.getElementById("cardRailScroll");
+
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const cardRect = cardEl.getBoundingClientRect();
+
+      const currentScroll = scrollContainer.scrollLeft;
+
+      const cardCenter =
+        (cardRect.left - containerRect.left) +
+        currentScroll +
+        (cardRect.width / 2);
+
+      const targetScroll =
+        cardCenter - (scrollContainer.clientWidth / 2);
+
+      scrollContainer.scrollTo({
+        left: targetScroll,
+        behavior: "smooth"
+      });
+    });
+    }
+
+    function removeCard(ci) {
+      if (state.txCards.length <= 1) return;
+
+      const cardEl = els.cardRail.querySelector(`[data-card-index="${ci}"]`);
+      if (!cardEl) return;
+
+      // Animate out, then remove from state and re-render
+      cardEl.classList.add("card-exit");
+      cardEl.addEventListener("animationend", () => {
+        state.txCards.splice(ci, 1);
+        state.activeCardIndex = Math.min(state.activeCardIndex, state.txCards.length - 1);
+        renderCards();
+      }, { once: true });
+    }
+
+    // ── Preset buttons (per card) ─────────────────────────────────────────────
+
+    function renderPresetButtonsForCard(ci, cardEl) {
+      const presets = JSON.parse(localStorage.getItem("ynab_presets") || "[]");
+      const container = cardEl.querySelector(".card-preset-buttons");
+      if (!container) return;
+      container.innerHTML = "";
+      if (!presets.length) {
+        container.innerHTML = '<div class="text-xs text-zinc-500 px-2 py-1">No presets saved</div>';
+        return;
+      }
+      presets.forEach((preset, index) => {
+        const wrapper = document.createElement("div");
+        wrapper.className = "relative shrink-0 group";
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "px-3 py-1.5 rounded-xl text-xs whitespace-nowrap bg-zinc-800 border border-zinc-700 hover:bg-emerald-500 hover:text-black transition-colors";
+        button.textContent = preset.name;
+        button.addEventListener("click", () => applyPreset(index, ci, cardEl));
+        const deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.className = "absolute -top-2 -right-2 w-5 h-5 rounded-full bg-zinc-600 text-white text-xs font-bold flex items-center justify-center opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 transition-all duration-150 shadow-lg";
+        deleteBtn.innerHTML = "−";
+        deleteBtn.title = "Click to confirm delete";
+        deleteBtn.dataset.armed = "false";
+        deleteBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          if (deleteBtn.dataset.armed !== "true") {
+            deleteBtn.dataset.armed = "true";
+            deleteBtn.innerHTML = "×";
+            deleteBtn.className = deleteBtn.className.replace("bg-zinc-600", "bg-red-500");
+            setTimeout(() => {
+              if (deleteBtn.dataset.armed === "true") {
+                deleteBtn.dataset.armed = "false";
+                deleteBtn.innerHTML = "−";
+                deleteBtn.className = deleteBtn.className.replace("bg-red-500", "bg-zinc-600");
+              }
+            }, 3000);
+          } else {
+            const allPresets = JSON.parse(localStorage.getItem("ynab_presets") || "[]");
+            allPresets.splice(index, 1);
+            localStorage.setItem("ynab_presets", JSON.stringify(allPresets));
+            // Re-render preset buttons on all cards
+            state.txCards.forEach((_, i) => {
+              const ce = els.cardRail.querySelector(`[data-card-index="${i}"]`);
+              if (ce) renderPresetButtonsForCard(i, ce);
+            });
+            showToast("Preset deleted.");
+          }
+        });
+        wrapper.appendChild(button);
+        wrapper.appendChild(deleteBtn);
+        container.appendChild(wrapper);
+      });
+    }
+
+    // Keep a global renderPresetButtons that refreshes all cards
+    function renderPresetButtons() {
+      state.txCards.forEach((_, ci) => {
+        const cardEl = els.cardRail.querySelector(`[data-card-index="${ci}"]`);
+        if (cardEl) renderPresetButtonsForCard(ci, cardEl);
+      });
+    }
+
+    function applyPreset(index, ci, cardEl) {
+      const presets = JSON.parse(localStorage.getItem("ynab_presets") || "[]");
+      const preset = presets[index];
+      if (!preset) return;
+      state.txCards[ci].splitRows = preset.splits.map(split => ({
+        categoryId: split.categoryId || "",
+        amount: "",
+        flag: "",
+        memo: "",
+        splitwiseUserId: "",
+        categoryAutoSet: false
+      }));
+      renderSplits(ci, cardEl);
+      updateCardTotals(ci, cardEl);
+      showToast(`Loaded preset: ${preset.name}`);
+    }
+
+    function savePreset() {
+      const presets = JSON.parse(localStorage.getItem("ynab_presets") || "[]");
+      const name = prompt("Preset name:");
+      if (!name) return;
+      const ci = state.activeCardIndex;
+      const card = state.txCards[ci];
+      presets.push({ name, splits: card.splitRows.map(row => ({ categoryId: row.categoryId })) });
+      localStorage.setItem("ynab_presets", JSON.stringify(presets));
+      renderPresetButtons();
+      setStatus("Preset saved locally.");
+      showToast("Preset saved.");
+    }
+
+    // ── Splitwise ─────────────────────────────────────────────────────────────
+
+    async function splitwiseFetch(endpoint, options = {}) {
+      const response = await fetch(SW_API_BASE + endpoint, {
+        ...options,
+        headers: {
+          "Authorization": "Bearer " + SW_API_KEY,
+          ...(options.headers || {})
+        }
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || data.errors?.base?.[0] || "Splitwise API request failed");
+      return data;
+    }
+
+    async function loadSplitwiseData() {
+      try {
+        els.splitwiseStatus.textContent = "Loading…";
+        const [meResult, friendsResult] = await Promise.all([
+          splitwiseFetch("/get_current_user"),
+          splitwiseFetch("/get_friends")
+        ]);
+        state.splitwise.currentUser = meResult.user;
+        state.splitwise.friends = friendsResult.friends || [];
+        const me = state.splitwise.currentUser;
+        const name = [me.first_name, me.last_name].filter(Boolean).join(" ");
+        els.splitwiseUserBadge.textContent = "Logged in as " + name;
+        els.splitwiseUserBadge.classList.remove("hidden");
+        els.splitwiseStatus.textContent = state.splitwise.friends.length + " friend(s) loaded";
+        renderCards();
+      } catch (err) {
+        console.error(err);
+        const isProxyDown = err.message === "Failed to fetch" || err.message.includes("NetworkError") || err.message.includes("ERR_CONNECTION_REFUSED");
+        els.splitwiseStatus.textContent = isProxyDown
+          ? "Proxy not running — start splitwise_proxy.py first."
+          : "Error: " + err.message;
+      }
+    }
+
+    function getSplitwiseUserOptions(selectedId = "") {
+      const me = state.splitwise.currentUser;
+      const meId = me ? String(me.id) : "";
+      const meName = me ? [me.first_name, me.last_name].filter(Boolean).join(" ") + " (me)" : "Me";
+      const friendOptions = state.splitwise.friends.map(f => {
+        const fName = [f.first_name, f.last_name].filter(Boolean).join(" ");
+        const fId = String(f.id);
+        return `<option value="${fId}" ${String(selectedId) === fId ? "selected" : ""}>${fName}</option>`;
+      }).join("");
+      return `<option value="${meId}" ${String(selectedId) === meId || !selectedId ? "selected" : ""}>${meName}</option>${friendOptions}`;
+    }
+
+    async function createSplitwiseExpense(ci) {
+      const me = state.splitwise.currentUser;
+      if (!me) throw new Error("Splitwise user not loaded.");
+      const card = state.txCards[ci];
+      const totalAmount = Number(card.totalAmount || 0);
+      const description = card.memo.trim() || card.payeeName.trim() || "Split expense";
+      const owedByUser = {};
+      for (const row of card.splitRows) {
+        const userId = row.splitwiseUserId || String(me.id);
+        const amt = Number(row.amount || 0);
+        owedByUser[userId] = (owedByUser[userId] || 0) + amt;
+      }
+      const params = new URLSearchParams();
+      params.append("cost", totalAmount.toFixed(2));
+      params.append("description", description);
+      params.append("currency_code", "PHP");
+      params.append("split_equally", "false");
+      params.append("users__0__user_id", String(me.id));
+      params.append("users__0__paid_share", totalAmount.toFixed(2));
+      params.append("users__0__owed_share", (owedByUser[String(me.id)] || 0).toFixed(2));
+      let userIndex = 1;
+      for (const [userId, owedAmt] of Object.entries(owedByUser)) {
+        if (userId === String(me.id)) continue;
+        params.append(`users__${userIndex}__user_id`, userId);
+        params.append(`users__${userIndex}__paid_share`, "0.00");
+        params.append(`users__${userIndex}__owed_share`, owedAmt.toFixed(2));
+        userIndex++;
+      }
+      await splitwiseFetch("/create_expense", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: params.toString()
+      });
+    }
+
+    // ── Validation ────────────────────────────────────────────────────────────
+
+    function validateCard(ci) {
+      const card = state.txCards[ci];
+      const prefix = state.txCards.length > 1 ? `Card ${ci + 1}: ` : "";
+      const budgetId = els.globalBudgetSelect.value;
+
+      if (!budgetId) throw new Error(prefix + "Please select a budget in Settings.");
+
+      const validAccount = state.accounts.some(a => a.name === card.accountName);
+      if (!validAccount) throw new Error(prefix + "Please select a valid account.");
+
+      const validPayee = state.payees.some(p => p.name === card.payeeName);
+      if (!validPayee) throw new Error(prefix + "Please select a valid payee.");
+
+      const accountObj = state.accounts.find(a => a.name === card.accountName);
+      if (!accountObj) throw new Error(prefix + "Please select a valid account.");
+
+      if (!card.splitRows.length) throw new Error(prefix + "Add at least one split row.");
+
+      const totalAmount = Number(card.totalAmount || 0);
+      const splitTotal = card.splitRows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+      if (Math.abs(splitTotal - totalAmount) > 0.009) throw new Error(prefix + "Split total must equal total amount.");
+
+      for (const row of card.splitRows) {
+        if (!row.categoryId) throw new Error(prefix + "Every split row needs a category.");
+        if (!row.amount || Number(row.amount) <= 0) throw new Error(prefix + "Every split row needs an amount.");
+      }
+
+      return { accountId: accountObj.id, budgetId };
+    }
+
+    // ── Batch createTransaction ───────────────────────────────────────────────
+
+    async function createTransaction() {
+      try {
+        const total = state.txCards.length;
+
+        // Validate all cards first
+        for (let ci = 0; ci < total; ci++) {
+          validateCard(ci);
+        }
+
+        let succeeded = 0;
+        let failed = 0;
+
+        for (let ci = 0; ci < total; ci++) {
+          const card = state.txCards[ci];
+          setStatus(`Creating transaction ${ci + 1} of ${total}…`);
+
+          try {
+            const { accountId, budgetId } = validateCard(ci);
+            const totalAmount = Number(card.totalAmount || 0);
+
+            // Save memo to history
+            if (card.memo.trim() && !state.memos.includes(card.memo.trim())) {
+              state.memos.push(card.memo.trim());
+              localStorage.setItem("ynab_memo_history", JSON.stringify(state.memos));
+              renderMemoSuggestions();
+            }
+
+            const payload = {
+              transaction: {
+                account_id: accountId,
+                date: card.date,
+                amount: -amountToMilliunits(totalAmount),
+                payee_name: card.payeeName,
+                memo: card.memo,
+                flag_color: card.flag || undefined,
+                subtransactions: card.splitRows.map(row => ({
+                  amount: -amountToMilliunits(row.amount),
+                  category_id: row.categoryId,
+                  memo: row.memo || undefined
+                }))
+              }
+            };
+
+            await ynabFetch(`/budgets/${card.budgetId}/transactions`, {
+              method: "POST",
+              body: JSON.stringify(payload)
+            });
+
+            // Splitwise per card
+            if (state.splitwise.enabled) {
+              try {
+                setStatus(`Transaction ${ci + 1} of ${total} created. Logging to Splitwise…`);
+                await createSplitwiseExpense(ci);
+              } catch (swErr) {
+                console.error("Splitwise error for card", ci, swErr);
+                setStatus(`Card ${ci + 1}: YNAB saved, Splitwise failed: ${swErr.message}`, true);
+              }
+            }
+
+            succeeded++;
+          } catch (cardErr) {
+            console.error("Error on card", ci, cardErr);
+            failed++;
+            setStatus(`Card ${ci + 1} failed: ${cardErr.message}`, true);
+          }
+        }
+
+        if (failed === 0) {
+          setStatus(`${succeeded} transaction${succeeded !== 1 ? "s" : ""} created successfully.`);
+          showToast(`${succeeded} transaction${succeeded !== 1 ? "s" : ""} created.`);
+        } else {
+          setStatus(`${succeeded} of ${total} created (${failed} failed).`, failed > 0);
+          showToast(`${succeeded} of ${total} created (${failed} failed).`);
+        }
+
+      } catch (err) {
+        console.error(err);
+        setStatus(err.message, true);
+      }
+    }
+
+    // ── XLSX / CSV Import ─────────────────────────────────────────────────────
+
+    // Month name → zero-padded month number
+    const MONTH_MAP = {
+      january:"01", february:"02", march:"03", april:"04",
+      may:"05", june:"06", july:"07", august:"08",
+      september:"09", october:"10", november:"11", december:"12"
+    };
+
+    function parseImportDate(raw) {
+      if (!raw) return todayString();
+      const str = String(raw).trim();
+      // "March 28" → current year
+      const parts = str.split(/\s+/);
+      if (parts.length === 2) {
+        const month = MONTH_MAP[parts[0].toLowerCase()];
+        const day   = parts[1].padStart(2, "0");
+        if (month) {
+          const year = new Date().getFullYear();
+          return `${year}-${month}-${day}`;
+        }
+      }
+      // Try native parse as fallback
+      const d = new Date(str);
+      if (!isNaN(d)) return d.toISOString().slice(0, 10);
+      return todayString();
+    }
+
+    function parseSpreadsheet(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          try {
+            const data = new Uint8Array(e.target.result);
+            const wb   = XLSX.read(data, { type: "array" });
+            const ws   = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+            resolve(rows);
+          } catch (err) {
+            reject(err);
+          }
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    // Pending import state
+    let _importRows    = [];
+    let _importAccount = "";
+
+    function openImportModal(rows, filename) {
+      _importRows = rows;
+      _importAccount = "";
+
+      const modal     = document.getElementById("importModal");
+      const descEl    = document.getElementById("importModalDesc");
+      const inputEl   = document.getElementById("importAccountInput");
+      const dropdownEl= document.getElementById("importAccountDropdown");
+      const optionsEl = document.getElementById("importAccountOptions");
+      const confirmBtn= document.getElementById("importConfirmBtn");
+      const cancelBtn = document.getElementById("importCancelBtn");
+
+      descEl.textContent =
+        `${rows.length} transaction${rows.length !== 1 ? "s" : ""} found in "${filename}". ` +
+        `Select an account to assign them to.`;
+
+      inputEl.value = "";
+      _importAccount = "";
+
+      // Wire account searchable dropdown scoped to modal
+      setupSearchableDropdown({
+        inputEl,
+        dropdownEl,
+        optionsEl,
+        items:    () => state.accounts.filter(a => !a.closed && !a.deleted),
+        getUsage: item => state.usage?.accountUsage?.[item.id] || 0,
+        onSelect: item => { _importAccount = item.name; }
+      });
+
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+      inputEl.focus();
+
+      confirmBtn.onclick = () => {
+        if (!_importAccount) {
+          inputEl.classList.add("ring-2", "ring-red-500");
+          setTimeout(() => inputEl.classList.remove("ring-2", "ring-red-500"), 1500);
+          return;
+        }
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+        importRowsAsCards(_importRows, _importAccount);
+      };
+
+      cancelBtn.onclick = () => {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+      };
+
+      // Close on backdrop click
+      modal.onclick = e => {
+        if (e.target === modal) {
+          modal.classList.add("hidden");
+          modal.classList.remove("flex");
+        }
+      };
+    }
+
+    function resolveImportPayee(description) {
+      // Returns { payeeName, categoryId, categoryAutoSet, suggestedCategoryId }
+      const desc = description.trim().toLowerCase();
+      if (!desc || !state.payees.length) {
+        return { payeeName: "", categoryId: "", categoryAutoSet: false, suggestedCategoryId: "" };
+      }
+
+      const active = state.payees.filter(p => !p.deleted);
+
+      // Normalize: lowercase, replace non-alphanumeric with space, collapse spaces
+      const norm = s => s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+      const descNorm = norm(description);
+
+      // 1. Exact match (case-insensitive, raw)
+      let match = active.find(p => p.name.toLowerCase() === desc);
+
+      // 2. Normalized exact match
+      if (!match) {
+        match = active.find(p => norm(p.name) === descNorm);
+      }
+
+      // 3. Description contains payee name (normalized, min 4 chars — lowered from 5)
+      if (!match) {
+        match = active
+          .filter(p => norm(p.name).length >= 4)
+          .sort((a, b) => b.name.length - a.name.length) // prefer longer/more specific match
+          .find(p => descNorm.includes(norm(p.name)));
+      }
+
+      // 4. Payee name contains description (normalized)
+      if (!match) {
+        match = active.find(p => norm(p.name).includes(descNorm));
+      }
+
+      // 5. Word overlap — any word of 4+ chars in common (normalized, lowered from 5)
+      if (!match) {
+        const descWords = descNorm.split(" ").filter(w => w.length >= 4);
+        if (descWords.length) {
+          let bestScore = 0;
+          let bestMatch = null;
+          for (const p of active) {
+            const payeeWords = norm(p.name).split(" ").filter(w => w.length >= 4);
+            if (!payeeWords.length) continue;
+            const score = descWords.filter(dw =>
+              payeeWords.some(pw => pw.includes(dw) || dw.includes(pw))
+            ).length;
+            if (score > bestScore) {
+              bestScore = score;
+              bestMatch = p;
+            }
+          }
+          if (bestMatch) match = bestMatch;
+        }
+      }
+
+      // 6. Match against payees that have transaction history (all-time)
+      //    catches cases where YNAB payee name differs from bank description
+      if (!match) {
+        const allTimePayees = Object.keys(state.usageAllTime?.payeeCategoryMap || {});
+        // Sort by length descending so longer/more specific names match first
+        allTimePayees.sort((a, b) => b.length - a.length);
+        const historyMatch = allTimePayees.find(name => {
+          const n = norm(name);
+          return n === descNorm ||
+            descNorm.includes(n) ||
+            n.includes(descNorm) ||
+            (n.length >= 4 && descNorm.split(" ").some(w => w.length >= 4 && (n.includes(w) || w.includes(n))));
+        });
+        if (historyMatch) {
+          match = active.find(p => p.name === historyMatch)
+            || { name: historyMatch, id: null, _fromHistory: true };
+        }
+      }
+
+      // 7. Transaction payee_id lookup — the only reliable bridge between
+      //    raw bank descriptions and YNAB's renamed payee names
+      if (!match) {
+        const txMatch = state.transactions.find(t =>
+          t.payee_name && norm(t.payee_name) === descNorm
+        );
+        if (txMatch?.payee_id) {
+          const payeeObj = active.find(p => p.id === txMatch.payee_id);
+          if (payeeObj) match = payeeObj;
+        }
+      }
+
+      // 8. Partial description → transaction payee_name → payee_id
+      if (!match) {
+        const txMatch = state.transactions.find(t =>
+          t.payee_name && t.payee_id && (
+            norm(t.payee_name).includes(descNorm) ||
+            descNorm.includes(norm(t.payee_name))
+          )
+        );
+        if (txMatch?.payee_id) {
+          const payeeObj = active.find(p => p.id === txMatch.payee_id);
+          if (payeeObj) match = payeeObj;
+        }
+      }
+
+      if (!match) {
+        return { payeeName: "", categoryId: "", categoryAutoSet: false, suggestedCategoryId: "" };
+      }
+
+      // Look up category from history — try match.name first, then payee_id lookup
+      let categoryMap        = state.usage?.payeeCategoryMap?.[match.name];
+      let categoryMapAllTime = state.usageAllTime?.payeeCategoryMap?.[match.name];
+
+      // If not found by name, try finding the canonical name via payee_id
+      if (!categoryMap && !categoryMapAllTime && match.id) {
+        const canonicalTx = state.transactions.find(t => t.payee_id === match.id);
+        if (canonicalTx?.payee_name) {
+          categoryMap        = state.usage?.payeeCategoryMap?.[canonicalTx.payee_name];
+          categoryMapAllTime = state.usageAllTime?.payeeCategoryMap?.[canonicalTx.payee_name];
+          // Also update match name to the canonical one
+          if (!match._fromHistory) match = { ...match, name: canonicalTx.payee_name };
+        }
+      }
+
+      let categoryId          = "";
+      let categoryAutoSet     = false;
+      let suggestedCategoryId = "";
+
+      if (categoryMap) {
+        const topId = Object.entries(categoryMap).sort((a, b) => b[1] - a[1])[0]?.[0];
+        if (topId && state.categories.find(c => c.id === topId)) {
+          categoryId      = topId;
+          categoryAutoSet = true;
+        }
+      } else if (categoryMapAllTime) {
+        const topId = Object.entries(categoryMapAllTime).sort((a, b) => b[1] - a[1])[0]?.[0];
+        if (topId && state.categories.find(c => c.id === topId)) {
+          suggestedCategoryId = topId;
+        }
+      }
+
+      const payeeName = match.name;
+      return { payeeName, categoryId, categoryAutoSet, suggestedCategoryId };
+    }
+
+    function importRowsAsCards(rows, accountName) {
+      // If the only card is blank, replace it; otherwise append
+      const isBlank = c =>
+        !c.accountName && !c.payeeName && !c.totalAmount && c.splitRows.length === 1 && !c.splitRows[0].categoryId;
+
+      if (state.txCards.length === 1 && isBlank(state.txCards[0])) {
+        state.txCards = [];
+        renderCards();
+      }
+
+      let autoCategorized = 0;
+
+      rows.forEach((row, i) => {
+        const description = String(row["Description"] || row["description"] || "").trim();
+        const date        = parseImportDate(row["Date1"] || row["date1"] || row["Date"] || "");
+        const amount      = String(row["Amount"] || row["amount"] || "").replace(/[^0-9.]/g, "");
+
+        // Description → memo; fuzzy-match payee + auto-categorize
+        const { payeeName, categoryId, categoryAutoSet, suggestedCategoryId } = resolveImportPayee(description);
+        if (categoryId) autoCategorized++;
+
+        const card = makeCard({
+          date,
+          payeeName,
+          memo: description,
+          totalAmount: amount,
+          accountName
+        });
+
+        // Pre-fill the first split row with the resolved category
+        if (categoryId) {
+          card.splitRows[0].categoryId      = categoryId;
+          card.splitRows[0].categoryAutoSet = categoryAutoSet;
+        } else if (suggestedCategoryId) {
+          card.splitRows[0].suggestedCategoryId = suggestedCategoryId;
+        }
+
+        state.txCards.push(card);
+        const ci = state.txCards.length - 1;
+
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = buildCardHTML(card, ci);
+        const cardEl = wrapper.firstElementChild;
+        cardEl.classList.add("card-enter");
+        cardEl.style.animationDelay = `${i * 40}ms`;
+
+        els.cardRail.insertBefore(cardEl, els.cardRail.lastElementChild);
+
+        attachCardListeners(ci, cardEl);
+        flatpickr(cardEl.querySelector(".card-date-input"), {
+          dateFormat: "Y-m-d",
+          defaultDate: card.date || new Date(),
+          disableMobile: true,
+          animate: true,
+          onChange: (_, dateStr) => { state.txCards[ci].date = dateStr; }
+        });
+        renderPresetButtonsForCard(ci, cardEl);
+        updateCardTotals(ci, cardEl);
+      });
+
+      // Switch to multi-card layout
+      if (state.txCards.length > 1) {
+        els.cardRail.className = "flex gap-4 pt-2 w-full";
+        els.cardRail.style.overflow = "visible";
+        els.cardRail.style.minWidth = "max-content";
+        els.cardRail.querySelectorAll(".remove-card-btn").forEach(btn => btn.classList.remove("invisible"));
+      }
+
+      // Scroll to first imported card
+      setTimeout(() => {
+        const firstNew = els.cardRail.querySelector(`[data-card-index="${state.txCards.length - rows.length}"]`);
+        if (firstNew) firstNew.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
+      }, 100);
+
+      const catMsg = autoCategorized > 0
+        ? ` ${autoCategorized} auto-categorized.`
+        : "";
+      showToast(`${rows.length} transaction${rows.length !== 1 ? "s" : ""} imported.${catMsg}`);
+      setStatus(`Imported ${rows.length} transactions.${catMsg}`);
+      // Show action bar since cards are now expanded
+      if (els.actionBar) {
+        els.actionBar.classList.remove("hidden");
+        els.actionBar.classList.add("flex");
+      }
+    }
+
+    function setupAddButtonDragDrop() {
+      // Called after renderCards creates the + button
+      const addBtn = els.cardRail?.querySelector("#addCardBtn") || document.getElementById("addCardBtn");
+      if (!addBtn) return;
+
+      addBtn.addEventListener("dragover", e => {
+        e.preventDefault();
+        addBtn.classList.add("bg-emerald-500", "text-black", "scale-110");
+        addBtn.classList.remove("bg-zinc-800", "text-zinc-300");
+      });
+
+      addBtn.addEventListener("dragleave", () => {
+        addBtn.classList.remove("bg-emerald-500", "text-black", "scale-110");
+        addBtn.classList.add("bg-zinc-800", "text-zinc-300");
+      });
+
+      addBtn.addEventListener("drop", async e => {
+        e.preventDefault();
+        addBtn.classList.remove("bg-emerald-500", "text-black", "scale-110");
+        addBtn.classList.add("bg-zinc-800", "text-zinc-300");
+
+        const file = e.dataTransfer.files[0];
+        if (!file) return;
+
+        const ext = file.name.split(".").pop().toLowerCase();
+        if (!["xlsx", "xls", "csv", "ods"].includes(ext)) {
+          setStatus("Unsupported file type. Please drop an xlsx or csv file.", true);
+          return;
+        }
+
+        try {
+          setStatus("Reading file…");
+          const rows = await parseSpreadsheet(file);
+          if (!rows.length) {
+            setStatus("No rows found in file.", true);
+            return;
+          }
+          setStatus(`Found ${rows.length} rows. Select an account to continue.`);
+          openImportModal(rows, file.name);
+        } catch (err) {
+          console.error(err);
+          setStatus("Failed to read file: " + err.message, true);
+        }
+      });
+    }
+
+    // ── Card keyboard navigation ──────────────────────────────────────────────
+
+    let _keyboardNavActive = false;
+
+    function setActiveCard(ci, showRing = false) {
+      state.activeCardIndex = ci;
+      // Ring only shown during keyboard navigation
+      els.cardRail.querySelectorAll("[data-card-index]").forEach(el => {
+        el.classList.toggle("card-active", showRing && Number(el.dataset.cardIndex) === ci);
+      });
+      if (showRing) {
+        const target = els.cardRail.querySelector(`[data-card-index="${ci}"]`);
+        if (target) target.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+      }
+    }
+
+    function clearActiveRing() {
+      _keyboardNavActive = false;
+      els.cardRail.querySelectorAll("[data-card-index]").forEach(el => {
+        el.classList.remove("card-active");
+      });
+    }
+
+    function isTypingContext() {
+      const tag = document.activeElement?.tagName;
+      return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" ||
+        document.activeElement?.isContentEditable;
+    }
+
+    document.addEventListener("keydown", e => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      if (isTypingContext()) return;
+      if (state.txCards.length <= 1) return;
+
+      e.preventDefault();
+      _keyboardNavActive = true;
+
+      const current = state.activeCardIndex;
+      const next = e.key === "ArrowRight"
+        ? Math.min(current + 1, state.txCards.length - 1)
+        : Math.max(current - 1, 0);
+
+      setActiveCard(next, true);
+    });
+
+    // Hide ring when user clicks or focuses anything
+    document.addEventListener("mousedown", () => { if (_keyboardNavActive) clearActiveRing(); });
+    document.addEventListener("focusin",   () => { if (_keyboardNavActive) clearActiveRing(); });
+
+    // ── Event wiring ──────────────────────────────────────────────────────────
+
+    els.connectBtn.addEventListener("click", connectYNAB);
+
+    els.addCardBtn.addEventListener("click", addCard);
+    setupAddButtonDragDrop();
+
+    els.createTransactionBtn.addEventListener("click", createTransaction);
+
+    els.savePresetBtn.addEventListener("click", savePreset);
+
+    // Settings toggle
+    els.settingsToggleBtn.addEventListener("click", () => {
+      els.settingsPanel.classList.toggle("hidden");
+    });
+
+    // Global budget select
+    els.globalBudgetSelect.addEventListener("change", e => {
+      const budgetId = e.target.value;
+      if (budgetId) {
+        localStorage.setItem("ynab_last_budget", budgetId);
+        state.txCards.forEach(c => { c.budgetId = budgetId; });
+        loadBudgetData(budgetId);
+      }
+    });
+
+    els.splitwiseToggle.addEventListener("change", async () => {
+      state.splitwise.enabled = els.splitwiseToggle.checked;
+      if (state.splitwise.enabled) {
+        els.splitwisePanel.classList.remove("hidden");
+        if (!state.splitwise.currentUser) {
+          await loadSplitwiseData();
+        } else {
+          renderCards();
+        }
+      } else {
+        els.splitwisePanel.classList.add("hidden");
+        renderCards();
+      }
+    });
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+
+    renderMemoSuggestions();
+    renderCards();
+
+    // Focus the amount field of the first card on load
+    setTimeout(() => {
+      const firstAmount = els.cardRail.querySelector(".card-total-input");
+      if (firstAmount) firstAmount.focus();
+    }, 100);
+
+    if (state.token) {
+      connectYNAB();
+    }
+
+  </script>
+</body>
+</html>
