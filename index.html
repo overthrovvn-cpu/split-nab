@@ -289,6 +289,7 @@
 
   .split-rows { display: flex; flex-direction: column; gap: 8px; }
 
+  /* ── Desktop split row: all fields in one flex line ── */
   .split-row {
     display: flex;
     align-items: center;
@@ -297,6 +298,79 @@
 
   .split-row input[type="text"] { flex: 1; min-width: 0; }
   .split-row input[type="number"] { width: 120px; flex-shrink: 0; }
+
+  /* ── Mobile split row: stacked fields ── */
+  @media (max-width: 640px) {
+    .split-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      padding: 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    /* Field labels inside split row — only visible on mobile */
+    .split-field-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+      margin-top: 10px;
+    }
+
+    .split-field-label:first-child { margin-top: 0; }
+
+    /* Category takes full width */
+    .split-row .dropdown-wrap { width: 100%; }
+    .split-row input[type="text"] { width: 100%; }
+
+    /* Amount + delete share a row */
+    .split-row .split-row-amount-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Label inside amount-row spans full width so input+delete sit below it */
+    .split-row .split-row-amount-row .split-field-label {
+      flex-basis: 100%;
+      margin-top: 10px;
+      margin-bottom: 4px;
+    }
+
+    .split-row .split-row-amount-row input[type="number"] {
+      flex: 1;
+      width: auto;
+    }
+
+    /* Note takes full width */
+    .split-row .split-row-note { width: 100%; }
+
+    /* Hide the desktop-only inline delete on mobile */
+    .split-row .split-delete-inline { display: none; }
+  }
+
+  /* ── Desktop: unwrap the mobile helper divs so layout stays flat ── */
+  @media (min-width: 641px) {
+    /* Labels are hidden on desktop */
+    .split-field-label { display: none; }
+
+    /* Unwrap amount-row div — its children join the parent flex directly */
+    .split-row .split-row-amount-row {
+      display: contents;
+    }
+    /* Hide the mobile delete inside amount-row on desktop */
+    .split-row .split-row-amount-row .btn-danger-ghost { display: none; }
+
+    /* Unwrap note div */
+    .split-row .split-row-note { display: contents; }
+  }
 
   /* ── Card section title ── */
   .card-title {
@@ -597,12 +671,14 @@
     border-radius: var(--radius);
     border: 1px solid var(--border);
     position: relative;
+    -webkit-overflow-scrolling: touch;
   }
 
   table {
     width: 100%;
     border-collapse: collapse;
     min-width: 900px;
+    table-layout: fixed;
   }
 
   thead th {
@@ -616,6 +692,69 @@
     letter-spacing: 0.05em;
     border-bottom: 1px solid var(--border);
     white-space: nowrap;
+    position: relative;
+    overflow: visible;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* ── Column resize handle ── */
+  .col-resize-handle {
+    position: absolute;
+    top: 0;
+    right: -4px;
+    width: 8px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Visual indicator line — only visible on desktop hover */
+  .col-resize-handle::after {
+    content: '';
+    display: block;
+    width: 2px;
+    height: 60%;
+    border-radius: 2px;
+    background: transparent;
+    transition: background 0.15s;
+  }
+
+  @media (hover: hover) {
+    thead th:hover .col-resize-handle::after,
+    .col-resize-handle:hover::after {
+      background: var(--accent);
+    }
+    .col-resize-handle.resizing::after {
+      background: var(--accent);
+      height: 100%;
+    }
+  }
+
+  /* On touch devices: wider hit area for easy finger dragging */
+  @media (hover: none) {
+    .col-resize-handle {
+      width: 24px;
+      right: -12px;
+    }
+    .col-resize-handle::after {
+      width: 3px;
+      height: 50%;
+      background: var(--border);
+    }
+  }
+
+  /* Prevent text selection while resizing */
+  body.col-resizing {
+    cursor: col-resize !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+  }
+  body.col-resizing * {
+    cursor: col-resize !important;
   }
 
   tbody tr.parent-row { background: var(--card); }
@@ -820,7 +959,7 @@
           <div class="input-wrap">
             <span class="input-prefix">$</span>
             <input type="number" id="s-amount" class="has-prefix" placeholder="0.00" min="0" step="0.01"
-                   oninput="updateRemaining()" aria-describedby="s-amount-err">
+                   oninput="onTotalAmountInput()" aria-describedby="s-amount-err">
           </div>
           <span class="field-error" id="s-amount-err">Please enter a valid amount.</span>
         </div>
@@ -866,7 +1005,7 @@
           </div>
           <div style="display:flex;gap:8px;">
             <button class="btn btn-ghost btn-sm" onclick="autoBalance()" title="Distribute remaining equally to empty splits">Auto Balance</button>
-            <button class="btn btn-outline btn-sm" onclick="addSplitRow()">+ Add Split</button>
+            <button class="btn btn-outline btn-sm" onclick="addSplitRow(true)">+ Add Split</button>
           </div>
         </div>
         <div class="split-rows" id="split-rows"></div>
@@ -903,16 +1042,16 @@
         <table id="batch-table" aria-label="Batch transactions">
           <thead>
             <tr>
-              <th class="td-num">#</th>
-              <th>Date</th>
-              <th>Account</th>
-              <th>Total Amount</th>
-              <th>Payee</th>
-              <th>Memo</th>
-              <th>Category</th>
-              <th>Amount</th>
-              <th>Note</th>
-              <th>Actions</th>
+              <th class="td-num" data-col="num">#</th>
+              <th data-col="date">Date<span class="col-resize-handle" data-col="date"></span></th>
+              <th data-col="account">Account<span class="col-resize-handle" data-col="account"></span></th>
+              <th data-col="total">Total Amount<span class="col-resize-handle" data-col="total"></span></th>
+              <th data-col="payee">Payee<span class="col-resize-handle" data-col="payee"></span></th>
+              <th data-col="memo">Memo<span class="col-resize-handle" data-col="memo"></span></th>
+              <th data-col="category">Category<span class="col-resize-handle" data-col="category"></span></th>
+              <th data-col="amount">Amount<span class="col-resize-handle" data-col="amount"></span></th>
+              <th data-col="note">Note<span class="col-resize-handle" data-col="note"></span></th>
+              <th data-col="actions">Actions</th>
             </tr>
           </thead>
           <tbody id="batch-tbody"></tbody>
@@ -1076,6 +1215,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Init single-entry searchable dropdowns (works even before YNAB connects)
   initSingleEntryDropdowns();
+
+  // Init column resize handles for batch table
+  initColResize();
 });
 
 /* ═══════════════════════════════════════════════
@@ -1477,6 +1619,8 @@ function setMode(mode) {
     btnB.setAttribute('aria-pressed', 'true');
     btnS.setAttribute('aria-pressed', 'false');
     renderBatchTable();
+    // Re-apply column widths after the table becomes visible
+    applyColWidths(loadColWidths());
   }
 }
 
@@ -1517,22 +1661,47 @@ function initSingleEntryDropdowns() {
 /* ═══════════════════════════════════════════════
    SINGLE ENTRY — SPLIT ROWS
 ═══════════════════════════════════════════════ */
-function addSplitRow() {
+function addSplitRow(clearExisting = false) {
+  // If adding a new split (not the initial one), clear all existing split amounts
+  if (clearExisting) {
+    document.querySelectorAll('#split-rows .split-row').forEach(row => {
+      const amtInput = document.getElementById(`sa-${row.dataset.id}`);
+      if (amtInput) amtInput.value = '';
+    });
+  }
+
   const id = ++splitRowId;
   const container = document.getElementById('split-rows');
   const row = document.createElement('div');
   row.className = 'split-row';
   row.dataset.id = id;
+
+  // Default amount: total value if this is the first (and only) split row
+  const isFirst = container.querySelectorAll('.split-row').length === 0;
+  const defaultAmount = isFirst
+    ? (document.getElementById('s-amount')?.value || '')
+    : '';
+
   row.innerHTML = `
+    <span class="split-field-label">Category</span>
     <div class="dropdown-wrap" style="flex:1;min-width:0;">
-      <input type="text" id="sc-${id}" placeholder="Category" aria-label="Category"
+      <input type="text" id="sc-${id}" placeholder="Search category" aria-label="Category"
              autocomplete="off" oninput="updateRemaining()">
       <div class="dropdown-list" id="sc-list-${id}" role="listbox"></div>
     </div>
-    <input type="number" id="sa-${id}" placeholder="0.00" min="0" step="0.01"
-           aria-label="Amount" oninput="updateRemaining()">
-    <input type="text"   id="sn-${id}" placeholder="Note" aria-label="Note">
-    <button class="btn btn-danger-ghost" onclick="deleteSplitRow(${id})"
+    <div class="split-row-amount-row">
+      <span class="split-field-label">Amount</span>
+      <input type="number" id="sa-${id}" placeholder="0.00" min="0" step="0.01"
+             value="${defaultAmount}"
+             aria-label="Amount" oninput="updateRemaining()">
+      <button class="btn btn-danger-ghost" onclick="deleteSplitRow(${id})"
+              aria-label="Remove split row" title="Remove">×</button>
+    </div>
+    <div class="split-row-note">
+      <span class="split-field-label">Note</span>
+      <input type="text" id="sn-${id}" placeholder="Optional note" aria-label="Note">
+    </div>
+    <button class="btn btn-danger-ghost split-delete-inline" onclick="deleteSplitRow(${id})"
             aria-label="Remove split row" title="Remove">×</button>
   `;
   container.appendChild(row);
@@ -1562,15 +1731,35 @@ function deleteSplitRow(id) {
   const row = document.querySelector(`#split-rows .split-row[data-id="${id}"]`);
   if (row) row.remove();
   updateDeleteButtons();
+  // If back to one split, restore the total as its amount
+  const remaining = document.querySelectorAll('#split-rows .split-row');
+  if (remaining.length === 1) {
+    const onlyId = remaining[0].dataset.id;
+    const amtInput = document.getElementById(`sa-${onlyId}`);
+    if (amtInput) amtInput.value = document.getElementById('s-amount')?.value || '';
+  }
   updateRemaining();
 }
 
 function updateDeleteButtons() {
   const rows = document.querySelectorAll('#split-rows .split-row');
   rows.forEach(row => {
-    const btn = row.querySelector('button');
-    btn.disabled = rows.length <= 1;
+    // Disable all delete buttons in this row (both desktop inline and mobile amount-row)
+    row.querySelectorAll('button.btn-danger-ghost').forEach(btn => {
+      btn.disabled = rows.length <= 1;
+    });
   });
+}
+
+function onTotalAmountInput() {
+  // If there's exactly one split row, keep its amount in sync with the total
+  const rows = document.querySelectorAll('#split-rows .split-row');
+  if (rows.length === 1) {
+    const id = rows[0].dataset.id;
+    const amtInput = document.getElementById(`sa-${id}`);
+    if (amtInput) amtInput.value = document.getElementById('s-amount').value;
+  }
+  updateRemaining();
 }
 
 function updateRemaining() {
@@ -1619,6 +1808,7 @@ function autoBalance() {
    BATCH — DATA MODEL
 ═══════════════════════════════════════════════ */
 function newTx(overrides) {
+  const total = overrides?.total || '';
   return Object.assign({
     id: ++batchTxId,
     date: todayStr(),
@@ -1626,7 +1816,7 @@ function newTx(overrides) {
     total: '',
     payee: '',
     memo: '',
-    splits: [newSplit()]
+    splits: [newSplit({ amount: total })]
   }, overrides);
 }
 
@@ -1640,27 +1830,109 @@ function newSplit(overrides) {
 }
 
 function initBatchSample() {
-  batchData = [
-    newTx({
-      date: todayStr(),
-      account: 'Checking',
-      total: '45.00',
-      payee: 'Starbucks',
-      memo: 'Coffee run',
-      splits: [newSplit({ category: 'Coffee', amount: '45.00', note: '' })]
-    }),
-    newTx({
-      date: todayStr(),
-      account: 'Checking',
-      total: '120.00',
-      payee: 'Whole Foods',
-      memo: 'Groceries',
-      splits: [
-        newSplit({ category: 'Groceries', amount: '80.00', note: 'Produce' }),
-        newSplit({ category: 'Household', amount: '40.00', note: 'Cleaning supplies' })
-      ]
-    })
-  ];
+  batchData = [];
+}
+
+/* ═══════════════════════════════════════════════
+   COLUMN RESIZE ENGINE
+═══════════════════════════════════════════════ */
+
+// Default column widths (px). Persisted in localStorage.
+const COL_DEFAULTS = {
+  num:      36,
+  date:     110,
+  account:  130,
+  total:    110,
+  payee:    140,
+  memo:     140,
+  category: 140,
+  amount:   100,
+  note:     120,
+  actions:  140,
+};
+
+const COL_MIN = 48; // minimum column width in px
+
+function loadColWidths() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('splitnab_col_widths') || '{}');
+    return Object.assign({}, COL_DEFAULTS, saved);
+  } catch { return { ...COL_DEFAULTS }; }
+}
+
+function saveColWidths(widths) {
+  localStorage.setItem('splitnab_col_widths', JSON.stringify(widths));
+}
+
+function applyColWidths(widths) {
+  const table = document.getElementById('batch-table');
+  if (!table) return;
+  const ths = table.querySelectorAll('thead th[data-col]');
+  ths.forEach(th => {
+    const col = th.dataset.col;
+    if (widths[col]) th.style.width = widths[col] + 'px';
+  });
+  // Update table min-width to sum of all columns
+  const total = Object.values(widths).reduce((s, v) => s + v, 0);
+  table.style.minWidth = total + 'px';
+}
+
+function initColResize() {
+  const widths = loadColWidths();
+  applyColWidths(widths);
+
+  const table = document.getElementById('batch-table');
+  if (!table) return;
+
+  table.querySelectorAll('.col-resize-handle').forEach(handle => {
+    const col = handle.dataset.col;
+
+    // ── Pointer events (works for both mouse and touch) ──
+    handle.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const th = handle.closest('th');
+      const startX   = e.clientX;
+      const startW   = th.offsetWidth;
+
+      handle.classList.add('resizing');
+      document.body.classList.add('col-resizing');
+      handle.setPointerCapture(e.pointerId);
+
+      function onMove(ev) {
+        const delta = ev.clientX - startX;
+        const newW  = Math.max(COL_MIN, startW + delta);
+        th.style.width = newW + 'px';
+        // Update table min-width live
+        const allThs = table.querySelectorAll('thead th[data-col]');
+        let total = 0;
+        allThs.forEach(t => { total += t.offsetWidth; });
+        table.style.minWidth = total + 'px';
+      }
+
+      function onUp() {
+        handle.classList.remove('resizing');
+        document.body.classList.remove('col-resizing');
+        handle.releasePointerCapture(e.pointerId);
+
+        // Persist
+        const allThs = table.querySelectorAll('thead th[data-col]');
+        const newWidths = { ...widths };
+        allThs.forEach(t => { newWidths[t.dataset.col] = t.offsetWidth; });
+        Object.assign(widths, newWidths);
+        saveColWidths(widths);
+
+        handle.removeEventListener('pointermove', onMove);
+        handle.removeEventListener('pointerup',   onUp);
+        handle.removeEventListener('pointercancel', onUp);
+      }
+
+      handle.addEventListener('pointermove',   onMove);
+      handle.addEventListener('pointerup',     onUp);
+      handle.addEventListener('pointercancel', onUp);
+    });
+  });
 }
 
 /* ═══════════════════════════════════════════════
@@ -1696,7 +1968,7 @@ function renderBatchTable() {
         </div>
       </td>
       <td><input type="number" value="${tx.total}" placeholder="0.00" step="0.01"
-            aria-label="Total Amount" oninput="updateTxField(${tx.id},'total',this.value)"></td>
+            aria-label="Total Amount" oninput="updateTxField(${tx.id},'total',this.value); syncBatchSingleSplit(${tx.id}, this.value)"></td>
       <td><input type="text" value="${escHtml(tx.payee)}" placeholder="Payee"
             aria-label="Payee" oninput="updateTxField(${tx.id},'payee',this.value)"
             id="bt-payee-${tx.id}"></td>
@@ -1712,7 +1984,7 @@ function renderBatchTable() {
         </div>`}
       </td>
       <td>${multiSplit ? '<span class="text-muted">—</span>' : `
-        <input type="number" value="${escHtml(inlineAmt)}" placeholder="0.00" step="0.01"
+        <input type="number" id="bt-amt-${tx.id}-${splitId0}" value="${escHtml(inlineAmt)}" placeholder="0.00" step="0.01"
                aria-label="Amount" oninput="updateSplitField(${tx.id},${splitId0},'amount',this.value)">`}
       </td>
       <td>${multiSplit ? '<span class="text-muted">—</span>' : `
@@ -1838,6 +2110,17 @@ function updateTxField(txId, field, value) {
   if (tx) tx[field] = value;
 }
 
+// When total changes and there's only one split, keep that split's amount in sync
+function syncBatchSingleSplit(txId, totalValue) {
+  const tx = batchData.find(t => t.id === txId);
+  if (!tx || tx.splits.length !== 1) return;
+  tx.splits[0].amount = totalValue;
+  // Also update the DOM input directly (no full re-render needed)
+  const splitId = tx.splits[0].id;
+  const amtInput = document.getElementById(`bt-amt-${txId}-${splitId}`);
+  if (amtInput) amtInput.value = totalValue;
+}
+
 function updateSplitField(txId, spId, field, value) {
   const tx = batchData.find(t => t.id === txId);
   if (!tx) return;
@@ -1853,6 +2136,8 @@ function addBatchTransaction() {
 function addBatchSplit(txId) {
   const tx = batchData.find(t => t.id === txId);
   if (!tx) return;
+  // Clear all existing split amounts before adding a new split
+  tx.splits.forEach(sp => { sp.amount = ''; });
   tx.splits.push(newSplit());
   renderBatchTable();
 }
@@ -1861,6 +2146,10 @@ function removeBatchSplit(txId, spId) {
   const tx = batchData.find(t => t.id === txId);
   if (!tx || tx.splits.length <= 1) return;
   tx.splits = tx.splits.filter(s => s.id !== spId);
+  // If back to one split, restore the total as its amount
+  if (tx.splits.length === 1) {
+    tx.splits[0].amount = tx.total || '';
+  }
   renderBatchTable();
 }
 
