@@ -305,6 +305,7 @@
     .split-row {
       display: flex;
       flex-direction: column;
+      align-items: flex-start;
       gap: 0;
       padding: 12px;
       background: var(--bg);
@@ -322,39 +323,64 @@
       letter-spacing: 0.05em;
       margin-bottom: 4px;
       margin-top: 10px;
+      text-align: left;
     }
 
     .split-field-label:first-child { margin-top: 0; }
 
-    /* Category takes full width */
+    /* Category and note take full width */
     .split-row .dropdown-wrap { width: 100%; }
     .split-row input[type="text"] { width: 100%; }
 
-    /* Amount + delete share a row */
+    /* Amount row: label + full-width input stacked */
     .split-row .split-row-amount-row {
       display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 8px;
-    }
-
-    /* Label inside amount-row spans full width so input+delete sit below it */
-    .split-row .split-row-amount-row .split-field-label {
-      flex-basis: 100%;
-      margin-top: 10px;
-      margin-bottom: 4px;
+      flex-direction: column;
+      align-items: flex-start;
+      width: 100%;
+      gap: 0;
     }
 
     .split-row .split-row-amount-row input[type="number"] {
-      flex: 1;
-      width: auto;
+      width: 100%;
     }
+
+    /* Hide the old amount-row delete button (replaced by bottom button) */
+    .split-row .split-row-amount-row .btn-danger-ghost { display: none; }
 
     /* Note takes full width */
     .split-row .split-row-note { width: 100%; }
 
     /* Hide the desktop-only inline delete on mobile */
     .split-row .split-delete-inline { display: none; }
+
+    /* Bottom-center REMOVE button — mobile only */
+    .split-delete-bottom {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+      margin-top: 14px;
+    }
+
+    .btn-remove {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 20px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--error);
+      background: transparent;
+      border: 1px solid var(--error);
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-family: var(--font);
+      transition: background 0.15s;
+    }
+
+    .btn-remove:hover { background: var(--error-light); }
   }
 
   /* ── Desktop: unwrap the mobile helper divs so layout stays flat ── */
@@ -371,6 +397,32 @@
 
     /* Unwrap note div */
     .split-row .split-row-note { display: contents; }
+
+    /* Hide the mobile bottom-remove wrapper on desktop */
+    .split-delete-bottom { display: none; }
+
+    /* Desktop inline remove — small labelled button instead of bare × */
+    .split-delete-inline {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--error);
+      background: transparent;
+      border: 1px solid var(--error);
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-family: var(--font);
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+
+    .split-delete-inline:hover { background: var(--error-light); }
   }
 
   /* ── Card section title ── */
@@ -520,8 +572,11 @@
     background: rgba(0,0,0,0.45);
     z-index: 300;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 24px 16px;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s;
@@ -539,7 +594,7 @@
     padding: 28px;
     width: 100%;
     max-width: 440px;
-    margin: 16px;
+    margin: 0 auto;
     position: relative;
   }
 
@@ -843,6 +898,105 @@
     font-weight: 600;
     width: 32px;
     text-align: center;
+    position: relative;
+    white-space: nowrap;
+  }
+
+  .td-num-val {
+    display: inline-block;
+    vertical-align: middle;
+  }
+
+  /* Duplicate detection badge */
+  .dup-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #f59e0b;
+    color: #1a1a1a;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-left: 3px;
+    vertical-align: middle;
+    flex-shrink: 0;
+    line-height: 1;
+    user-select: none;
+  }
+
+  /* Singleton floating popup — appended to <body>, position:fixed so it
+     escapes all overflow:hidden/auto ancestors (table-wrap, etc.) */
+  #dup-floating-popup {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    background: var(--surface, #1e1e2e);
+    border: 1px solid #f59e0b;
+    border-radius: 6px;
+    padding: 8px 10px;
+    min-width: 200px;
+    max-width: 280px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    text-align: left;
+    white-space: normal;
+    pointer-events: none;
+  }
+
+  #dup-floating-popup.visible {
+    display: block;
+  }
+
+  #dup-floating-popup::before {
+    content: '';
+    position: absolute;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+  }
+
+  #dup-floating-popup.arrow-top::before {
+    top: -6px;
+    border-bottom: 6px solid #f59e0b;
+    border-top: none;
+  }
+
+  #dup-floating-popup.arrow-bottom::before {
+    bottom: -6px;
+    border-top: 6px solid #f59e0b;
+    border-bottom: none;
+  }
+
+  .dup-popup-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: #f59e0b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 5px;
+  }
+
+  .dup-popup-item {
+    font-size: 11px;
+    color: var(--text, #e0e0e0);
+    padding: 3px 0;
+    border-top: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .dup-popup-item:first-of-type {
+    border-top: none;
+  }
+
+  .dup-popup-item .dup-item-memo {
+    font-weight: 500;
+    word-break: break-word;
+  }
+
+  .dup-popup-item .dup-item-meta {
+    color: var(--text-muted, #888);
+    font-size: 10px;
+    margin-top: 1px;
   }
 
   .td-actions {
@@ -1344,37 +1498,6 @@
 
     <hr class="modal-divider">
 
-    <!-- Import Behaviour Section -->
-    <p class="modal-section-title">Import Behaviour</p>
-
-    <div class="field" style="margin-bottom:10px;">
-      <label class="toggle-wrap" style="cursor:pointer;">
-        <span class="toggle">
-          <input type="checkbox" id="flag-create-payee" aria-label="Auto-create missing payees">
-          <span class="toggle-slider"></span>
-        </span>
-        <span style="font-size:13px;color:var(--text);">Auto-create missing payees in YNAB</span>
-      </label>
-      <span style="font-size:12px;color:var(--text-muted);margin-top:4px;display:block;">
-        When a payee doesn't exist in YNAB, create it automatically instead of blocking the save.
-      </span>
-    </div>
-
-    <div class="field" style="margin-bottom:10px;">
-      <label class="toggle-wrap" style="cursor:pointer;">
-        <span class="toggle">
-          <input type="checkbox" id="flag-create-category" aria-label="Auto-create missing categories">
-          <span class="toggle-slider"></span>
-        </span>
-        <span style="font-size:13px;color:var(--text);">Auto-create missing categories in YNAB</span>
-      </label>
-      <span style="font-size:12px;color:var(--text-muted);margin-top:4px;display:block;">
-        When a category doesn't exist in YNAB, create it in an "Imported" group automatically.
-      </span>
-    </div>
-
-    <hr class="modal-divider">
-
     <!-- Splitwise Section -->
     <p class="modal-section-title">Splitwise</p>
 
@@ -1415,7 +1538,7 @@
 
     <hr class="modal-divider">
 
-    <!-- Import Behaviour Section (moved below Splitwise) -->
+    <!-- Import Behaviour Section -->
     <p class="modal-section-title">Import Behaviour</p>
 
     <div class="field" style="margin-bottom:10px;">
@@ -1441,6 +1564,24 @@
       </label>
       <span style="font-size:12px;color:var(--text-muted);margin-top:4px;display:block;">
         When a category doesn't exist in YNAB, create it in an "Imported" group automatically.
+      </span>
+    </div>
+
+    <hr class="modal-divider">
+
+    <!-- Developer Tools Section -->
+    <p class="modal-section-title">Developer Tools</p>
+
+    <div class="field" style="margin-bottom:10px;">
+      <label class="toggle-wrap" style="cursor:pointer;">
+        <span class="toggle">
+          <input type="checkbox" id="flag-show-dev-tools" aria-label="Show developer tools">
+          <span class="toggle-slider"></span>
+        </span>
+        <span style="font-size:13px;color:var(--text);">Show Debug PDF &amp; Import CSV actions</span>
+      </label>
+      <span style="font-size:12px;color:var(--text-muted);margin-top:4px;display:block;">
+        Reveals the 🔍 Debug PDF and ↑ Import CSV buttons in the Batch toolbar. Hidden by default.
       </span>
     </div>
 
@@ -1476,7 +1617,16 @@ let currentMode = 'single';
 let splitRowId = 0;
 let batchTxId = 0;
 let batchSplitId = 0;
-let presets = JSON.parse(localStorage.getItem('splitnab_presets') || '["Morning Coffee","Team Lunch"]');
+// Presets: array of { name, splits: [{category, categoryId, note}] }
+// Migrate legacy format (array of strings) gracefully
+let presets = (() => {
+  try {
+    const raw = JSON.parse(localStorage.getItem('splitnab_presets') || '[]');
+    if (!Array.isArray(raw)) return [];
+    // If old format (strings), discard — no data to migrate
+    return raw.filter(p => p && typeof p === 'object' && p.name);
+  } catch { return []; }
+})();
 
 // YNAB state
 const ynab = {
@@ -1492,6 +1642,8 @@ const ynab = {
   usageAllTime: {},
   // Memo→payee index for PDF import matching (built in loadBudgetData)
   memoIndex:    null,
+  // All transactions — used for duplicate detection
+  transactions: [],
 };
 
 // Batch data model
@@ -1502,6 +1654,7 @@ let batchData = [];
 const flags = {
   createPayee:    localStorage.getItem('flag_create_payee')    === 'true',
   createCategory: localStorage.getItem('flag_create_category') === 'true',
+  showDevTools:   localStorage.getItem('flag_show_dev_tools')  === 'true',
 };
 
 // ── Splitwise state ──────────────────────────────────────────────────────────
@@ -1568,6 +1721,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Init column resize handles for batch table
   initColResize();
+
+  // Apply dev tools visibility based on saved flag
+  applyDevToolsVisibility();
 });
 
 /* ═══════════════════════════════════════════════
@@ -2021,6 +2177,7 @@ async function loadBudgetData(budgetId) {
 
     // Build usage maps — last 30 days primary, all-time as fallback
     const allTransactions = txRes.data.transactions || [];
+    ynab.transactions = allTransactions;
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 30);
     const recentTransactions = allTransactions.filter(t => t.date && new Date(t.date) >= cutoff);
@@ -2155,6 +2312,7 @@ function setMode(mode) {
     btnB.classList.remove('active');
     btnS.setAttribute('aria-pressed', 'true');
     btnB.setAttribute('aria-pressed', 'false');
+    document.getElementById('preset-btn').closest('.popover-wrap').style.display = '';
   } else {
     batch.classList.add('active');
     single.classList.remove('active');
@@ -2162,6 +2320,9 @@ function setMode(mode) {
     btnS.classList.remove('active');
     btnB.setAttribute('aria-pressed', 'true');
     btnS.setAttribute('aria-pressed', 'false');
+    // Hide preset panel — only relevant for single entry mode
+    document.getElementById('preset-btn').closest('.popover-wrap').style.display = 'none';
+    document.getElementById('preset-panel').classList.remove('open');
     renderBatchTable();
     // Re-apply column widths after the table becomes visible
     applyColWidths(loadColWidths());
@@ -2238,15 +2399,17 @@ function addSplitRow(clearExisting = false) {
       <input type="number" id="sa-${id}" placeholder="0.00" min="0" step="0.01"
              value="${defaultAmount}"
              aria-label="Amount" oninput="updateRemaining()">
-      <button class="btn btn-danger-ghost" onclick="deleteSplitRow(${id})"
-              aria-label="Remove split row" title="Remove">×</button>
     </div>
     <div class="split-row-note">
       <span class="split-field-label">Note</span>
       <input type="text" id="sn-${id}" placeholder="Optional note" aria-label="Note">
     </div>
-    <button class="btn btn-danger-ghost split-delete-inline" onclick="deleteSplitRow(${id})"
-            aria-label="Remove split row" title="Remove">×</button>
+    <div class="split-delete-bottom">
+      <button class="btn-remove" onclick="deleteSplitRow(${id})"
+              aria-label="Remove split row">✕ Remove</button>
+    </div>
+    <button class="btn split-delete-inline" onclick="deleteSplitRow(${id})"
+            aria-label="Remove split row">✕ Remove</button>
   `;
   container.appendChild(row);
 
@@ -2300,8 +2463,8 @@ function deleteSplitRow(id) {
 function updateDeleteButtons() {
   const rows = document.querySelectorAll('#split-rows .split-row');
   rows.forEach(row => {
-    // Disable all delete buttons in this row (both desktop inline and mobile amount-row)
-    row.querySelectorAll('button.btn-danger-ghost').forEach(btn => {
+    // Disable all delete buttons in this row (desktop inline + mobile bottom)
+    row.querySelectorAll('.split-delete-inline, .btn-remove').forEach(btn => {
       btn.disabled = rows.length <= 1;
     });
   });
@@ -2494,6 +2657,228 @@ function initColResize() {
 }
 
 /* ═══════════════════════════════════════════════
+   BATCH — DUPLICATE DETECTION
+═══════════════════════════════════════════════ */
+
+/**
+ * Checks each row in batchData against ynab.transactions for potential duplicates.
+ * A duplicate is a YNAB transaction that matches on (date, amount) and shares
+ * the same account (by accountId or fuzzy account name match).
+ *
+ * Annotates each tx with tx._duplicates = [] (empty = no match, non-empty = potential dupes).
+ * Then re-renders the table to show/hide badges.
+ */
+function checkDuplicates() {
+  if (!ynab.transactions || !ynab.transactions.length) return;
+
+  // Build a lookup: "YYYY-MM-DD|milliunits" → [transaction, ...]
+  // YNAB amounts are in milliunits (negative for outflows). We match on absolute value.
+  const dupMap = new Map();
+  for (const t of ynab.transactions) {
+    if (!t.date || t.amount == null) continue;
+    const key = `${t.date}|${Math.abs(t.amount)}`;
+    if (!dupMap.has(key)) dupMap.set(key, []);
+    dupMap.get(key).push(t);
+  }
+
+  // Build accountId lookup: name (lowercase) → id
+  const accountNameToId = new Map();
+  for (const a of ynab.accounts) {
+    accountNameToId.set(a.name.toLowerCase(), a.id);
+  }
+
+  let foundCount = 0;
+  for (const tx of batchData) {
+    tx._duplicates = [];
+    if (!tx.date || !tx.total) continue;
+
+    const amtMilliunits = Math.round(Math.abs(parseFloat(tx.total)) * 1000);
+    const key = `${tx.date}|${amtMilliunits}`;
+    const candidates = dupMap.get(key);
+    if (!candidates || !candidates.length) continue;
+
+    // Resolve the accountId for this tx (may already be set, or look up by name)
+    let txAccountId = tx.accountId || '';
+    if (!txAccountId && tx.account) {
+      txAccountId = accountNameToId.get(tx.account.toLowerCase()) || '';
+    }
+
+    for (const candidate of candidates) {
+      // If we have account info on both sides, require account match
+      if (txAccountId && candidate.account_id && txAccountId !== candidate.account_id) continue;
+      tx._duplicates.push(candidate);
+    }
+
+    if (tx._duplicates.length) foundCount++;
+  }
+
+  // Re-render badges without full table rebuild
+  updateDuplicateBadges();
+
+  if (foundCount > 0) {
+    showToast('warning', `${foundCount} potential duplicate${foundCount !== 1 ? 's' : ''} found — check the ⓘ badges.`);
+  }
+}
+
+/**
+ * Updates only the row-number cells to add/remove duplicate badges.
+ * Called after checkDuplicates() so we don't rebuild the whole table.
+ */
+function updateDuplicateBadges() {
+  // Ensure the singleton floating popup exists in the DOM
+  let floatingPopup = document.getElementById('dup-floating-popup');
+  if (!floatingPopup) {
+    floatingPopup = document.createElement('div');
+    floatingPopup.id = 'dup-floating-popup';
+    document.body.appendChild(floatingPopup);
+
+    // Hide on any click outside a badge
+    document.addEventListener('click', () => {
+      floatingPopup.classList.remove('visible');
+      floatingPopup._activeBadge = null;
+    });
+    // Hide on scroll so it doesn't drift from its badge
+    document.addEventListener('scroll', () => {
+      floatingPopup.classList.remove('visible');
+      floatingPopup._activeBadge = null;
+    }, true);
+  }
+
+  function showPopup(badge, html) {
+    floatingPopup.innerHTML = html;
+    floatingPopup.classList.remove('arrow-top', 'arrow-bottom', 'visible');
+
+    // Temporarily show off-screen to measure height
+    floatingPopup.style.visibility = 'hidden';
+    floatingPopup.style.left = '-9999px';
+    floatingPopup.style.top  = '-9999px';
+    floatingPopup.classList.add('visible');
+
+    const popW   = floatingPopup.offsetWidth;
+    const popH   = floatingPopup.offsetHeight;
+    const rect   = badge.getBoundingClientRect();
+    const vw     = window.innerWidth;
+    const vh     = window.innerHeight;
+    const gap    = 8;
+    const arrowH = 6;
+
+    // Decide whether to open below or above the badge
+    const spaceBelow = vh - rect.bottom;
+    const spaceAbove = rect.top;
+    let top, arrowClass;
+
+    if (spaceBelow >= popH + gap + arrowH || spaceBelow >= spaceAbove) {
+      // Open below
+      top = rect.bottom + gap;
+      arrowClass = 'arrow-top';
+    } else {
+      // Open above
+      top = rect.top - gap - popH;
+      arrowClass = 'arrow-bottom';
+    }
+
+    // Horizontally center on badge, clamped within viewport with 8px margin
+    let left = rect.left + rect.width / 2 - popW / 2;
+    left = Math.max(8, Math.min(left, vw - popW - 8));
+
+    // Position the arrow caret relative to the badge center
+    const arrowLeft = (rect.left + rect.width / 2) - left;
+    floatingPopup.style.setProperty('--arrow-left', `${Math.round(arrowLeft)}px`);
+    floatingPopup.style.left = `${Math.round(left)}px`;
+    floatingPopup.style.top  = `${Math.round(top)}px`;
+    floatingPopup.style.visibility = '';
+    floatingPopup.classList.add(arrowClass);
+  }
+
+  // Override ::before arrow position via inline style on the pseudo-element
+  // (can't do that directly, so we use a CSS custom property set on the element)
+  if (!document.getElementById('dup-arrow-style')) {
+    const s = document.createElement('style');
+    s.id = 'dup-arrow-style';
+    s.textContent = `#dup-floating-popup::before { left: var(--arrow-left, 50%); transform: none; }`;
+    document.head.appendChild(s);
+  }
+
+  batchData.forEach((tx, txIdx) => {
+    const txNum = txIdx + 1;
+    const pRow = document.querySelector(`tr.parent-row[data-tx-id="${tx.id}"]`);
+    if (!pRow) return;
+    const numCell = pRow.querySelector('.td-num');
+    if (!numCell) return;
+
+    // Remove any existing badge
+    const existing = numCell.querySelector('.dup-badge');
+    if (existing) existing.remove();
+
+    if (tx._duplicates && tx._duplicates.length) {
+      const badge = document.createElement('span');
+      badge.className = 'dup-badge';
+      badge.setAttribute('tabindex', '0');
+      badge.setAttribute('aria-label', `Potential duplicate detected for row ${txNum}`);
+      badge.setAttribute('role', 'button');
+      badge.textContent = 'ⓘ';
+
+      // Build popup HTML
+      const itemsHtml = tx._duplicates.slice(0, 5).map(d => {
+        const memo    = d.memo || d.payee_name || '(no memo)';
+        const amt     = (Math.abs(d.amount) / 1000).toFixed(2);
+        const account = ynab.accounts.find(a => a.id === d.account_id)?.name || '';
+        return `<div class="dup-popup-item">
+          <div class="dup-item-memo">${escHtml(memo)}</div>
+          <div class="dup-item-meta">${escHtml(d.date)} · ₱${amt}${account ? ' · ' + escHtml(account) : ''}</div>
+        </div>`;
+      }).join('');
+      const moreHtml = tx._duplicates.length > 5
+        ? `<div class="dup-popup-item"><div class="dup-item-meta">+${tx._duplicates.length - 5} more…</div></div>`
+        : '';
+      const popupHtml = `<div class="dup-popup-title">Potential Duplicate${tx._duplicates.length > 1 ? 's' : ''}</div>${itemsHtml}${moreHtml}`;
+
+      // Show on hover
+      badge.addEventListener('mouseenter', () => {
+        floatingPopup._activeBadge = badge;
+        showPopup(badge, popupHtml);
+      });
+      badge.addEventListener('mouseleave', () => {
+        if (floatingPopup._activeBadge === badge) {
+          floatingPopup.classList.remove('visible');
+          floatingPopup._activeBadge = null;
+        }
+      });
+
+      // Toggle on click / keyboard (for touch users)
+      badge.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (floatingPopup._activeBadge === badge && floatingPopup.classList.contains('visible')) {
+          floatingPopup.classList.remove('visible');
+          floatingPopup._activeBadge = null;
+        } else {
+          floatingPopup._activeBadge = badge;
+          showPopup(badge, popupHtml);
+        }
+      });
+      badge.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          if (floatingPopup._activeBadge === badge && floatingPopup.classList.contains('visible')) {
+            floatingPopup.classList.remove('visible');
+            floatingPopup._activeBadge = null;
+          } else {
+            floatingPopup._activeBadge = badge;
+            showPopup(badge, popupHtml);
+          }
+        }
+        if (e.key === 'Escape') {
+          floatingPopup.classList.remove('visible');
+          floatingPopup._activeBadge = null;
+        }
+      });
+
+      numCell.appendChild(badge);
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════
    BATCH — TABLE RENDER
 ═══════════════════════════════════════════════ */
 function renderBatchTable() {
@@ -2513,8 +2898,8 @@ function renderBatchTable() {
     pRow.className = 'parent-row';
     pRow.dataset.txId = tx.id;
 
-    // Splitwise payer account selector (shown in actions cell when SW is enabled)
-    const swPayerHtml = sw.enabled && sw.accounts.length > 1 ? `
+    // Splitwise payer account selector (shown in actions cell when SW is enabled, multi-split only)
+    const swPayerHtml = sw.enabled && sw.accounts.length > 1 && multiSplit ? `
       <div class="sw-payer-row" style="margin-top:6px;">
         <span class="sw-payer-label">SW Payer:</span>
         <select class="sw-payer-select" onchange="updateTxField(${tx.id},'swPayerAccountIndex',parseInt(this.value))" aria-label="Splitwise paying account">
@@ -2523,7 +2908,7 @@ function renderBatchTable() {
       </div>` : '';
 
     pRow.innerHTML = `
-      <td class="td-num">${txNum}</td>
+      <td class="td-num"><span class="td-num-val">${txNum}</span></td>
       <td><input type="date" value="${tx.date}" aria-label="Date"
             onchange="updateTxField(${tx.id},'date',this.value)"></td>
       <td>
@@ -2564,7 +2949,7 @@ function renderBatchTable() {
       <td>${multiSplit ? '<span class="text-muted">—</span>' : `
         <input type="text" value="${escHtml(inlineNote)}" placeholder="Note"
                aria-label="Note" oninput="updateSplitField(${tx.id},${splitId0},'note',this.value)">
-        ${sw.enabled ? `
+        ${sw.enabled && multiSplit ? `
         <div class="sw-user-row" style="margin-top:6px;">
           <label>SW →</label>
           <select class="sw-user-select" onchange="updateSplitField(${tx.id},${splitId0},'swUserId',this.value)" aria-label="Splitwise user for this split">
@@ -2843,6 +3228,18 @@ function batchAutoBalance(txId) {
 /* ═══════════════════════════════════════════════
    SETTINGS MODAL
 ═══════════════════════════════════════════════ */
+
+function applyDevToolsVisibility() {
+  const show = flags.showDevTools;
+  const devBtns = [
+    document.getElementById('pdf-debug-btn'),
+    document.querySelector('.btn.btn-ghost.btn-sm[onclick*="csv-input"]'),
+  ];
+  devBtns.forEach(el => {
+    if (el) el.style.display = show ? '' : 'none';
+  });
+}
+
 function openSettings() {
   // Restore current token into field
   document.getElementById('ynab-key').value = ynab.token;
@@ -2853,6 +3250,7 @@ function openSettings() {
   // Restore feature flags
   document.getElementById('flag-create-payee').checked    = flags.createPayee;
   document.getElementById('flag-create-category').checked = flags.createCategory;
+  document.getElementById('flag-show-dev-tools').checked  = flags.showDevTools;
   // Restore Splitwise proxy URL
   const proxyInput = document.getElementById('sw-proxy-url');
   if (proxyInput) proxyInput.value = sw.proxyUrl;
@@ -2877,8 +3275,11 @@ function saveSettings() {
   // Save feature flags
   flags.createPayee    = document.getElementById('flag-create-payee').checked;
   flags.createCategory = document.getElementById('flag-create-category').checked;
+  flags.showDevTools   = document.getElementById('flag-show-dev-tools').checked;
   localStorage.setItem('flag_create_payee',    flags.createPayee);
   localStorage.setItem('flag_create_category', flags.createCategory);
+  localStorage.setItem('flag_show_dev_tools',  flags.showDevTools);
+  applyDevToolsVisibility();
   closeSettings();
   showToast('success', 'Settings saved.');
 }
@@ -3785,6 +4186,8 @@ function importCsv(file) {
     }
     renderBatchTable();
     showToast('success', `Imported ${imported} transaction(s) from CSV.`);
+    // Run duplicate detection against YNAB data
+    checkDuplicates();
   };
   reader.readAsText(file);
 }
@@ -4260,6 +4663,8 @@ async function importBpiPdf(file) {
       (matchedPayeeCount   ? ` ${matchedPayeeCount} payee${matchedPayeeCount !== 1 ? 's' : ''} auto-matched.` : '') +
       (unmatchedPayeeCount ? ` ${unmatchedPayeeCount} need manual payee/category.` : '')
     );
+    // Run duplicate detection against YNAB data
+    checkDuplicates();
   } catch (err) {
     console.error('BPI PDF import error:', err);
     showToast('error', 'Failed to parse PDF: ' + (err.message || err));
