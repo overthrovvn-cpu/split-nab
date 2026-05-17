@@ -176,6 +176,7 @@
     outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
     -webkit-appearance: none;
+    appearance: none;
   }
 
   input:focus {
@@ -666,6 +667,57 @@
 
   .batch-title { font-size: 15px; font-weight: 600; }
 
+  /* ── Batch Summary ── */
+  #batch-summary:not(:empty) {
+    margin-top: 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .summary-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+  }
+
+  .summary-row:last-child { border-bottom: none; }
+
+  .summary-row.summary-account {
+    background: var(--card);
+    color: var(--text);
+  }
+
+  .summary-row.summary-total {
+    background: var(--bg);
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  .summary-account-name {
+    font-weight: 500;
+    color: var(--text);
+    flex: 1;
+  }
+
+  .summary-count {
+    font-size: 12px;
+    color: var(--text-muted);
+    min-width: 80px;
+    text-align: right;
+  }
+
+  .summary-amount {
+    font-weight: 600;
+    min-width: 110px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
   .table-wrap {
     overflow-x: auto;
     border-radius: var(--radius);
@@ -901,6 +953,163 @@
     margin: 18px 0;
   }
 
+  /* ── Splitwise panel (below bottom bar toggle) ── */
+  .sw-panel {
+    position: fixed;
+    bottom: 57px;
+    left: 0;
+    right: 0;
+    z-index: 90;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    padding: 10px 24px;
+    display: none;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .sw-panel.open { display: flex; }
+
+  .sw-panel-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-sec);
+    white-space: nowrap;
+  }
+
+  .sw-status-badge {
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-weight: 500;
+    background: var(--success-light);
+    color: var(--success);
+  }
+
+  .sw-status-badge.error {
+    background: var(--error-light);
+    color: var(--error);
+  }
+
+  /* ── Splitwise user select inside split rows ── */
+  .sw-user-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .sw-user-row label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .sw-user-select {
+    flex: 1;
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 12px;
+    font-family: var(--font);
+    color: var(--text);
+    background: var(--card);
+    outline: none;
+    cursor: pointer;
+  }
+
+  .sw-user-select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(79,110,247,0.12);
+  }
+
+  /* ── Splitwise paying-account selector (per transaction in batch) ── */
+  .sw-payer-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .sw-payer-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .sw-payer-select {
+    flex: 1;
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 12px;
+    font-family: var(--font);
+    color: var(--text);
+    background: var(--card);
+    outline: none;
+    cursor: pointer;
+  }
+
+  /* ── Multi-account token list in settings ── */
+  .sw-account-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .sw-account-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    font-size: 13px;
+  }
+
+  .sw-account-item .sw-account-name {
+    flex: 1;
+    font-weight: 500;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sw-account-item .sw-account-status {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .sw-account-item .sw-account-active {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--success);
+  }
+
+  .sw-add-account-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .sw-add-account-row input { flex: 1; min-width: 0; }
+
+  .sw-account-empty {
+    font-size: 12px;
+    color: var(--text-muted);
+    padding: 6px 0;
+  }
+
   /* ── Budget select ── */
   select.field-select {
     width: 100%;
@@ -1057,6 +1266,8 @@
           <tbody id="batch-tbody"></tbody>
         </table>
       </div>
+
+      <div id="batch-summary"></div>
     </div>
   </section>
 
@@ -1133,20 +1344,120 @@
 
     <hr class="modal-divider">
 
-    <!-- API Keys Section -->
-    <p class="modal-section-title">API Keys</p>
+    <!-- Import Behaviour Section -->
+    <p class="modal-section-title">Import Behaviour</p>
+
+    <div class="field" style="margin-bottom:10px;">
+      <label class="toggle-wrap" style="cursor:pointer;">
+        <span class="toggle">
+          <input type="checkbox" id="flag-create-payee" aria-label="Auto-create missing payees">
+          <span class="toggle-slider"></span>
+        </span>
+        <span style="font-size:13px;color:var(--text);">Auto-create missing payees in YNAB</span>
+      </label>
+      <span style="font-size:12px;color:var(--text-muted);margin-top:4px;display:block;">
+        When a payee doesn't exist in YNAB, create it automatically instead of blocking the save.
+      </span>
+    </div>
+
+    <div class="field" style="margin-bottom:10px;">
+      <label class="toggle-wrap" style="cursor:pointer;">
+        <span class="toggle">
+          <input type="checkbox" id="flag-create-category" aria-label="Auto-create missing categories">
+          <span class="toggle-slider"></span>
+        </span>
+        <span style="font-size:13px;color:var(--text);">Auto-create missing categories in YNAB</span>
+      </label>
+      <span style="font-size:12px;color:var(--text-muted);margin-top:4px;display:block;">
+        When a category doesn't exist in YNAB, create it in an "Imported" group automatically.
+      </span>
+    </div>
+
+    <hr class="modal-divider">
+
+    <!-- Splitwise Section -->
+    <p class="modal-section-title">Splitwise</p>
 
     <div class="field">
-      <label for="sw-key">Splitwise API Key</label>
-      <div class="password-wrap">
-        <input type="password" id="sw-key" placeholder="Enter Splitwise API key" autocomplete="off">
-        <button class="eye-btn" onclick="toggleEye('sw-key','eye-sw')" aria-label="Show/hide Splitwise API key">
-          <span id="eye-sw">👁</span>
-        </button>
+      <label for="sw-proxy-url">Proxy URL <span style="font-weight:400;color:var(--text-muted)">(Cloudflare Worker)</span></label>
+      <input type="url" id="sw-proxy-url" placeholder="https://splitwise-proxy.yourname.workers.dev" autocomplete="off">
+      <span style="font-size:12px;color:var(--text-muted);margin-top:4px;display:block;">
+        Deploy the included <code style="background:var(--bg);padding:1px 4px;border-radius:4px;">splitwise-worker/</code> to Cloudflare Workers (free) and paste the URL here.
+      </span>
+    </div>
+
+    <!-- Multi-account token list -->
+    <div style="margin-top:4px;">
+      <label style="font-size:13px;font-weight:500;color:var(--text-sec);">Splitwise Accounts</label>
+      <div class="sw-account-list" id="sw-account-list">
+        <div class="sw-account-empty" id="sw-account-empty">No accounts added yet.</div>
       </div>
+      <div class="sw-add-account-row" style="margin-top:10px;">
+        <input type="text" id="sw-account-label" placeholder="Account label (e.g. Mark)" autocomplete="off" style="flex:1;min-width:0;">
+        <div class="password-wrap" style="flex:2;min-width:0;">
+          <input type="password" id="sw-account-key" placeholder="Splitwise API key" autocomplete="off">
+          <button class="eye-btn" onclick="toggleEye('sw-account-key','eye-sw-new')" aria-label="Show/hide key">
+            <span id="eye-sw-new">👁</span>
+          </button>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="addSwAccount()" style="white-space:nowrap;">Add</button>
+      </div>
+      <span style="font-size:12px;color:var(--text-muted);margin-top:4px;display:block;">
+        Add one account per person. The active account is who pays for the expense in Splitwise.
+        Get API keys at <a href="https://secure.splitwise.com/apps" target="_blank" style="color:var(--accent);">secure.splitwise.com/apps</a>.
+      </span>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:10px;margin-top:12px;">
+      <button class="btn btn-primary" style="flex:1;" onclick="saveSwSettings()">Save &amp; Test Splitwise</button>
+      <span id="sw-connect-status" style="font-size:12px;color:var(--text-muted);"></span>
+    </div>
+
+    <hr class="modal-divider">
+
+    <!-- Import Behaviour Section (moved below Splitwise) -->
+    <p class="modal-section-title">Import Behaviour</p>
+
+    <div class="field" style="margin-bottom:10px;">
+      <label class="toggle-wrap" style="cursor:pointer;">
+        <span class="toggle">
+          <input type="checkbox" id="flag-create-payee" aria-label="Auto-create missing payees">
+          <span class="toggle-slider"></span>
+        </span>
+        <span style="font-size:13px;color:var(--text);">Auto-create missing payees in YNAB</span>
+      </label>
+      <span style="font-size:12px;color:var(--text-muted);margin-top:4px;display:block;">
+        When a payee doesn't exist in YNAB, create it automatically instead of blocking the save.
+      </span>
+    </div>
+
+    <div class="field" style="margin-bottom:10px;">
+      <label class="toggle-wrap" style="cursor:pointer;">
+        <span class="toggle">
+          <input type="checkbox" id="flag-create-category" aria-label="Auto-create missing categories">
+          <span class="toggle-slider"></span>
+        </span>
+        <span style="font-size:13px;color:var(--text);">Auto-create missing categories in YNAB</span>
+      </label>
+      <span style="font-size:12px;color:var(--text-muted);margin-top:4px;display:block;">
+        When a category doesn't exist in YNAB, create it in an "Imported" group automatically.
+      </span>
     </div>
 
     <button class="btn btn-primary" style="width:100%;margin-top:4px;" onclick="saveSettings()">Save Settings</button>
+  </div>
+</div>
+
+<!-- ══ SPLITWISE STATUS PANEL (above bottom bar) ══ -->
+<div class="sw-panel" id="sw-panel" role="status" aria-label="Splitwise status">
+  <span class="sw-panel-label">Splitwise</span>
+  <span id="sw-panel-status" class="sw-status-badge error">Not configured</span>
+  <span id="sw-panel-user" style="font-size:12px;color:var(--text-sec);"></span>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+    <label style="font-size:12px;color:var(--text-sec);white-space:nowrap;">Paying account:</label>
+    <select id="sw-active-account-select" class="sw-payer-select" onchange="onSwActiveAccountChange(this.value)" aria-label="Active Splitwise account" style="min-width:120px;">
+      <option value="">— select —</option>
+    </select>
   </div>
 </div>
 
@@ -1179,11 +1490,50 @@ const ynab = {
   // Usage intelligence — built from last 30 days of transactions (all-time as fallback)
   usage:        {},   // { accountUsage, payeeUsage, categoryUsage, payeeCategoryMap, payeeAccountMap }
   usageAllTime: {},
+  // Memo→payee index for PDF import matching (built in loadBudgetData)
+  memoIndex:    null,
 };
 
 // Batch data model
-// tx: { id, date, account, accountId, total, payee, payeeId, memo, splits: [{id, category, categoryId, amount, note}] }
+// tx: { id, date, account, accountId, total, payee, payeeId, memo, splits: [{id, category, categoryId, amount, note, swUserId}], swPayerAccountLabel }
 let batchData = [];
+
+// Feature flags (persisted in localStorage)
+const flags = {
+  createPayee:    localStorage.getItem('flag_create_payee')    === 'true',
+  createCategory: localStorage.getItem('flag_create_category') === 'true',
+};
+
+// ── Splitwise state ──────────────────────────────────────────────────────────
+// Multi-account support: each account has { label, apiKey, user, friends }
+// swAccounts is persisted in localStorage as an array of { label, apiKey }
+// (user/friends are loaded at runtime, not persisted)
+
+function loadSwAccounts() {
+  try {
+    return JSON.parse(localStorage.getItem('sw_accounts') || '[]');
+  } catch { return []; }
+}
+
+function saveSwAccountsToStorage(accounts) {
+  // Only persist label + apiKey (not runtime user/friends data)
+  const toSave = accounts.map(a => ({ label: a.label, apiKey: a.apiKey }));
+  localStorage.setItem('sw_accounts', JSON.stringify(toSave));
+}
+
+const sw = {
+  enabled:            false,
+  proxyUrl:           localStorage.getItem('sw_proxy_url') || '',
+  // Array of { label, apiKey, user: null|object, friends: [], loaded: false }
+  accounts:           loadSwAccounts().map(a => ({ ...a, user: null, friends: [], loaded: false })),
+  // Index into sw.accounts for the currently active (paying) account
+  activeAccountIndex: parseInt(localStorage.getItem('sw_active_account_index') || '0', 10),
+};
+
+// Convenience getter for the active account object
+function swActiveAccount() {
+  return sw.accounts[sw.activeAccountIndex] || sw.accounts[0] || null;
+}
 
 /* ═══════════════════════════════════════════════
    INIT
@@ -1321,6 +1671,197 @@ function getSortedCategories(payeeName) {
     }
     return globalB - globalA;
   });
+}
+
+/**
+ * Build a memo→payee index from historical YNAB transactions.
+ *
+ * For each transaction that has both a memo and a payee_name, we store
+ * the normalized memo as a key pointing to the payee name and its frequency.
+ * This lets importBpiPdf match the PDF description against past memos.
+ *
+ * Normalization: lowercase, collapse whitespace, strip punctuation.
+ */
+/* ═══════════════════════════════════════════════
+   MEMO / PAYEE MATCHING ENGINE
+═══════════════════════════════════════════════ */
+
+/**
+ * Normalize a string for matching:
+ * lowercase, strip punctuation, collapse whitespace.
+ */
+function normalizeMemo(str) {
+  return (str || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Strip common BPI description noise before matching:
+ * - Philippine city/location suffixes (BGC, TAGUIG, MAKATI, etc.)
+ * - Branch codes and numeric suffixes
+ * - Common filler words
+ * Returns an array of progressively shorter "tokens" to try.
+ */
+const BPI_NOISE_WORDS = new Set([
+  'bgc', 'fort', 'taguig', 'makati', 'manila', 'pasig', 'quezon', 'city',
+  'ortigas', 'alabang', 'mandaluyong', 'paranaque', 'pasay', 'caloocan',
+  'marikina', 'muntinlupa', 'valenzuela', 'malabon', 'navotas', 'pateros',
+  'bonifacio', 'global', 'ayala', 'sm', 'mall', 'center', 'plaza', 'square',
+  'branch', 'store', 'shop', 'ph', 'inc', 'corp', 'ltd', 'co', 'the',
+  'online', 'web', 'app', 'mobile', 'payment', 'purchase', 'transaction',
+]);
+
+function extractMatchTokens(description) {
+  const words = normalizeMemo(description).split(' ').filter(w => w.length > 1);
+  // Full normalized string
+  const full = words.join(' ');
+  // Strip noise words from the end (BPI puts location after merchant name)
+  const meaningful = [];
+  for (const w of words) {
+    if (!BPI_NOISE_WORDS.has(w) && !/^\d+$/.test(w)) meaningful.push(w);
+  }
+  const clean = meaningful.join(' ');
+  // First 1–3 meaningful words (the merchant name is usually first)
+  const short = meaningful.slice(0, 3).join(' ');
+  const shorter = meaningful.slice(0, 2).join(' ');
+  const first = meaningful[0] || '';
+  // Deduplicate while preserving order
+  return [...new Set([full, clean, short, shorter, first].filter(t => t.length >= 3))];
+}
+
+/**
+ * Build two indexes from historical YNAB transactions:
+ *
+ * memoIndex:  Map<normalizedMemo, Map<payeeName, count>>
+ *             — for matching PDF description against past transaction memos
+ *
+ * payeeIndex: Map<normalizedPayeeName, { payeeName, count }>
+ *             — for matching PDF description directly against known payee names
+ */
+function buildMemoIndex(transactions) {
+  const memoIdx  = new Map();
+  const payeeIdx = new Map();
+
+  for (const t of transactions) {
+    if (!t.payee_name) continue;
+    const normPayee = normalizeMemo(t.payee_name);
+
+    // Payee index — accumulate frequency
+    if (normPayee) {
+      const existing = payeeIdx.get(normPayee);
+      if (existing) {
+        existing.count++;
+      } else {
+        payeeIdx.set(normPayee, { payeeName: t.payee_name, count: 1 });
+      }
+    }
+
+    // Memo index — only when memo is present
+    if (t.memo) {
+      const key = normalizeMemo(t.memo);
+      if (key) {
+        if (!memoIdx.has(key)) memoIdx.set(key, new Map());
+        const pm = memoIdx.get(key);
+        pm.set(t.payee_name, (pm.get(t.payee_name) || 0) + 1);
+      }
+    }
+  }
+
+  return { memoIdx, payeeIdx };
+}
+
+/**
+ * Score a query token against a candidate string.
+ * Returns a 0–100 score:
+ *   100 — exact match
+ *    80 — candidate starts with query (query is a prefix)
+ *    70 — query starts with candidate (candidate is a prefix, min 4 chars)
+ *    50 — candidate contains query as a word boundary substring (min 4 chars)
+ *    30 — candidate contains query anywhere (min 5 chars)
+ *     0 — no match
+ */
+function scoreTokenMatch(query, candidate) {
+  if (!query || !candidate) return 0;
+  if (candidate === query) return 100;
+  if (candidate.startsWith(query)) return 80;
+  if (query.length >= 4 && query.startsWith(candidate)) return 70;
+  if (query.length >= 4) {
+    // Word-boundary check: query appears as a whole word in candidate
+    const wordRe = new RegExp('(?:^|\\s)' + query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?:\\s|$)');
+    if (wordRe.test(candidate)) return 50;
+  }
+  if (query.length >= 5 && candidate.includes(query)) return 30;
+  return 0;
+}
+
+/**
+ * Match a PDF description against historical YNAB payees and memos.
+ *
+ * Strategy:
+ *   1. Try each extracted token against the payee index (direct name match)
+ *   2. Try each extracted token against the memo index (past memo match)
+ *   3. Score all candidates, pick the best above MIN_CONFIDENCE
+ *   4. Resolve top category for the winning payee
+ *
+ * Returns { payeeName, category } or null if no confident match.
+ */
+const MATCH_MIN_SCORE = 50; // minimum score to accept a match
+
+function matchMemoToPayee(description) {
+  if (!ynab.memoIndex) return null;
+  const { memoIdx, payeeIdx } = ynab.memoIndex;
+  if (!memoIdx.size && !payeeIdx.size) return null;
+
+  const tokens = extractMatchTokens(description);
+  if (!tokens.length) return null;
+
+  // candidate map: payeeName → best score
+  const scores = new Map();
+
+  const updateScore = (payeeName, score) => {
+    if (score > (scores.get(payeeName) || 0)) scores.set(payeeName, score);
+  };
+
+  // 1. Match tokens against payee names
+  for (const token of tokens) {
+    for (const [normPayee, { payeeName }] of payeeIdx) {
+      const s = scoreTokenMatch(token, normPayee);
+      if (s > 0) updateScore(payeeName, s);
+    }
+  }
+
+  // 2. Match tokens against memo index keys
+  for (const token of tokens) {
+    for (const [memoKey, payeeMap] of memoIdx) {
+      const s = scoreTokenMatch(token, memoKey);
+      if (s > 0) {
+        // Credit all payees associated with this memo, weighted by their frequency
+        const total = [...payeeMap.values()].reduce((a, b) => a + b, 0);
+        for (const [payeeName, count] of payeeMap) {
+          const weighted = Math.round(s * (count / total));
+          updateScore(payeeName, weighted);
+        }
+      }
+    }
+  }
+
+  if (!scores.size) return null;
+
+  // Pick highest scorer above threshold
+  const best = [...scores.entries()].sort((a, b) => b[1] - a[1])[0];
+  if (!best || best[1] < MATCH_MIN_SCORE) return null;
+
+  const payeeName = best[0];
+
+  // Resolve top category for this payee
+  const recentCatMap  = ynab.usage?.payeeCategoryMap        || {};
+  const allTimeCatMap = ynab.usageAllTime?.payeeCategoryMap || {};
+  const catMap = Object.keys(recentCatMap[payeeName] || {}).length
+    ? recentCatMap[payeeName]
+    : (allTimeCatMap[payeeName] || {});
+  const topCatId = Object.entries(catMap).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+  const topCat   = topCatId ? ynab.categories.find(c => c.id === topCatId) : null;
+
+  return { payeeName, category: topCat || null, score: best[1] };
 }
 
 /**
@@ -1485,6 +2026,9 @@ async function loadBudgetData(budgetId) {
     const recentTransactions = allTransactions.filter(t => t.date && new Date(t.date) >= cutoff);
     ynab.usage        = buildUsageMaps(recentTransactions);
     ynab.usageAllTime = buildUsageMaps(allTransactions);
+
+    // Build memo→payee index for PDF import matching
+    ynab.memoIndex = buildMemoIndex(allTransactions);
 
     const budgetName = ynab.budgets.find(b => b.id === budgetId)?.name || '';
     setYnabStatus(true, budgetName ? `Connected · ${budgetName}` : 'Connected');
@@ -1706,6 +2250,18 @@ function addSplitRow(clearExisting = false) {
   `;
   container.appendChild(row);
 
+  // Append Splitwise user select if enabled
+  if (sw.enabled) {
+    const swRow = document.createElement('div');
+    swRow.className = 'sw-user-row';
+    swRow.innerHTML = `
+      <label>Splitwise →</label>
+      <select class="sw-user-select" aria-label="Splitwise user for this split">
+        ${getSplitwiseUserOptions('')}
+      </select>`;
+    row.appendChild(swRow);
+  }
+
   // Wire category dropdown for this row — sorted by usage for current payee
   const catInput = document.getElementById(`sc-${id}`);
   const catList  = document.getElementById(`sc-list-${id}`);
@@ -1816,6 +2372,7 @@ function newTx(overrides) {
     total: '',
     payee: '',
     memo: '',
+    swPayerAccountIndex: sw.activeAccountIndex,
     splits: [newSplit({ amount: total })]
   }, overrides);
 }
@@ -1825,7 +2382,8 @@ function newSplit(overrides) {
     id: ++batchSplitId,
     category: '',
     amount: '',
-    note: ''
+    note: '',
+    swUserId: '',
   }, overrides);
 }
 
@@ -1954,6 +2512,16 @@ function renderBatchTable() {
     const pRow = document.createElement('tr');
     pRow.className = 'parent-row';
     pRow.dataset.txId = tx.id;
+
+    // Splitwise payer account selector (shown in actions cell when SW is enabled)
+    const swPayerHtml = sw.enabled && sw.accounts.length > 1 ? `
+      <div class="sw-payer-row" style="margin-top:6px;">
+        <span class="sw-payer-label">SW Payer:</span>
+        <select class="sw-payer-select" onchange="updateTxField(${tx.id},'swPayerAccountIndex',parseInt(this.value))" aria-label="Splitwise paying account">
+          ${getSwPayerAccountOptions(tx.swPayerAccountIndex)}
+        </select>
+      </div>` : '';
+
     pRow.innerHTML = `
       <td class="td-num">${txNum}</td>
       <td><input type="date" value="${tx.date}" aria-label="Date"
@@ -1969,9 +2537,15 @@ function renderBatchTable() {
       </td>
       <td><input type="number" value="${tx.total}" placeholder="0.00" step="0.01"
             aria-label="Total Amount" oninput="updateTxField(${tx.id},'total',this.value); syncBatchSingleSplit(${tx.id}, this.value)"></td>
-      <td><input type="text" value="${escHtml(tx.payee)}" placeholder="Payee"
-            aria-label="Payee" oninput="updateTxField(${tx.id},'payee',this.value)"
-            id="bt-payee-${tx.id}"></td>
+      <td>
+        <div class="dropdown-wrap">
+          <input type="text" value="${escHtml(tx.payee)}" placeholder="Payee"
+                 aria-label="Payee" autocomplete="off"
+                 oninput="updateTxField(${tx.id},'payee',this.value)"
+                 id="bt-payee-${tx.id}">
+          <div class="dropdown-list" id="bt-payee-list-${tx.id}" role="listbox"></div>
+        </div>
+      </td>
       <td><input type="text" value="${escHtml(tx.memo)}" placeholder="Memo"
             aria-label="Memo" oninput="updateTxField(${tx.id},'memo',this.value)"></td>
       <td>${multiSplit ? '<span class="text-muted">—</span>' : `
@@ -1989,7 +2563,14 @@ function renderBatchTable() {
       </td>
       <td>${multiSplit ? '<span class="text-muted">—</span>' : `
         <input type="text" value="${escHtml(inlineNote)}" placeholder="Note"
-               aria-label="Note" oninput="updateSplitField(${tx.id},${splitId0},'note',this.value)">`}
+               aria-label="Note" oninput="updateSplitField(${tx.id},${splitId0},'note',this.value)">
+        ${sw.enabled ? `
+        <div class="sw-user-row" style="margin-top:6px;">
+          <label>SW →</label>
+          <select class="sw-user-select" onchange="updateSplitField(${tx.id},${splitId0},'swUserId',this.value)" aria-label="Splitwise user for this split">
+            ${getSplitwiseUserOptions(tx.splits[0]?.swUserId || '')}
+          </select>
+        </div>` : ''}`}
       </td>
       <td>
         <div class="td-actions">
@@ -1997,6 +2578,7 @@ function renderBatchTable() {
           <button class="btn btn-ghost btn-sm"   onclick="batchAutoBalance(${tx.id})">Balance</button>
           <button class="btn btn-danger-ghost btn-sm" onclick="removeBatchTx(${tx.id})">Remove</button>
         </div>
+        ${swPayerHtml}
       </td>
     `;
     tbody.appendChild(pRow);
@@ -2013,26 +2595,40 @@ function renderBatchTable() {
       }, 'name');
     }
 
-    // Wire payee input — apply usage defaults on change
+    // Wire payee dropdown — sorted by usage, with auto-fill on selection
     const payeeInputEl = document.getElementById(`bt-payee-${tx.id}`);
-    if (payeeInputEl) {
-      payeeInputEl.addEventListener('change', () => {
-        const payeeName = payeeInputEl.value.trim();
-        updateTxField(tx.id, 'payee', payeeName);
-        if (!payeeName) return;
-        // Auto-fill account if blank
-        if (accInput && !accInput.value.trim()) {
-          applyPayeeDefaults(payeeName, { accountInputEl: accInput });
-          if (accInput.value) updateTxField(tx.id, 'account', accInput.value);
-        }
-        // Auto-fill category for empty single-split row
-        if (!multiSplit) {
-          const catInput = document.getElementById(`bt-cat-${tx.id}-${splitId0}`);
-          if (catInput && !catInput.value.trim()) {
-            applyPayeeDefaults(payeeName, { splitCategoryInputs: [catInput] });
-            if (catInput.value) updateSplitField(tx.id, splitId0, 'category', catInput.value);
+    const payeeListEl  = document.getElementById(`bt-payee-list-${tx.id}`);
+    if (payeeInputEl && payeeListEl) {
+      setupSearchableInput(
+        payeeInputEl, payeeListEl,
+        () => getSortedPayees(),
+        item => {
+          payeeInputEl.value = item.name;
+          payeeInputEl.dataset.id = item.id;
+          updateTxField(tx.id, 'payee', item.name);
+          updateTxField(tx.id, 'payeeId', item.id);
+          // Auto-fill account if blank
+          if (accInput && !accInput.value.trim()) {
+            applyPayeeDefaults(item.name, { accountInputEl: accInput });
+            if (accInput.value) {
+              updateTxField(tx.id, 'account', accInput.value);
+              updateTxField(tx.id, 'accountId', accInput.dataset.id || '');
+            }
           }
-        }
+          // Auto-fill category for empty single-split row
+          if (!multiSplit) {
+            const catInput = document.getElementById(`bt-cat-${tx.id}-${splitId0}`);
+            if (catInput && !catInput.value.trim()) {
+              applyPayeeDefaults(item.name, { splitCategoryInputs: [catInput] });
+              if (catInput.value) updateSplitField(tx.id, splitId0, 'category', catInput.value);
+            }
+          }
+        },
+        'name'
+      );
+      // Also keep data model in sync when user types manually (without selecting from dropdown)
+      payeeInputEl.addEventListener('change', () => {
+        updateTxField(tx.id, 'payee', payeeInputEl.value.trim());
       });
     }
 
@@ -2080,6 +2676,13 @@ function renderBatchTable() {
               <button class="btn btn-danger-ghost btn-sm" onclick="removeBatchSplit(${tx.id},${sp.id})"
                 ${tx.splits.length <= 1 ? 'disabled' : ''}>Remove Split</button>
             </div>
+            ${sw.enabled ? `
+            <div class="sw-user-row" style="margin-top:6px;">
+              <label>SW →</label>
+              <select class="sw-user-select" onchange="updateSplitField(${tx.id},${sp.id},'swUserId',this.value)" aria-label="Splitwise user for this split">
+                ${getSplitwiseUserOptions(sp.swUserId || '')}
+              </select>
+            </div>` : ''}
           </td>
         `;
         tbody.appendChild(cRow);
@@ -2100,6 +2703,62 @@ function renderBatchTable() {
       });
     }
   });
+
+  renderBatchSummary();
+}
+
+/* ═══════════════════════════════════════════════
+   BATCH — SUMMARY
+═══════════════════════════════════════════════ */
+function renderBatchSummary() {
+  const el = document.getElementById('batch-summary');
+  if (!el) return;
+
+  if (!batchData.length) {
+    el.innerHTML = '';
+    return;
+  }
+
+  // Group by account name, sum totals.
+  // Accumulate in milliunits (integers) to avoid floating-point drift.
+  const byAccount = new Map(); // accountName → { count, totalMilliunits }
+  let grandMilliunits = 0;
+  let grandCount = 0;
+
+  for (const tx of batchData) {
+    const acct         = tx.account || '(No Account)';
+    const millis       = Math.round(parseNum(tx.total) * 100); // cents, not milliunits — just needs to be integer
+    if (!byAccount.has(acct)) byAccount.set(acct, { count: 0, totalMilliunits: 0 });
+    const entry = byAccount.get(acct);
+    entry.count++;
+    entry.totalMilliunits += millis;
+    grandMilliunits       += millis;
+    grandCount++;
+  }
+
+  // Sort accounts alphabetically
+  const sorted = [...byAccount.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+
+  let html = '';
+  for (const [acct, { count, totalMilliunits }] of sorted) {
+    const total = (totalMilliunits / 100).toFixed(2);
+    html += `
+      <div class="summary-row summary-account">
+        <span class="summary-account-name">${escHtml(acct)}</span>
+        <span class="summary-count">${count} transaction${count !== 1 ? 's' : ''}</span>
+        <span class="summary-amount">₱${total}</span>
+      </div>`;
+  }
+
+  const grandTotal = (grandMilliunits / 100).toFixed(2);
+  html += `
+    <div class="summary-row summary-total">
+      <span class="summary-account-name">Total</span>
+      <span class="summary-count">${grandCount} transaction${grandCount !== 1 ? 's' : ''}</span>
+      <span class="summary-amount">₱${grandTotal}</span>
+    </div>`;
+
+  el.innerHTML = html;
 }
 
 /* ═══════════════════════════════════════════════
@@ -2107,7 +2766,10 @@ function renderBatchTable() {
 ═══════════════════════════════════════════════ */
 function updateTxField(txId, field, value) {
   const tx = batchData.find(t => t.id === txId);
-  if (tx) tx[field] = value;
+  if (!tx) return;
+  tx[field] = value;
+  // Keep summary in sync when account or total changes
+  if (field === 'account' || field === 'total') renderBatchSummary();
 }
 
 // When total changes and there's only one split, keep that split's amount in sync
@@ -2119,6 +2781,7 @@ function syncBatchSingleSplit(txId, totalValue) {
   const splitId = tx.splits[0].id;
   const amtInput = document.getElementById(`bt-amt-${txId}-${splitId}`);
   if (amtInput) amtInput.value = totalValue;
+  renderBatchSummary();
 }
 
 function updateSplitField(txId, spId, field, value) {
@@ -2187,6 +2850,17 @@ function openSettings() {
   if (ynab.connected) {
     document.getElementById('ynab-budget-field').style.display = '';
   }
+  // Restore feature flags
+  document.getElementById('flag-create-payee').checked    = flags.createPayee;
+  document.getElementById('flag-create-category').checked = flags.createCategory;
+  // Restore Splitwise proxy URL
+  const proxyInput = document.getElementById('sw-proxy-url');
+  if (proxyInput) proxyInput.value = sw.proxyUrl;
+  // Render account list
+  renderSwAccountList();
+  // Clear connect status
+  const statusEl = document.getElementById('sw-connect-status');
+  if (statusEl) statusEl.textContent = '';
   document.getElementById('settings-overlay').classList.add('open');
   document.getElementById('ynab-key').focus();
 }
@@ -2200,9 +2874,11 @@ function overlayClickClose(e) {
 }
 
 function saveSettings() {
-  // Save Splitwise key
-  const swKey = document.getElementById('sw-key').value.trim();
-  if (swKey) localStorage.setItem('sw_api_key', swKey);
+  // Save feature flags
+  flags.createPayee    = document.getElementById('flag-create-payee').checked;
+  flags.createCategory = document.getElementById('flag-create-category').checked;
+  localStorage.setItem('flag_create_payee',    flags.createPayee);
+  localStorage.setItem('flag_create_category', flags.createCategory);
   closeSettings();
   showToast('success', 'Settings saved.');
 }
@@ -2310,6 +2986,74 @@ function dismissToast(id) {
 }
 
 /* ═══════════════════════════════════════════════
+   YNAB ENTITY RESOLUTION
+═══════════════════════════════════════════════ */
+
+/**
+ * Resolve a payee name to a YNAB payee object.
+ * - Exact match first, then case-insensitive contains.
+ * - If not found and flags.createPayee is on, YNAB accepts new payee names
+ *   directly in the transaction payload (payee_name field), so we just return
+ *   a synthetic object with no id — YNAB will create it automatically.
+ * - If not found and flag is off, returns null (caller should abort).
+ */
+function resolvePayee(name) {
+  if (!name) return null;
+  const q = name.toLowerCase();
+  const found = ynab.payees.find(p => p.name.toLowerCase() === q)
+             || ynab.payees.find(p => p.name.toLowerCase().includes(q))
+             || ynab.payees.find(p => q.includes(p.name.toLowerCase()));
+  if (found) return found;
+  if (flags.createPayee) return { id: null, name }; // YNAB creates on-the-fly via payee_name
+  return null;
+}
+
+/**
+ * Resolve a category name to a YNAB category object.
+ * - Exact match first, then case-insensitive contains.
+ * - If not found and flags.createCategory is on, creates a new category
+ *   in a category group named "Imported" (creates the group too if needed).
+ * - If not found and flag is off, returns null (caller should abort).
+ */
+async function resolveCategory(name) {
+  if (!name) return null;
+  const q = name.toLowerCase();
+  const found = ynab.categories.find(c => c.name.toLowerCase() === q)
+             || ynab.categories.find(c => c.name.toLowerCase().includes(q))
+             || ynab.categories.find(c => q.includes(c.name.toLowerCase()));
+  if (found) return found;
+  if (!flags.createCategory) return null;
+
+  // Find or create the "Imported" category group
+  try {
+    const groupsRes = await ynabFetch(`/budgets/${ynab.budgetId}/categories`);
+    const groups = groupsRes.data.category_groups || [];
+    let importedGroup = groups.find(g => g.name.toLowerCase() === 'imported' && !g.deleted);
+
+    if (!importedGroup) {
+      const newGroupRes = await ynabFetch(`/budgets/${ynab.budgetId}/category_groups`, {
+        method: 'POST',
+        body: JSON.stringify({ category_group: { name: 'Imported' } }),
+      });
+      importedGroup = newGroupRes.data.category_group;
+    }
+
+    const newCatRes = await ynabFetch(
+      `/budgets/${ynab.budgetId}/category_groups/${importedGroup.id}/categories`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ category: { name } }),
+      }
+    );
+    const newCat = newCatRes.data.category;
+    ynab.categories.push(newCat); // keep local list in sync
+    return newCat;
+  } catch (err) {
+    throw new Error(`Failed to create category "${name}": ${err.message}`);
+  }
+}
+
+/* ═══════════════════════════════════════════════
    BOTTOM BAR ACTIONS
 ═══════════════════════════════════════════════ */
 async function saveToYNAB() {
@@ -2337,60 +3081,68 @@ async function saveToYNABSingle() {
   const date    = document.getElementById('s-date').value;
   const memo    = document.getElementById('s-memo').value.trim();
 
-  // Validate
+  // Validate required fields
   if (!amount)  { showFieldError('s-amount-err'); return; }
   if (!payee)   { showFieldError('s-payee-err');  return; }
   if (!account) { showFieldError('s-account-err'); return; }
   if (!date)    { showFieldError('s-date-err');    return; }
 
-  const accountObj = ynab.accounts.find(a => a.name.toLowerCase() === account.toLowerCase());
+  // Validate account (no auto-create — accounts must exist)
+  const accountObj = findYnabAccount(account);
   if (!accountObj) {
     showToast('error', `Account "${account}" not found in YNAB. Select from the dropdown.`);
     return;
   }
 
-  // Gather split rows
+  // Validate payee
+  const payeeObj = resolvePayee(payee);
+  if (!payeeObj) {
+    showToast('error', `Payee "${payee}" not found in YNAB. Enable "Auto-create missing payees" in Settings, or select an existing payee.`);
+    return;
+  }
+
+  // Gather and validate split rows
   const rows = document.querySelectorAll('#split-rows .split-row');
-  const subtransactions = [];
+  const splitDefs = [];
   let splitTotal = 0;
   for (const row of rows) {
-    const id  = row.dataset.id;
+    const id       = row.dataset.id;
     const catInput = document.getElementById(`sc-${id}`);
     const catName  = catInput?.value.trim() || '';
-    const catId    = catInput?.dataset.id || '';
     const amt      = parseNum(document.getElementById(`sa-${id}`)?.value);
     const note     = document.getElementById(`sn-${id}`)?.value.trim() || '';
 
-    if (!catName) {
-      showToast('error', 'Every split row needs a category.');
-      return;
-    }
-    if (!amt) {
-      showToast('error', 'Every split row needs an amount.');
-      return;
-    }
+    if (!catName) { showToast('error', 'Every split row needs a category.'); return; }
+    if (!amt)     { showToast('error', 'Every split row needs an amount.');  return; }
 
-    // Resolve category ID if not set via dropdown
-    const resolvedCatId = catId || ynab.categories.find(
-      c => c.name.toLowerCase() === catName.toLowerCase()
-    )?.id;
-
-    if (!resolvedCatId) {
-      showToast('error', `Category "${catName}" not found in YNAB.`);
-      return;
-    }
-
+    splitDefs.push({ catName, amt, note });
     splitTotal += amt;
-    subtransactions.push({
-      amount:      -amountToMilliunits(amt),
-      category_id: resolvedCatId,
-      memo:        note || undefined,
-    });
   }
 
   if (Math.abs(splitTotal - amount) > 0.009) {
     showToast('error', `Split total ($${fmt(splitTotal)}) must equal total amount ($${fmt(amount)}).`);
     return;
+  }
+
+  // Resolve categories (may create new ones — must be async, do before disabling button)
+  const subtransactions = [];
+  for (const { catName, amt, note } of splitDefs) {
+    let catObj;
+    try {
+      catObj = await resolveCategory(catName);
+    } catch (err) {
+      showToast('error', err.message);
+      return;
+    }
+    if (!catObj) {
+      showToast('error', `Category "${catName}" not found in YNAB. Enable "Auto-create missing categories" in Settings, or select an existing category.`);
+      return;
+    }
+    subtransactions.push({
+      amount:      -amountToMilliunits(amt),
+      category_id: catObj.id,
+      memo:        note || undefined,
+    });
   }
 
   const btn = document.getElementById('save-ynab-btn');
@@ -2400,11 +3152,12 @@ async function saveToYNABSingle() {
   try {
     const payload = {
       transaction: {
-        account_id:       accountObj.id,
+        account_id:  accountObj.id,
         date,
-        amount:           -amountToMilliunits(amount),
-        payee_name:       payee,
-        memo:             memo || undefined,
+        amount:      -amountToMilliunits(amount),
+        payee_id:    payeeObj.id   || undefined,
+        payee_name:  payeeObj.id   ? undefined : payeeObj.name,
+        memo:        memo          || undefined,
         subtransactions,
       }
     };
@@ -2412,7 +3165,20 @@ async function saveToYNABSingle() {
       method: 'POST',
       body: JSON.stringify(payload),
     });
-    showToast('success', 'Transaction saved to YNAB.');
+
+    // Log to Splitwise if enabled
+    if (sw.enabled) {
+      try {
+        await createSplitwiseExpenseSingle();
+        showToast('success', 'Transaction saved to YNAB and Splitwise.');
+      } catch (swErr) {
+        console.error('Splitwise error:', swErr);
+        showToast('success', 'Saved to YNAB.');
+        showToast('error', 'Splitwise failed: ' + swErr.message);
+      }
+    } else {
+      showToast('success', 'Transaction saved to YNAB.');
+    }
     clearSingleEntry();
   } catch (err) {
     showToast('error', 'YNAB error: ' + err.message);
@@ -2428,6 +3194,54 @@ async function saveToYNABBatch() {
     return;
   }
 
+  // ── Pre-validate all transactions before touching the API ──
+  const errors = [];
+  for (let i = 0; i < batchData.length; i++) {
+    const tx  = batchData[i];
+    const num = i + 1;
+
+    if (!tx.date)  { errors.push(`Row ${num}: Date is required.`); continue; }
+    if (!tx.total) { errors.push(`Row ${num}: Total amount is required.`); continue; }
+
+    // Account — must exist, no auto-create
+    const accountObj = findYnabAccount(tx.account);
+    if (!accountObj) {
+      errors.push(`Row ${num}: Account "${tx.account}" not found in YNAB.`);
+    }
+
+    // Payee
+    if (tx.payee) {
+      const payeeObj = resolvePayee(tx.payee);
+      if (!payeeObj) {
+        errors.push(`Row ${num}: Payee "${tx.payee}" not found in YNAB. Enable "Auto-create missing payees" in Settings.`);
+      }
+    }
+
+    // Categories
+    for (const sp of tx.splits) {
+      if (!sp.category) { errors.push(`Row ${num}: Every split needs a category.`); continue; }
+      if (!sp.amount)   { errors.push(`Row ${num}: Every split needs an amount.`);  continue; }
+      const catObj = ynab.categories.find(c => c.name.toLowerCase() === (sp.category || '').toLowerCase())
+                  || ynab.categories.find(c => c.name.toLowerCase().includes((sp.category || '').toLowerCase()))
+                  || ynab.categories.find(c => (sp.category || '').toLowerCase().includes(c.name.toLowerCase()));
+      if (!catObj && !flags.createCategory) {
+        errors.push(`Row ${num}: Category "${sp.category}" not found in YNAB. Enable "Auto-create missing categories" in Settings.`);
+      }
+    }
+
+    // Split balance
+    const splitTotal = tx.splits.reduce((s, r) => s + parseNum(r.amount), 0);
+    if (Math.abs(splitTotal - parseNum(tx.total)) > 0.009) {
+      errors.push(`Row ${num}: Split total (${fmt(splitTotal)}) doesn't match total amount (${fmt(tx.total)}).`);
+    }
+  }
+
+  if (errors.length) {
+    errors.forEach(msg => showToast('error', msg));
+    return;
+  }
+
+  // ── All valid — now save ──
   const btn = document.getElementById('save-ynab-btn');
   btn.disabled = true;
   btn.textContent = 'Saving…';
@@ -2437,29 +3251,20 @@ async function saveToYNABBatch() {
 
   for (const tx of batchData) {
     try {
-      const accountObj = ynab.accounts.find(
-        a => a.name.toLowerCase() === (tx.account || '').toLowerCase()
-      );
+      const accountObj = findYnabAccount(tx.account);
       if (!accountObj) throw new Error(`Account "${tx.account}" not found in YNAB`);
-      if (!tx.date)    throw new Error('Date is required');
-      if (!tx.total)   throw new Error('Total amount is required');
 
-      const subtransactions = tx.splits.map(sp => {
-        const resolvedCatId = sp.categoryId || ynab.categories.find(
-          c => c.name.toLowerCase() === (sp.category || '').toLowerCase()
-        )?.id;
-        if (!resolvedCatId) throw new Error(`Category "${sp.category}" not found in YNAB`);
-        if (!sp.amount)     throw new Error('Split amount is required');
-        return {
+      const payeeObj = tx.payee ? resolvePayee(tx.payee) : null;
+
+      const subtransactions = [];
+      for (const sp of tx.splits) {
+        const catObj = await resolveCategory(sp.category);
+        if (!catObj) throw new Error(`Category "${sp.category}" not found in YNAB`);
+        subtransactions.push({
           amount:      -amountToMilliunits(sp.amount),
-          category_id: resolvedCatId,
+          category_id: catObj.id,
           memo:        sp.note || undefined,
-        };
-      });
-
-      const splitTotal = tx.splits.reduce((s, r) => s + parseNum(r.amount), 0);
-      if (Math.abs(splitTotal - parseNum(tx.total)) > 0.009) {
-        throw new Error(`Split total doesn't match total amount`);
+        });
       }
 
       const payload = {
@@ -2467,8 +3272,9 @@ async function saveToYNABBatch() {
           account_id:  accountObj.id,
           date:        tx.date,
           amount:      -amountToMilliunits(tx.total),
-          payee_name:  tx.payee || undefined,
-          memo:        tx.memo  || undefined,
+          payee_id:    payeeObj?.id   || undefined,
+          payee_name:  payeeObj?.id   ? undefined : (payeeObj?.name || undefined),
+          memo:        tx.memo        || undefined,
           subtransactions,
         }
       };
@@ -2476,10 +3282,22 @@ async function saveToYNABBatch() {
         method: 'POST',
         body: JSON.stringify(payload),
       });
+
+      // Log to Splitwise if enabled
+      if (sw.enabled) {
+        try {
+          await createSplitwiseExpenseBatch(tx);
+        } catch (swErr) {
+          console.error('Splitwise error for batch tx:', tx, swErr);
+          showToast('error', `Splitwise failed for row ${batchData.indexOf(tx) + 1}: ${swErr.message}`);
+        }
+      }
+
       succeeded++;
     } catch (err) {
       failed++;
       console.error('Batch tx error:', tx, err);
+      showToast('error', `Row failed: ${err.message}`);
     }
   }
 
@@ -2515,8 +3333,393 @@ function clearSingleEntry() {
 }
 
 function onSplitwiseToggle(checkbox) {
-  const state = checkbox.checked ? 'enabled' : 'disabled';
-  showToast('success', `Splitwise logging ${state}.`);
+  sw.enabled = checkbox.checked;
+  const panel = document.getElementById('sw-panel');
+  if (sw.enabled) {
+    panel.classList.add('open');
+    // Load data for all accounts that haven't been loaded yet
+    loadAllSwAccounts();
+  } else {
+    panel.classList.remove('open');
+    // Re-render to remove Splitwise selects from split rows
+    refreshSplitwiseUI();
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   SPLITWISE — API
+═══════════════════════════════════════════════ */
+
+/**
+ * Make a request through the Splitwise proxy using a specific account's API key.
+ * If accountIndex is omitted, uses the active account.
+ */
+async function splitwiseFetch(endpoint, options = {}, accountIndex) {
+  const proxyUrl = sw.proxyUrl.replace(/\/$/, '');
+  if (!proxyUrl) throw new Error('Splitwise proxy URL not set. Add it in Settings.');
+
+  const idx = accountIndex !== undefined ? accountIndex : sw.activeAccountIndex;
+  const account = sw.accounts[idx];
+  if (!account) throw new Error('No Splitwise account configured. Add one in Settings.');
+  if (!account.apiKey) throw new Error(`Splitwise API key missing for account "${account.label}".`);
+
+  const response = await fetch(proxyUrl + '/splitwise' + endpoint, {
+    ...options,
+    headers: {
+      'Authorization': 'Bearer ' + account.apiKey,
+      ...(options.headers || {}),
+    },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || data.errors?.base?.[0] || 'Splitwise API request failed');
+  return data;
+}
+
+/**
+ * Load current user + friends for a single account by index.
+ */
+async function loadSwAccount(idx) {
+  const account = sw.accounts[idx];
+  if (!account) return;
+  try {
+    const [meResult, friendsResult] = await Promise.all([
+      splitwiseFetch('/get_current_user', {}, idx),
+      splitwiseFetch('/get_friends', {}, idx),
+    ]);
+    account.user    = meResult.user;
+    account.friends = friendsResult.friends || [];
+    account.loaded  = true;
+    account.error   = null;
+  } catch (err) {
+    account.user    = null;
+    account.friends = [];
+    account.loaded  = false;
+    account.error   = err.message;
+  }
+}
+
+/**
+ * Load all configured Splitwise accounts and update the UI.
+ */
+async function loadAllSwAccounts() {
+  if (!sw.accounts.length) {
+    updateSwPanelStatus('No accounts configured. Add one in Settings.', true);
+    return;
+  }
+  if (!sw.proxyUrl) {
+    updateSwPanelStatus('Proxy URL not set. Open Settings.', true);
+    return;
+  }
+
+  updateSwPanelStatus('Loading…', false);
+
+  await Promise.all(sw.accounts.map((_, i) => loadSwAccount(i)));
+
+  const active = swActiveAccount();
+  if (active?.user) {
+    const name = [active.user.first_name, active.user.last_name].filter(Boolean).join(' ');
+    updateSwPanelStatus(active.friends.length + ' friend(s) loaded', false);
+    document.getElementById('sw-panel-user').textContent = 'Logged in as ' + name + ' (' + active.label + ')';
+  } else {
+    const err = active?.error || 'Failed to connect';
+    updateSwPanelStatus(err, true);
+    document.getElementById('sw-panel-user').textContent = '';
+  }
+
+  renderSwActiveAccountSelect();
+  refreshSplitwiseUI();
+}
+
+function updateSwPanelStatus(msg, isError) {
+  const el = document.getElementById('sw-panel-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'sw-status-badge' + (isError ? ' error' : '');
+}
+
+/**
+ * Populate the "Paying account" dropdown in the Splitwise panel.
+ */
+function renderSwActiveAccountSelect() {
+  const sel = document.getElementById('sw-active-account-select');
+  if (!sel) return;
+  sel.innerHTML = '';
+  sw.accounts.forEach((acct, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    const userName = acct.user ? [acct.user.first_name, acct.user.last_name].filter(Boolean).join(' ') : '';
+    opt.textContent = acct.label + (userName ? ' (' + userName + ')' : '') + (acct.error ? ' ⚠' : '');
+    if (i === sw.activeAccountIndex) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function onSwActiveAccountChange(value) {
+  const idx = parseInt(value, 10);
+  if (!isNaN(idx) && idx >= 0 && idx < sw.accounts.length) {
+    sw.activeAccountIndex = idx;
+    localStorage.setItem('sw_active_account_index', idx);
+    const active = swActiveAccount();
+    if (active?.user) {
+      const name = [active.user.first_name, active.user.last_name].filter(Boolean).join(' ');
+      document.getElementById('sw-panel-user').textContent = 'Logged in as ' + name + ' (' + active.label + ')';
+    }
+    // Re-render split rows so Splitwise user selects reflect the new account's friends
+    refreshSplitwiseUI();
+  }
+}
+
+/**
+ * Build <option> elements for the Splitwise user select inside a split row.
+ * Uses the active account's user + friends list.
+ */
+function getSplitwiseUserOptions(selectedId = '') {
+  const account = swActiveAccount();
+  if (!account?.user) return '<option value="">— not loaded —</option>';
+  const me   = account.user;
+  const meId = String(me.id);
+  const meName = [me.first_name, me.last_name].filter(Boolean).join(' ') + ' (me)';
+  const friendOpts = account.friends.map(f => {
+    const fId   = String(f.id);
+    const fName = [f.first_name, f.last_name].filter(Boolean).join(' ');
+    return `<option value="${fId}" ${String(selectedId) === fId ? 'selected' : ''}>${escHtml(fName)}</option>`;
+  }).join('');
+  return `<option value="${meId}" ${String(selectedId) === meId || !selectedId ? 'selected' : ''}>${escHtml(meName)}</option>${friendOpts}`;
+}
+
+/**
+ * Build <option> elements for the per-transaction "paying account" select in batch mode.
+ * Each option is a Splitwise account index.
+ */
+function getSwPayerAccountOptions(selectedIndex) {
+  return sw.accounts.map((acct, i) => {
+    const userName = acct.user ? [acct.user.first_name, acct.user.last_name].filter(Boolean).join(' ') : '';
+    const label = escHtml(acct.label + (userName ? ' (' + userName + ')' : ''));
+    const sel = (selectedIndex !== undefined ? i === selectedIndex : i === sw.activeAccountIndex) ? 'selected' : '';
+    return `<option value="${i}" ${sel}>${label}</option>`;
+  }).join('');
+}
+
+/**
+ * Create a Splitwise expense for a single-entry transaction.
+ * Uses the active account as the payer.
+ */
+async function createSplitwiseExpenseSingle() {
+  const account = swActiveAccount();
+  if (!account?.user) throw new Error('Splitwise account not loaded. Check Settings.');
+
+  const me          = account.user;
+  const amount      = parseNum(document.getElementById('s-amount').value);
+  const memo        = document.getElementById('s-memo').value.trim();
+  const payee       = document.getElementById('s-payee').value.trim();
+  const description = memo || payee || 'Split expense';
+
+  // Aggregate owed amounts per Splitwise user
+  const owedByUser = {};
+  document.querySelectorAll('#split-rows .split-row').forEach(row => {
+    const id     = row.dataset.id;
+    const userId = row.querySelector('.sw-user-select')?.value || String(me.id);
+    const amt    = parseNum(document.getElementById(`sa-${id}`)?.value);
+    owedByUser[userId] = (owedByUser[userId] || 0) + amt;
+  });
+
+  await _postSplitwiseExpense(account, description, amount, owedByUser);
+}
+
+/**
+ * Create a Splitwise expense for a batch transaction.
+ * Uses the transaction's swPayerAccountIndex (or active account as fallback).
+ */
+async function createSplitwiseExpenseBatch(tx) {
+  const idx     = tx.swPayerAccountIndex !== undefined ? tx.swPayerAccountIndex : sw.activeAccountIndex;
+  const account = sw.accounts[idx] || swActiveAccount();
+  if (!account?.user) throw new Error('Splitwise account not loaded. Check Settings.');
+
+  const me          = account.user;
+  const description = tx.memo || tx.payee || 'Split expense';
+  const amount      = parseNum(tx.total);
+
+  const owedByUser = {};
+  for (const sp of tx.splits) {
+    const userId = sp.swUserId || String(me.id);
+    const amt    = parseNum(sp.amount);
+    owedByUser[userId] = (owedByUser[userId] || 0) + amt;
+  }
+
+  await _postSplitwiseExpense(account, description, amount, owedByUser, idx);
+}
+
+/**
+ * Internal helper — builds and POSTs the Splitwise expense payload.
+ */
+async function _postSplitwiseExpense(account, description, totalAmount, owedByUser, accountIndex) {
+  const me    = account.user;
+  const meId  = String(me.id);
+  const idx   = accountIndex !== undefined ? accountIndex : sw.activeAccountIndex;
+
+  const params = new URLSearchParams();
+  params.append('cost',           totalAmount.toFixed(2));
+  params.append('description',    description);
+  params.append('currency_code',  'PHP');
+  params.append('split_equally',  'false');
+  params.append('users__0__user_id',     meId);
+  params.append('users__0__paid_share',  totalAmount.toFixed(2));
+  params.append('users__0__owed_share',  (owedByUser[meId] || 0).toFixed(2));
+
+  let userIndex = 1;
+  for (const [userId, owedAmt] of Object.entries(owedByUser)) {
+    if (userId === meId) continue;
+    params.append(`users__${userIndex}__user_id`,    userId);
+    params.append(`users__${userIndex}__paid_share`, '0.00');
+    params.append(`users__${userIndex}__owed_share`, owedAmt.toFixed(2));
+    userIndex++;
+  }
+
+  await splitwiseFetch('/create_expense', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body:    params.toString(),
+  }, idx);
+}
+
+/* ═══════════════════════════════════════════════
+   SPLITWISE — SETTINGS UI
+═══════════════════════════════════════════════ */
+
+/**
+ * Render the account list inside the settings modal.
+ */
+function renderSwAccountList() {
+  const list  = document.getElementById('sw-account-list');
+  const empty = document.getElementById('sw-account-empty');
+  if (!list) return;
+
+  // Remove existing account items (keep the empty placeholder)
+  list.querySelectorAll('.sw-account-item').forEach(el => el.remove());
+
+  if (!sw.accounts.length) {
+    if (empty) empty.style.display = '';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  sw.accounts.forEach((acct, i) => {
+    const item = document.createElement('div');
+    item.className = 'sw-account-item';
+    const userName = acct.user ? [acct.user.first_name, acct.user.last_name].filter(Boolean).join(' ') : '';
+    const statusText = acct.error ? '⚠ ' + acct.error : (acct.loaded ? '✓ Connected' + (userName ? ' as ' + userName : '') : 'Not tested');
+    const isActive = i === sw.activeAccountIndex;
+    item.innerHTML = `
+      <span class="sw-account-name">${escHtml(acct.label)}</span>
+      <span class="${isActive ? 'sw-account-active' : 'sw-account-status'}">${isActive ? '● Active' : statusText}</span>
+      <button class="btn btn-ghost btn-sm" onclick="setSwActiveAccount(${i})" ${isActive ? 'disabled' : ''} title="Set as active paying account">Use</button>
+      <button class="btn btn-danger-ghost btn-sm" onclick="removeSwAccount(${i})" title="Remove account">×</button>
+    `;
+    list.appendChild(item);
+  });
+}
+
+function addSwAccount() {
+  const labelInput = document.getElementById('sw-account-label');
+  const keyInput   = document.getElementById('sw-account-key');
+  const label = labelInput.value.trim();
+  const apiKey = keyInput.value.trim();
+  if (!label) { labelInput.focus(); showToast('error', 'Enter a label for this account.'); return; }
+  if (!apiKey) { keyInput.focus(); showToast('error', 'Enter the Splitwise API key.'); return; }
+  sw.accounts.push({ label, apiKey, user: null, friends: [], loaded: false });
+  saveSwAccountsToStorage(sw.accounts);
+  labelInput.value = '';
+  keyInput.value   = '';
+  renderSwAccountList();
+}
+
+function removeSwAccount(idx) {
+  sw.accounts.splice(idx, 1);
+  if (sw.activeAccountIndex >= sw.accounts.length) {
+    sw.activeAccountIndex = Math.max(0, sw.accounts.length - 1);
+    localStorage.setItem('sw_active_account_index', sw.activeAccountIndex);
+  }
+  saveSwAccountsToStorage(sw.accounts);
+  renderSwAccountList();
+  renderSwActiveAccountSelect();
+}
+
+function setSwActiveAccount(idx) {
+  sw.activeAccountIndex = idx;
+  localStorage.setItem('sw_active_account_index', idx);
+  renderSwAccountList();
+  renderSwActiveAccountSelect();
+  refreshSplitwiseUI();
+}
+
+async function saveSwSettings() {
+  const proxyInput = document.getElementById('sw-proxy-url');
+  const proxy = proxyInput.value.trim().replace(/\/$/, '');
+  if (!proxy) { proxyInput.focus(); showToast('error', 'Proxy URL is required.'); return; }
+
+  sw.proxyUrl = proxy;
+  localStorage.setItem('sw_proxy_url', proxy);
+
+  const statusEl = document.getElementById('sw-connect-status');
+  statusEl.textContent = 'Testing…';
+  statusEl.style.color = 'var(--text-muted)';
+
+  // Reset loaded state so we re-fetch
+  sw.accounts.forEach(a => { a.user = null; a.friends = []; a.loaded = false; a.error = null; });
+
+  await Promise.all(sw.accounts.map((_, i) => loadSwAccount(i)));
+
+  const allOk = sw.accounts.every(a => a.loaded);
+  const anyOk = sw.accounts.some(a => a.loaded);
+
+  if (!sw.accounts.length) {
+    statusEl.textContent = 'No accounts to test.';
+    statusEl.style.color = 'var(--text-muted)';
+  } else if (allOk) {
+    statusEl.textContent = 'All accounts connected ✓';
+    statusEl.style.color = 'var(--success)';
+  } else if (anyOk) {
+    statusEl.textContent = 'Some accounts failed — check keys.';
+    statusEl.style.color = 'var(--error)';
+  } else {
+    const err = sw.accounts[0]?.error || 'Connection failed';
+    statusEl.textContent = err;
+    statusEl.style.color = 'var(--error)';
+  }
+
+  renderSwAccountList();
+  renderSwActiveAccountSelect();
+  if (sw.enabled) refreshSplitwiseUI();
+}
+
+/**
+ * Refresh all Splitwise-related UI elements (split row selects, panel status).
+ * Called after toggling Splitwise on/off or switching active account.
+ */
+function refreshSplitwiseUI() {
+  // Single entry: re-render split rows to add/remove sw-user-row elements
+  document.querySelectorAll('#split-rows .split-row').forEach(row => {
+    const id = row.dataset.id;
+    let swRow = row.querySelector('.sw-user-row');
+    if (sw.enabled) {
+      const currentVal = swRow?.querySelector('.sw-user-select')?.value || '';
+      if (!swRow) {
+        swRow = document.createElement('div');
+        swRow.className = 'sw-user-row';
+        row.appendChild(swRow);
+      }
+      swRow.innerHTML = `
+        <label>Splitwise →</label>
+        <select class="sw-user-select" aria-label="Splitwise user for this split">
+          ${getSplitwiseUserOptions(currentVal)}
+        </select>`;
+    } else if (swRow) {
+      swRow.remove();
+    }
+  });
+
+  // Batch: full re-render (adds/removes sw columns)
+  if (currentMode === 'batch') renderBatchTable();
 }
 
 /* ═══════════════════════════════════════════════
@@ -2622,8 +3825,8 @@ const BPI_TRANSACTION_RE = new RegExp(
 );
 
 const BPI_CARD_PATTERNS = [
-  { re: /BPI\s+REWARDS/i,  name: 'BPI Rewards' },
-  { re: /E-?CREDIT/i,      name: 'eCredit'     },
+  { re: /BPI\s*E-?CREDIT\s*CARD|BPIECREDITCARD/i, name: 'eCredit'     },
+  { re: /BPI\s*REWARDS\s*CARD|BPIREWARDSCARD/i,   name: 'BPI Rewards' },
 ];
 
 const BPI_SKIP_PATTERNS = [
@@ -2760,12 +3963,21 @@ function bpiParseTransactions(fullText) {
         pendingDescription = null;
       }
 
+      const parsedValue = parseFloat(amountStr.replace(/,/g, ''));
+      const isNegative  = Boolean(crFlag) || parsedValue < 0;
+
+      // Distinguish payment credits from reversals/adjustments:
+      // Payments match "PAYMENT" or "THANK YOU" in the description.
+      // Reversals (e.g. fee waivers, refunds) are imported with a negative amount.
+      const isPayment = isNegative && /payment|thank\s*you/i.test(description);
+      const txType    = isPayment ? 'credit' : (isNegative ? 'reversal' : 'charge');
+
       transactions.push({
         posting_date:     bpiParseDate(postingRaw, stmtYear, stmtMonth),
         transaction_date: bpiParseDate(txnRaw,     stmtYear, stmtMonth),
         description:      description.trim(),
-        amount:           bpiParseAmount(amountStr, isCredit),
-        type:             isCredit ? 'credit' : 'charge',
+        amount:           bpiParseAmount(amountStr, isNegative),
+        type:             txType,
         card:             currentCard || 'BPI Credit Card',
       });
     } else {
@@ -2801,6 +4013,18 @@ function bpiParseTransactions(fullText) {
           pendingDescription = line;
         }
       }
+    }
+  }
+
+  // Post-process: reassign the generic 'BPI Credit Card' fallback.
+  // This happens when transactions appear before any card section header is seen.
+  // Strategy: if only one real card was detected, use it for all fallback entries.
+  // If two cards were detected, use the first one seen (most likely the primary card).
+  const realCards = [...new Set(transactions.map(t => t.card).filter(c => c !== 'BPI Credit Card'))];
+  if (realCards.length >= 1) {
+    const fallbackCard = realCards[0]; // first detected card = primary card
+    for (const t of transactions) {
+      if (t.card === 'BPI Credit Card') t.card = fallbackCard;
     }
   }
 
@@ -2860,6 +4084,77 @@ async function bpiExtractPageText(page) {
   return lines.join('\n');
 }
 
+/**
+ * Find a YNAB account by name with fuzzy fallback.
+ * 1. Exact case-insensitive match
+ * 2. YNAB account name contains the query (stripped of non-alphanumeric chars)
+ * 3. Query contains the YNAB account name (stripped)
+ */
+function findYnabAccount(name) {
+  if (!name) return null;
+  const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const q = norm(name);
+  return (
+    ynab.accounts.find(a => a.name.toLowerCase() === name.toLowerCase()) ||
+    ynab.accounts.find(a => norm(a.name).includes(q)) ||
+    ynab.accounts.find(a => q.includes(norm(a.name))) ||
+    null
+  );
+}
+
+/**
+ * Given a list of BPI card names (e.g. ["BPI Rewards", "eCredit"]),
+ * find the best-matching YNAB account for each using fuzzy keyword matching.
+ *
+ * Strategy:
+ *   1. Exact name match (case-insensitive)
+ *   2. YNAB account name contains the card keyword (e.g. "rewards", "ecredit")
+ *   3. Card keyword contains the YNAB account name
+ *
+ * Returns a map: { cardName → ynabAccountName }
+ * If no match is found, the card name is left as-is (will fail YNAB validation
+ * and surface a clear error to the user).
+ */
+function resolveBpiCardAccounts(cardNames) {
+  const map = {};
+  if (!ynab.accounts.length) return map; // not connected yet — leave as-is
+
+  // Keywords to extract from a card name for fuzzy matching.
+  // These must align with the `name` values in BPI_CARD_PATTERNS.
+  const CARD_KEYWORDS = [
+    { pattern: /ecredit/i,           keyword: 'ecredit' },
+    { pattern: /rewards/i,           keyword: 'rewards' },
+    { pattern: /^BPI Credit Card$/i, keyword: 'rewards' }, // generic fallback → rewards
+  ];
+
+  for (const cardName of cardNames) {
+    // 1. Exact match
+    const exact = ynab.accounts.find(
+      a => a.name.toLowerCase() === cardName.toLowerCase()
+    );
+    if (exact) { map[cardName] = exact.name; continue; }
+
+    // 2. Determine the keyword for this card
+    let keyword = null;
+    for (const { pattern, keyword: kw } of CARD_KEYWORDS) {
+      if (pattern.test(cardName)) { keyword = kw; break; }
+    }
+
+    if (keyword) {
+      // 3. Find YNAB account whose name contains the keyword
+      const fuzzy = ynab.accounts.find(
+        a => a.name.toLowerCase().replace(/[^a-z0-9]/g, '').includes(keyword)
+      );
+      if (fuzzy) { map[cardName] = fuzzy.name; continue; }
+    }
+
+    // 4. No match — leave as the raw card name so the user sees a clear error
+    map[cardName] = cardName;
+  }
+
+  return map;
+}
+
 async function importBpiPdf(file) {
   if (typeof pdfjsLib === 'undefined') {
     showToast('error', 'PDF.js failed to load. Check your internet connection and reload.');
@@ -2883,30 +4178,88 @@ async function importBpiPdf(file) {
     const transactions = bpiParseTransactions(fullText);
 
     if (transactions.length === 0) {
-      showToast('error', 'No transactions found. Use the \uD83D\uDD0D Debug PDF button to inspect the extracted text.');
+      showToast('error', 'No transactions found. Use the 🔍 Debug PDF button to inspect the extracted text.');
+      return;
+    }
+    if (transactions.every(t => t.type === 'credit')) {
+      showToast('error', 'Only payment/credit transactions found — nothing to import.');
       return;
     }
 
     // Map fields:
     //   date    → transaction_date
-    //   account → card name (e.g. "BPI Rewards" / "eCredit")
+    //   account → fuzzy-matched YNAB account based on card name (eCredit / Rewards)
     //   total   → abs(amount)
     //   payee   → description
     //   memo    → description
+
+    // Build a card→YNAB account map once for this import batch
+    const cardAccountMap = resolveBpiCardAccounts(
+      [...new Set(transactions.map(t => t.card))]
+    );
+
+    // Warn about any card names that couldn't be matched to a YNAB account
+    const unmatchedCards = Object.entries(cardAccountMap)
+      .filter(([card, acct]) => card === acct && !ynab.accounts.find(a => a.name === acct));
+    if (unmatchedCards.length) {
+      unmatchedCards.forEach(([card]) => {
+        showToast('error', `No YNAB account matched for card "${card}". Update the Account field before saving.`);
+      });
+    }
+
+    // Show resolved mappings for matched cards
+    const matchedCards = Object.entries(cardAccountMap)
+      .filter(([card, acct]) => acct !== card || ynab.accounts.find(a => a.name === acct));
+    if (matchedCards.length && ynab.accounts.length) {
+      matchedCards.forEach(([card, acct]) => {
+        if (card !== acct) showToast('success', `"${card}" → YNAB account "${acct}"`);
+      });
+    }
+
     for (const t of transactions) {
-      const absAmt = Math.abs(t.amount).toFixed(2);
+      // Skip credit card payments only — reversals are imported with their negative amount
+      if (t.type === 'credit') continue;
+
+      // Reversals have a negative amount; charges are positive
+      const signedAmt = t.amount; // already signed correctly by bpiParseAmount
+      const displayAmt = signedAmt.toFixed(2);
+      const resolvedAccount = cardAccountMap[t.card] || t.card;
+
+      // Try to match the PDF description against historical YNAB memos
+      const memoMatch = matchMemoToPayee(t.description);
+      const payee     = memoMatch ? memoMatch.payeeName : '';
+      const category  = memoMatch?.category?.name || '';
+      const categoryId = memoMatch?.category?.id  || '';
+
+      const split = newSplit({ amount: displayAmt });
+      if (category)   { split.category   = category;   }
+      if (categoryId) { split.categoryId = categoryId; }
+
       batchData.push(newTx({
         date:    t.transaction_date,
-        account: t.card,
-        total:   absAmt,
-        payee:   t.description,
+        account: resolvedAccount,
+        total:   displayAmt,
+        payee,
         memo:    t.description,
-        splits:  [newSplit({ amount: absAmt })]
+        splits:  [split],
       }));
     }
 
+    // Report how many got auto-matched
+    const charges             = transactions.filter(t => t.type !== 'credit');
+    const skippedCount        = transactions.length - charges.length;
+    const reversalCount       = charges.filter(t => t.type === 'reversal').length;
+    const importedCount       = charges.length;
+    const matchedPayeeCount   = batchData.slice(-importedCount).filter(tx => tx.payee).length;
+    const unmatchedPayeeCount = importedCount - matchedPayeeCount;
     setMode('batch');
-    showToast('success', 'Imported ' + transactions.length + ' transaction(s) from BPI PDF.');
+    showToast('success',
+      `Imported ${importedCount} transaction(s) from BPI PDF.` +
+      (skippedCount        ? ` ${skippedCount} payment${skippedCount !== 1 ? 's' : ''} skipped.` : '') +
+      (reversalCount       ? ` ${reversalCount} reversal${reversalCount !== 1 ? 's' : ''} included.` : '') +
+      (matchedPayeeCount   ? ` ${matchedPayeeCount} payee${matchedPayeeCount !== 1 ? 's' : ''} auto-matched.` : '') +
+      (unmatchedPayeeCount ? ` ${unmatchedPayeeCount} need manual payee/category.` : '')
+    );
   } catch (err) {
     console.error('BPI PDF import error:', err);
     showToast('error', 'Failed to parse PDF: ' + (err.message || err));
