@@ -3551,6 +3551,7 @@ async function saveToYNABSingle() {
   btn.textContent = 'Saving…';
 
   try {
+    const isSingleSplit = subtransactions.length === 1;
     const payload = {
       transaction: {
         account_id:  accountObj.id,
@@ -3558,8 +3559,9 @@ async function saveToYNABSingle() {
         amount:      -amountToMilliunits(amount),
         payee_id:    payeeObj.id   || undefined,
         payee_name:  payeeObj.id   ? undefined : payeeObj.name,
-        memo:        memo          || undefined,
-        subtransactions,
+        memo:        isSingleSplit ? (subtransactions[0].memo || memo || undefined) : (memo || undefined),
+        category_id: isSingleSplit ? subtransactions[0].category_id : undefined,
+        subtransactions: isSingleSplit ? undefined : subtransactions,
       }
     };
     await ynabFetch(`/budgets/${ynab.budgetId}/transactions`, {
@@ -3668,6 +3670,7 @@ async function saveToYNABBatch() {
         });
       }
 
+      const isSingleSplit = subtransactions.length === 1;
       const payload = {
         transaction: {
           account_id:  accountObj.id,
@@ -3675,8 +3678,9 @@ async function saveToYNABBatch() {
           amount:      -amountToMilliunits(tx.total),
           payee_id:    payeeObj?.id   || undefined,
           payee_name:  payeeObj?.id   ? undefined : (payeeObj?.name || undefined),
-          memo:        tx.memo        || undefined,
-          subtransactions,
+          memo:        isSingleSplit ? (subtransactions[0].memo || tx.memo || undefined) : (tx.memo || undefined),
+          category_id: isSingleSplit ? subtransactions[0].category_id : undefined,
+          subtransactions: isSingleSplit ? undefined : subtransactions,
         }
       };
       await ynabFetch(`/budgets/${ynab.budgetId}/transactions`, {
@@ -3684,13 +3688,19 @@ async function saveToYNABBatch() {
         body: JSON.stringify(payload),
       });
 
-      // Log to Splitwise if enabled
+      // Log to Splitwise if enabled — only when at least one split is assigned
+      // to someone other than the payer (i.e. there is a real balance assignment)
       if (sw.enabled) {
-        try {
-          await createSplitwiseExpenseBatch(tx);
-        } catch (swErr) {
-          console.error('Splitwise error for batch tx:', tx, swErr);
-          showToast('error', `Splitwise failed for row ${batchData.indexOf(tx) + 1}: ${swErr.message}`);
+        const activeAccount = sw.accounts[tx.swPayerAccountIndex !== undefined ? tx.swPayerAccountIndex : sw.activeAccountIndex] || swActiveAccount();
+        const meId = String(activeAccount?.user?.id || '');
+        const hasAssignment = tx.splits.some(sp => sp.swUserId && sp.swUserId !== meId);
+        if (hasAssignment) {
+          try {
+            await createSplitwiseExpenseBatch(tx);
+          } catch (swErr) {
+            console.error('Splitwise error for batch tx:', tx, swErr);
+            showToast('error', `Splitwise failed for row ${batchData.indexOf(tx) + 1}: ${swErr.message}`);
+          }
         }
       }
 
