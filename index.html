@@ -599,7 +599,7 @@
 
   .popover {
     position: absolute;
-    bottom: calc(100% + 10px);
+    top: calc(100% + 10px);
     right: 0;
     background: var(--card);
     border: 1px solid var(--border);
@@ -1043,6 +1043,9 @@
   /* ── Modal wider for settings ── */
   .modal-wide { max-width: 520px; }
 
+  /* Status badge in modal header — hidden on desktop, shown on mobile */
+  .modal-status-badge { display: none; }
+
   /* ── Settings section divider ── */
   .modal-divider {
     border: none;
@@ -1067,6 +1070,24 @@
   }
 
   .sw-panel.open { display: flex; }
+
+  @media (max-width: 540px) {
+    .sw-panel {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+      padding: 8px 16px;
+    }
+    .sw-payer-wrap {
+      margin-left: 0 !important;
+      width: 100%;
+    }
+    .sw-payer-wrap select {
+      flex: 1;
+      min-width: 0;
+      width: 100%;
+    }
+  }
 
   .sw-panel-label {
     font-size: 12px;
@@ -1367,7 +1388,7 @@
           <label for="s-amount">Total Amount</label>
           <div class="input-wrap">
             <span class="input-prefix">$</span>
-            <input type="number" id="s-amount" class="has-prefix" placeholder="0.00" min="0" step="0.01"
+            <input type="number" id="s-amount" class="has-prefix" placeholder="0.00" min="0" step="0.01" inputmode="decimal"
                    oninput="onTotalAmountInput()" aria-describedby="s-amount-err">
           </div>
           <span class="field-error" id="s-amount-err">Please enter a valid amount.</span>
@@ -1414,6 +1435,17 @@
           </div>
           <div style="display:flex;gap:8px;">
             <button class="btn btn-ghost btn-sm" onclick="autoBalance()" title="Distribute remaining equally to empty splits">Auto Balance</button>
+            <div class="popover-wrap">
+              <button class="btn btn-ghost btn-sm" onclick="togglePresetPanel()" id="preset-btn" aria-haspopup="true" aria-expanded="false">Save Preset</button>
+              <div class="popover" id="preset-panel" role="dialog" aria-label="Preset panel">
+                <div class="popover-input-row">
+                  <input type="text" id="preset-name-input" placeholder="Preset name..." aria-label="Preset name">
+                  <button class="btn btn-primary btn-sm" onclick="savePreset()">Save</button>
+                </div>
+                <hr class="popover-divider">
+                <div class="preset-list" id="preset-list"></div>
+              </div>
+            </div>
             <button class="btn btn-outline btn-sm" onclick="addSplitRow(true)">+ Add Split</button>
           </div>
         </div>
@@ -1490,17 +1522,6 @@
         <span class="toggle-slider"></span>
       </span>
     </label>
-    <div class="popover-wrap">
-      <button class="btn btn-ghost btn-sm" onclick="togglePresetPanel()" id="preset-btn" aria-haspopup="true" aria-expanded="false">Save Preset</button>
-      <div class="popover" id="preset-panel" role="dialog" aria-label="Preset panel">
-        <div class="popover-input-row">
-          <input type="text" id="preset-name-input" placeholder="Preset name..." aria-label="Preset name">
-          <button class="btn btn-primary btn-sm" onclick="savePreset()">Save</button>
-        </div>
-        <hr class="popover-divider">
-        <div class="preset-list" id="preset-list"></div>
-      </div>
-    </div>
     <button class="btn btn-primary" onclick="saveToYNAB()" id="save-ynab-btn">Save to YNAB</button>
   </div>
 </div>
@@ -1514,6 +1535,10 @@
   <div class="modal modal-wide">
     <div class="modal-header">
       <h2 class="modal-title" id="settings-title">Settings</h2>
+      <span class="ynab-status disconnected modal-status-badge" id="ynab-status-badge-modal">
+        <span class="ynab-status-dot"></span>
+        <span id="ynab-status-text-modal">Not connected</span>
+      </span>
       <button class="modal-close" onclick="closeSettings()" aria-label="Close settings">×</button>
     </div>
 
@@ -1664,7 +1689,7 @@
   <span class="sw-panel-label">Splitwise</span>
   <span id="sw-panel-status" class="sw-status-badge error">Not configured</span>
   <span id="sw-panel-user" style="font-size:12px;color:var(--text-sec);"></span>
-  <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+  <div class="sw-payer-wrap" style="margin-left:auto;display:flex;align-items:center;gap:8px;">
     <label style="font-size:12px;color:var(--text-sec);white-space:nowrap;">Paying account:</label>
     <select id="sw-active-account-select" class="sw-payer-select" onchange="onSwActiveAccountChange(this.value)" aria-label="Active Splitwise account" style="min-width:120px;">
       <option value="">— select —</option>
@@ -2270,10 +2295,16 @@ function onBudgetChange(budgetId) {
 }
 
 function setYnabStatus(connected, text) {
+  const cls = 'ynab-status ' + (connected ? 'connected' : 'disconnected');
   const badge = document.getElementById('ynab-status-badge');
   const label = document.getElementById('ynab-status-text');
-  badge.className = 'ynab-status ' + (connected ? 'connected' : 'disconnected');
+  badge.className = cls;
   label.textContent = text;
+
+  const badgeModal = document.getElementById('ynab-status-badge-modal');
+  const labelModal = document.getElementById('ynab-status-text-modal');
+  badgeModal.className = cls + ' modal-status-badge';
+  labelModal.textContent = text;
 }
 
 /* ═══════════════════════════════════════════════
@@ -2480,7 +2511,7 @@ function addSplitRow(clearExisting = false) {
     </div>
     <div class="split-row-amount-row">
       <span class="split-field-label">Amount</span>
-      <input type="number" id="sa-${id}" placeholder="0.00" min="0" step="0.01"
+      <input type="number" id="sa-${id}" placeholder="0.00" min="0" step="0.01" inputmode="decimal"
              value="${defaultAmount}"
              aria-label="Amount" oninput="updateRemaining()">
     </div>
@@ -3182,7 +3213,7 @@ function renderBatchTable() {
           <div class="dropdown-list" id="bt-acc-list-${tx.id}" role="listbox"></div>
         </div>
       </td>
-      <td><input type="number" value="${tx.total}" placeholder="0.00" step="0.01"
+      <td><input type="number" value="${tx.total}" placeholder="0.00" step="0.01" inputmode="decimal"
             aria-label="Total Amount" oninput="updateTxField(${tx.id},'total',this.value); syncBatchSingleSplit(${tx.id}, this.value)"></td>
       <td>
         <div class="dropdown-wrap">
@@ -3205,7 +3236,7 @@ function renderBatchTable() {
         </div>`}
       </td>
       <td>${multiSplit ? '<span class="text-muted">—</span>' : `
-        <input type="number" id="bt-amt-${tx.id}-${splitId0}" value="${escHtml(inlineAmt)}" placeholder="0.00" step="0.01"
+        <input type="number" id="bt-amt-${tx.id}-${splitId0}" value="${escHtml(inlineAmt)}" placeholder="0.00" step="0.01" inputmode="decimal"
                aria-label="Amount" oninput="updateSplitField(${tx.id},${splitId0},'amount',this.value)">`}
       </td>
       <td>${multiSplit ? '<span class="text-muted">—</span>' : `
@@ -3314,7 +3345,7 @@ function renderBatchTable() {
               <div class="dropdown-list" id="bt-cat-list-${tx.id}-${sp.id}" role="listbox"></div>
             </div>
           </td>
-          <td><input type="number" value="${escHtml(sp.amount)}" placeholder="0.00" step="0.01"
+          <td><input type="number" value="${escHtml(sp.amount)}" placeholder="0.00" step="0.01" inputmode="decimal"
                 aria-label="Amount" oninput="updateSplitField(${tx.id},${sp.id},'amount',this.value)"></td>
           <td><input type="text" value="${escHtml(sp.note)}" placeholder="Note"
                 aria-label="Note" oninput="updateSplitField(${tx.id},${sp.id},'note',this.value)"></td>
@@ -3636,9 +3667,8 @@ function showToast(type, message) {
   `;
   area.appendChild(div);
 
-  if (type === 'success') {
-    setTimeout(() => dismissToast(id), 4000);
-  }
+  const delay = type === 'error' ? 7000 : type === 'warning' ? 6000 : 4000;
+  setTimeout(() => dismissToast(id), delay);
 }
 
 function dismissToast(id) {
