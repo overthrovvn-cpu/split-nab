@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Split-NAB</title>
 <!-- PDF.js for in-browser PDF text extraction -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -345,42 +345,11 @@
       width: 100%;
     }
 
-    /* Hide the old amount-row delete button (replaced by bottom button) */
+    /* Hide the old amount-row delete button */
     .split-row .split-row-amount-row .btn-danger-ghost { display: none; }
 
     /* Note takes full width */
     .split-row .split-row-note { width: 100%; }
-
-    /* Hide the desktop-only inline delete on mobile */
-    .split-row .split-delete-inline { display: none; }
-
-    /* Bottom-center REMOVE button — mobile only */
-    .split-delete-bottom {
-      display: flex;
-      justify-content: center;
-      width: 100%;
-      margin-top: 14px;
-    }
-
-    .btn-remove {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 6px 20px;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      color: var(--error);
-      background: transparent;
-      border: 1px solid var(--error);
-      border-radius: var(--radius);
-      cursor: pointer;
-      font-family: var(--font);
-      transition: background 0.15s;
-    }
-
-    .btn-remove:hover { background: var(--error-light); }
   }
 
   /* ── Desktop: unwrap the mobile helper divs so layout stays flat ── */
@@ -397,32 +366,6 @@
 
     /* Unwrap note div */
     .split-row .split-row-note { display: contents; }
-
-    /* Hide the mobile bottom-remove wrapper on desktop */
-    .split-delete-bottom { display: none; }
-
-    /* Desktop inline remove — small labelled button instead of bare × */
-    .split-delete-inline {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 6px 12px;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      color: var(--error);
-      background: transparent;
-      border: 1px solid var(--error);
-      border-radius: var(--radius);
-      cursor: pointer;
-      font-family: var(--font);
-      white-space: nowrap;
-      flex-shrink: 0;
-      transition: background 0.15s;
-    }
-
-    .split-delete-inline:hover { background: var(--error-light); }
   }
 
   /* ── Card section title ── */
@@ -1293,6 +1236,106 @@
   }
 
   .connect-row .field { flex: 1; margin-bottom: 0; }
+
+  /* ── Installments nav link ── */
+  .nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-sec);
+    background: transparent;
+    border: 1px solid var(--border);
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+
+  .nav-link:hover { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
+
+  /* ── Swipe-to-delete (split rows — all viewports) ── */
+
+  /* Outer wrapper clips the sliding row and holds the delete button behind it */
+  .split-row-swipe-wrapper {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius);
+  }
+
+  /* The red delete action — hidden behind the row until swiped */
+  .split-swipe-delete-action {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 80px;
+    background: var(--error);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 3px;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    border-radius: 0 var(--radius) var(--radius) 0;
+  }
+
+  .split-swipe-delete-action .swipe-delete-icon {
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  /* The actual split row slides on top, fully covering the delete action by default */
+  .split-row-swipe-wrapper .split-row {
+    position: relative;
+    z-index: 1;
+    transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: transform;
+  }
+
+  /* Swiped-open state */
+  .split-row-swipe-wrapper.swipe-open .split-row {
+    transform: translateX(-80px);
+  }
+
+  /* While actively dragging — no transition so it follows the finger/trackpad */
+  .split-row-swipe-wrapper.swiping .split-row {
+    transition: none;
+  }
+
+  /* Suppress text selection while swiping */
+  .split-row-swipe-wrapper.swiping {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* Snap-back animation when closing */
+  .split-row-swipe-wrapper.swipe-closing .split-row {
+    transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  /* Delete confirmation flash */
+  .split-row-swipe-wrapper.swipe-deleting .split-row {
+    transition: transform 0.18s ease-in, opacity 0.18s ease-in;
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+
+  /* Mobile-only: stacked card needs its own border-radius preserved on the row */
+  @media (max-width: 640px) {
+    .split-row-swipe-wrapper .split-row {
+      border-radius: var(--radius);
+    }
+  }
 </style>
 </head>
 <body>
@@ -1304,6 +1347,9 @@
     <button id="btn-single" class="active" aria-pressed="true" onclick="setMode('single')">Single Entry</button>
     <button id="btn-batch" aria-pressed="false" onclick="setMode('batch')">Batch</button>
   </div>
+  <a href="installments.html" class="nav-link" aria-label="Go to Installments tracker">
+    📋 Installments
+  </a>
 </header>
 
 <!-- ══ MAIN ══ -->
@@ -2401,6 +2447,20 @@ function addSplitRow(clearExisting = false) {
 
   const id = ++splitRowId;
   const container = document.getElementById('split-rows');
+
+  // Swipe wrapper (clips the sliding row and holds the delete action behind it)
+  const wrapper = document.createElement('div');
+  wrapper.className = 'split-row-swipe-wrapper';
+  wrapper.dataset.splitId = id;
+
+  // Red delete action (revealed on swipe-left, mobile only)
+  const deleteAction = document.createElement('div');
+  deleteAction.className = 'split-swipe-delete-action';
+  deleteAction.setAttribute('aria-label', 'Delete split row');
+  deleteAction.innerHTML = `<span class="swipe-delete-icon">🗑</span><span>Delete</span>`;
+  deleteAction.addEventListener('click', () => swipeDeleteRow(id, wrapper));
+  wrapper.appendChild(deleteAction);
+
   const row = document.createElement('div');
   row.className = 'split-row';
   row.dataset.id = id;
@@ -2428,14 +2488,13 @@ function addSplitRow(clearExisting = false) {
       <span class="split-field-label">Note</span>
       <input type="text" id="sn-${id}" placeholder="Optional note" aria-label="Note">
     </div>
-    <div class="split-delete-bottom">
-      <button class="btn-remove" onclick="deleteSplitRow(${id})"
-              aria-label="Remove split row">✕ Remove</button>
-    </div>
-    <button class="btn split-delete-inline" onclick="deleteSplitRow(${id})"
-            aria-label="Remove split row">✕ Remove</button>
   `;
-  container.appendChild(row);
+
+  wrapper.appendChild(row);
+  container.appendChild(wrapper);
+
+  // Attach swipe gesture to this row
+  attachSwipeGesture(wrapper, row, id);
 
   // Append Splitwise user select if enabled
   if (sw.enabled) {
@@ -2468,11 +2527,185 @@ function addSplitRow(clearExisting = false) {
   updateRemaining();
 }
 
+/* ═══════════════════════════════════════════════
+   SWIPE-TO-DELETE GESTURE (mobile split rows)
+   — touch events for touchscreens/iPad
+   — wheel deltaX for macOS trackpad two-finger swipe
+═══════════════════════════════════════════════ */
+const SWIPE_THRESHOLD   = 40;   // px to commit open/close
+const SWIPE_DELETE_WIDTH = 80;  // must match CSS width of .split-swipe-delete-action
+const SWIPE_ACTIVE_BREAKPOINT = 640; // only active on mobile widths
+
+// Track which wrapper is currently open so we can close it when another opens
+let _openSwipeWrapper = null;
+
+function closeAllSwipeRows(except = null) {
+  if (_openSwipeWrapper && _openSwipeWrapper !== except) {
+    _openSwipeWrapper.classList.remove('swipe-open', 'swiping');
+    _openSwipeWrapper.classList.add('swipe-closing');
+    _openSwipeWrapper.querySelector('.split-row').style.transform = '';
+    setTimeout(() => {
+      if (_openSwipeWrapper) _openSwipeWrapper.classList.remove('swipe-closing');
+    }, 220);
+    _openSwipeWrapper = null;
+  }
+}
+
+function swipeDeleteRow(id, wrapper) {
+  const rows = document.querySelectorAll('#split-rows .split-row');
+  if (rows.length <= 1) {
+    // Can't delete last row — snap back
+    closeAllSwipeRows();
+    return;
+  }
+  wrapper.classList.add('swipe-deleting');
+  setTimeout(() => {
+    deleteSplitRow(id);
+  }, 200);
+}
+
+function attachSwipeGesture(wrapper, row, id) {
+  // ── Touch events (touchscreen / iPad) ──────────────────────────────────────
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchDeltaX = 0;
+  let isTouchSwiping = false;
+  let touchLocked = false; // locked to vertical scroll — ignore horizontal
+
+  row.addEventListener('touchstart', e => {
+    if (window.innerWidth > SWIPE_ACTIVE_BREAKPOINT) return;
+    touchStartX = e.touches[0].clientX;    touchStartY = e.touches[0].clientY;
+    touchDeltaX = 0;
+    isTouchSwiping = false;
+    touchLocked = false;
+    wrapper.classList.add('swiping');
+  }, { passive: true });
+
+  row.addEventListener('touchmove', e => {
+    if (window.innerWidth > SWIPE_ACTIVE_BREAKPOINT) return;
+    const dx = e.touches[0].clientX - touchStartX;
+    const dy = e.touches[0].clientY - touchStartY;
+
+    // If we haven't locked direction yet, decide based on dominant axis
+    if (!isTouchSwiping && !touchLocked) {
+      if (Math.abs(dy) > Math.abs(dx) + 4) {
+        touchLocked = true; // vertical scroll wins
+        wrapper.classList.remove('swiping');
+        return;
+      }
+      if (Math.abs(dx) > 6) {
+        isTouchSwiping = true;
+      }
+    }
+
+    if (touchLocked || !isTouchSwiping) return;
+
+    // Prevent page scroll while swiping horizontally
+    e.preventDefault();
+
+    touchDeltaX = dx;
+    const isOpen = wrapper.classList.contains('swipe-open');
+    // Current offset: if already open, start from -SWIPE_DELETE_WIDTH
+    const base = isOpen ? -SWIPE_DELETE_WIDTH : 0;
+    let offset = base + dx;
+    // Clamp: can't swipe right past 0, can't swipe left past -SWIPE_DELETE_WIDTH * 1.1
+    offset = Math.min(0, Math.max(-(SWIPE_DELETE_WIDTH * 1.1), offset));
+    row.style.transform = `translateX(${offset}px)`;
+  }, { passive: false });
+
+  row.addEventListener('touchend', () => {
+    if (window.innerWidth > SWIPE_ACTIVE_BREAKPOINT) return;
+    wrapper.classList.remove('swiping');
+    row.style.transform = '';
+
+    if (touchLocked || !isTouchSwiping) return;
+
+    const isOpen = wrapper.classList.contains('swipe-open');
+    const base = isOpen ? -SWIPE_DELETE_WIDTH : 0;
+    const finalOffset = base + touchDeltaX;
+
+    if (!isOpen && finalOffset < -SWIPE_THRESHOLD) {
+      // Open this row, close any other
+      closeAllSwipeRows(wrapper);
+      wrapper.classList.add('swipe-open');
+      _openSwipeWrapper = wrapper;
+    } else if (isOpen && finalOffset > -(SWIPE_DELETE_WIDTH - SWIPE_THRESHOLD)) {
+      // Close
+      wrapper.classList.remove('swipe-open');
+      if (_openSwipeWrapper === wrapper) _openSwipeWrapper = null;
+    } else if (isOpen) {
+      // Keep open
+      wrapper.classList.add('swipe-open');
+    }
+  }, { passive: true });
+
+  // ── Wheel / trackpad (macOS two-finger horizontal swipe) ───────────────────
+  let wheelAccum = 0;
+  let wheelTimer = null;
+
+  row.addEventListener('wheel', e => {
+    // Only act on predominantly horizontal scrolls
+    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    wheelAccum += e.deltaX;
+
+    // Live-drag the row while the user is swiping
+    const isOpen = wrapper.classList.contains('swipe-open');
+    const base = isOpen ? -SWIPE_DELETE_WIDTH : 0;
+    let offset = base - wheelAccum;
+    offset = Math.min(0, Math.max(-(SWIPE_DELETE_WIDTH * 1.1), offset));
+    wrapper.classList.add('swiping');
+    row.style.transform = `translateX(${offset}px)`;
+
+    // Debounce: commit the gesture after the user stops scrolling
+    clearTimeout(wheelTimer);
+    wheelTimer = setTimeout(() => {
+      wrapper.classList.remove('swiping');
+      row.style.transform = '';
+
+      const finalOffset = base - wheelAccum;
+      if (!isOpen && finalOffset < -SWIPE_THRESHOLD) {
+        closeAllSwipeRows(wrapper);
+        wrapper.classList.add('swipe-open');
+        _openSwipeWrapper = wrapper;
+      } else if (isOpen && finalOffset > -(SWIPE_DELETE_WIDTH - SWIPE_THRESHOLD)) {
+        wrapper.classList.remove('swipe-open');
+        if (_openSwipeWrapper === wrapper) _openSwipeWrapper = null;
+      } else if (isOpen) {
+        wrapper.classList.add('swipe-open');
+      }
+      wheelAccum = 0;
+    }, 80);
+  }, { passive: false });
+}
+
+// Close any open swipe row when tapping elsewhere on the page
+document.addEventListener('touchstart', e => {
+  if (!_openSwipeWrapper) return;
+  if (!_openSwipeWrapper.contains(e.target)) {
+    closeAllSwipeRows();
+  }
+}, { passive: true });
+
+document.addEventListener('mousedown', e => {
+  if (!_openSwipeWrapper) return;
+  if (!_openSwipeWrapper.contains(e.target)) {
+    closeAllSwipeRows();
+  }
+});
+
 function deleteSplitRow(id) {
   const rows = document.querySelectorAll('#split-rows .split-row');
   if (rows.length <= 1) return;
+  // Remove the wrapper (parent of .split-row) if it exists, else the row itself
   const row = document.querySelector(`#split-rows .split-row[data-id="${id}"]`);
-  if (row) row.remove();
+  if (row) {
+    const wrapper = row.closest('.split-row-swipe-wrapper');
+    (wrapper || row).remove();
+  }
   updateDeleteButtons();
   // If back to one split, restore the total as its amount
   const remaining = document.querySelectorAll('#split-rows .split-row');
@@ -2487,10 +2720,15 @@ function deleteSplitRow(id) {
 function updateDeleteButtons() {
   const rows = document.querySelectorAll('#split-rows .split-row');
   rows.forEach(row => {
-    // Disable all delete buttons in this row (desktop inline + mobile bottom)
-    row.querySelectorAll('.split-delete-inline, .btn-remove').forEach(btn => {
-      btn.disabled = rows.length <= 1;
-    });
+    // Dim the swipe delete action when it's the only row
+    const wrapper = row.closest('.split-row-swipe-wrapper');
+    if (wrapper) {
+      const swipeAction = wrapper.querySelector('.split-swipe-delete-action');
+      if (swipeAction) {
+        swipeAction.style.opacity = rows.length <= 1 ? '0.4' : '';
+        swipeAction.style.pointerEvents = rows.length <= 1 ? 'none' : '';
+      }
+    }
   });
 }
 
