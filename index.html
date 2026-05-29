@@ -82,6 +82,7 @@
     top: 3px;
     left: 3px;
     height: calc(100% - 6px);
+    width: 0;
     border-radius: 999px;
     background: var(--accent);
     transition: transform 0.35s cubic-bezier(0.4, 0.0, 0.2, 1),
@@ -977,9 +978,8 @@
   }
 
   /* Actions column auto-width — never shrink */
-  th[data-col="actions"],
-  td:last-child {
-    width: 1%;
+  th[data-col="actions"] {
+    width: auto !important;
     white-space: nowrap;
   }
 
@@ -1983,9 +1983,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Position the mode toggle slider on initial load (no transition)
   const slider = document.getElementById('mode-slider');
-  if (slider) slider.style.transition = 'none';
-  updateModeSlider();
-  if (slider) requestAnimationFrame(() => { slider.style.transition = ''; });
+  if (slider) {
+    slider.style.transition = 'none';
+    updateModeSlider();
+    // Double rAF ensures the browser paints the no-transition state before restoring
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => { slider.style.transition = ''; });
+    });
+  }
 });
 
 /* ═══════════════════════════════════════════════
