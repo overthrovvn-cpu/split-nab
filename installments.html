@@ -8,6 +8,11 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  html {
+    overflow-x: hidden;
+    overscroll-behavior: none;
+  }
+
   :root {
     --bg: #f7f7f8;
     --card: #ffffff;
@@ -35,6 +40,8 @@
     font-size: 14px;
     min-height: 100vh;
     padding-bottom: 80px;
+    overflow-x: hidden;
+    overscroll-behavior: none;
   }
 
   /* ── Header ── */
@@ -1272,14 +1279,8 @@ function scrollToCurrentMonth() {
   if (!th) return;
 
   const wrap = document.getElementById('table-wrap');
-  // Scroll so the current-month th is visible, with a small left margin
-  const thLeft   = th.offsetLeft;
-  const thWidth  = th.offsetWidth;
-  const wrapWidth = wrap.clientWidth;
-
-  // Target: center the column in the visible area, but don't go negative
-  const target = thLeft - Math.max(0, (wrapWidth - thWidth) / 2);
-  wrap.scrollTo({ left: Math.max(0, target), behavior: 'smooth' });
+  // Align the current month's left edge flush with the scroll container's left edge
+  wrap.scrollTo({ left: th.offsetLeft, behavior: 'smooth' });
 }
 function togglePin(key) {
   if (pinnedCols.includes(key)) {
