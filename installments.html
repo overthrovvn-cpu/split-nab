@@ -743,6 +743,10 @@ async function loadData() {
         const key = tx.date.slice(0, 7); // "YYYY-MM"
         // YNAB amounts are in milliunits (negative = outflow)
         const amountAbs = Math.abs(entry.amount) / 1000;
+
+        // Only count payments that exactly match the monthly due
+        if (Math.abs(amountAbs - row.monthly_due) > 0.01) continue;
+
         // cleared values: "cleared", "reconciled", "uncleared"
         const isReconciled = entry.cleared === 'reconciled';
         const isCleared    = entry.cleared === 'cleared' || isReconciled;
