@@ -128,6 +128,10 @@
   @media (min-width: 768px) {
     .two-col {
       grid-template-columns: 1fr 1fr;
+      transition: grid-template-columns 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .two-col.splitwise-expanded {
+      grid-template-columns: 1fr 2fr;
     }
   }
 
@@ -4132,12 +4136,15 @@ function clearSingleEntry() {
 function onSplitwiseToggle(checkbox) {
   sw.enabled = checkbox.checked;
   const panel = document.getElementById('sw-panel');
+  const twoCol = document.querySelector('#view-single .two-col');
   if (sw.enabled) {
     panel.classList.add('open');
+    if (twoCol) twoCol.classList.add('splitwise-expanded');
     // Load data for all accounts that haven't been loaded yet
     loadAllSwAccounts();
   } else {
     panel.classList.remove('open');
+    if (twoCol) twoCol.classList.remove('splitwise-expanded');
     // Re-render to remove Splitwise selects from split rows
     refreshSplitwiseUI();
   }
