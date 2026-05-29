@@ -290,6 +290,26 @@
     border: 1px solid #fff;
   }
 
+  /* Subtle green flag for the last payment of an installment */
+  .month-paid.is-last,
+  .month-cleared.is-last,
+  .month-pending.is-last {
+    position: relative;
+  }
+
+  .month-paid.is-last::before,
+  .month-cleared.is-last::before,
+  .month-pending.is-last::before {
+    content: '⚑';
+    position: absolute;
+    bottom: -4px;
+    right: -5px;
+    font-size: 9px;
+    line-height: 1;
+    color: var(--success);
+    opacity: 0.85;
+  }
+
   /* Zero-balance rows — slightly muted */
   .zero-balance-row td { opacity: 0.55; }
 
@@ -478,6 +498,69 @@
     .bottom-bar { padding: 10px 14px; }
     .page-title { display: none; }
   }
+
+  /* ── Add Installment Modal Form ── */
+  .add-form { display: flex; flex-direction: column; gap: 14px; }
+
+  .add-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .add-field label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-sec);
+  }
+
+  .add-field input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-family: var(--font);
+    color: var(--text);
+    background: var(--card);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .add-field input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79,110,247,0.12);
+  }
+
+  .add-field-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .add-preview {
+    padding: 10px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .add-preview-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .add-preview-value {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    word-break: break-word;
+  }
 </style>
 </head>
 <body>
@@ -574,6 +657,49 @@
 
     <hr class="modal-divider">
     <button class="btn btn-primary" style="width:100%;" id="settings-done-btn">Save &amp; Reload</button>
+  </div>
+</div>
+
+<!-- ══ ADD INSTALLMENT MODAL ══ -->
+<div class="overlay" id="add-overlay" role="dialog" aria-modal="true" aria-labelledby="add-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="add-title">Add Installment</h2>
+      <button class="modal-close" id="add-close" aria-label="Close">×</button>
+    </div>
+
+    <div class="add-form">
+      <div class="add-field">
+        <label for="add-name">Name</label>
+        <input type="text" id="add-name" placeholder="e.g. Ricoh #1" autocomplete="off">
+        <span class="add-field-hint">The item or service being paid in installments.</span>
+      </div>
+
+      <div class="add-field">
+        <label for="add-amount">Monthly Amount (₱)</label>
+        <input type="number" id="add-amount" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
+        <span class="add-field-hint">The exact amount due each month.</span>
+      </div>
+
+      <div class="add-field">
+        <label for="add-months">Number of Months</label>
+        <input type="number" id="add-months" placeholder="e.g. 12" min="1" step="1" inputmode="numeric">
+        <span class="add-field-hint">Total installment period in months.</span>
+      </div>
+
+      <div class="add-field">
+        <label for="add-end">End Month (optional)</label>
+        <input type="month" id="add-end">
+        <span class="add-field-hint">When the last payment is due. Leave blank to omit.</span>
+      </div>
+
+      <div class="add-preview">
+        <span class="add-preview-label">Category name preview:</span>
+        <span class="add-preview-value" id="add-preview-value">—</span>
+      </div>
+
+      <button class="btn btn-primary" style="width:100%;margin-top:8px;" id="add-submit-btn">Create in YNAB</button>
+    </div>
   </div>
 </div>
 
@@ -754,10 +880,10 @@ async function loadData() {
 
       if (tx.subtransactions && tx.subtransactions.length) {
         for (const sub of tx.subtransactions) {
-          if (sub.category_id) entries.push({ category_id: sub.category_id, amount: sub.amount, cleared: tx.cleared });
+          if (sub.category_id) entries.push({ category_id: sub.category_id, amount: sub.amount, cleared: tx.cleared, account_name: tx.account_name, memo: sub.memo || tx.memo, date: tx.date });
         }
       } else if (tx.category_id) {
-        entries.push({ category_id: tx.category_id, amount: tx.amount, cleared: tx.cleared });
+        entries.push({ category_id: tx.category_id, amount: tx.amount, cleared: tx.cleared, account_name: tx.account_name, memo: tx.memo, date: tx.date });
       }
 
       for (const entry of entries) {
@@ -777,6 +903,7 @@ async function loadData() {
         if (!paymentsByCategory.has(entry.category_id)) paymentsByCategory.set(entry.category_id, []);
         paymentsByCategory.get(entry.category_id).push({
           key, amount: amountAbs, cleared: isCleared, reconciled: isReconciled, date: tx.date,
+          account_name: entry.account_name || '', memo: entry.memo || '',
         });
       }
     }
@@ -813,6 +940,9 @@ async function loadData() {
           amount: pay.amount,
           forwarded,
           fromMonth, // original month the payment was made in
+          date: pay.date,
+          account_name: pay.account_name,
+          memo: pay.memo,
         });
       }
 
@@ -1029,27 +1159,34 @@ function render() {
           const progressNote = `${monthNum} of ${row.installment_period}`;
 
           const tx = row.txByMonth.get(col.key);
+          const isLast = monthNum === row.installment_period;
           if (tx) {
             const badge = document.createElement('span');
             const forwardNote = tx.forwarded ? `\n↳ Paid in ${tx.fromMonth} (advance)` : '';
+            const lastNote = isLast ? '\n🏁 Final payment' : '';
+            // Transaction details
+            const txDate = tx.date ? `\nDate: ${fmtDate(tx.date)}` : '';
+            const txAcct = tx.account_name ? `\nAccount: ${tx.account_name}` : '';
+            const txMemo = tx.memo ? `\nNote: ${tx.memo}` : '';
+            const txDetails = txDate + txAcct + txMemo;
             if (tx.reconciled) {
-              badge.className = 'month-paid' + (tx.forwarded ? ' has-note' : '');
+              badge.className = 'month-paid' + (tx.forwarded ? ' has-note' : '') + (isLast ? ' is-last' : '');
               badge.textContent = '✓';
-              badge.title = `Reconciled · ₱${fmt(tx.amount)} (${progressNote})${forwardNote}`;
+              badge.title = `Reconciled · ₱${fmt(tx.amount)} (${progressNote})${txDetails}${forwardNote}${lastNote}`;
             } else if (tx.cleared) {
-              badge.className = 'month-cleared' + (tx.forwarded ? ' has-note' : '');
+              badge.className = 'month-cleared' + (tx.forwarded ? ' has-note' : '') + (isLast ? ' is-last' : '');
               badge.textContent = '✓';
-              badge.title = `Cleared · ₱${fmt(tx.amount)} (${progressNote})${forwardNote}`;
+              badge.title = `Cleared · ₱${fmt(tx.amount)} (${progressNote})${txDetails}${forwardNote}${lastNote}`;
             } else {
-              badge.className = 'month-pending' + (tx.forwarded ? ' has-note' : '');
+              badge.className = 'month-pending' + (tx.forwarded ? ' has-note' : '') + (isLast ? ' is-last' : '');
               badge.textContent = '○';
-              badge.title = `Pending · ₱${fmt(tx.amount)} (${progressNote})${forwardNote}`;
+              badge.title = `Pending · ₱${fmt(tx.amount)} (${progressNote})${txDetails}${forwardNote}${lastNote}`;
             }
             td.appendChild(badge);
           } else {
             const badge = document.createElement('span');
-            badge.className = 'month-pending'; badge.textContent = '○';
-            badge.title = `No payment recorded (${progressNote})`;
+            badge.className = 'month-pending' + (isLast ? ' is-last' : ''); badge.textContent = '○';
+            badge.title = `No payment recorded (${progressNote})${isLast ? '\n🏁 Final payment' : ''}`;
             td.appendChild(badge);
           }
         } else {
@@ -1229,6 +1366,121 @@ function showToast(type, msg) {
 }
 
 /* ═══════════════════════════════════════════════
+   ADD INSTALLMENT MODAL
+═══════════════════════════════════════════════ */
+function openAddModal() {
+  document.getElementById('add-name').value = '';
+  document.getElementById('add-amount').value = '';
+  document.getElementById('add-months').value = '';
+  document.getElementById('add-end').value = '';
+  updateAddPreview();
+  document.getElementById('add-overlay').classList.add('open');
+  document.getElementById('add-name').focus();
+}
+
+function closeAddModal() {
+  document.getElementById('add-overlay').classList.remove('open');
+}
+
+function buildCategoryName() {
+  const name   = document.getElementById('add-name').value.trim();
+  const amount = parseFloat(document.getElementById('add-amount').value);
+  const months = parseInt(document.getElementById('add-months').value, 10);
+  const endVal = document.getElementById('add-end').value; // "YYYY-MM" or ""
+
+  if (!name || !amount || !months) return null;
+
+  // Format amount with commas and 2 decimals
+  const fmtAmt = amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  let catName = `${name} @₱${fmtAmt} for ${months}mo`;
+
+  // Append "till Mon'YY" if end month is provided
+  if (endVal) {
+    const [ey, em] = endVal.split('-').map(Number);
+    const endDate = new Date(ey, em - 1, 1);
+    const monStr = endDate.toLocaleDateString('en-US', { month: 'short' });
+    const yrStr  = String(ey).slice(-2);
+    catName += ` till ${monStr}'${yrStr}`;
+  }
+
+  return catName;
+}
+
+function updateAddPreview() {
+  const preview = document.getElementById('add-preview-value');
+  const catName = buildCategoryName();
+  preview.textContent = catName || '—';
+}
+
+async function submitAddInstallment() {
+  const catName = buildCategoryName();
+  if (!catName) {
+    showToast('error', 'Please fill in name, amount, and months.');
+    return;
+  }
+
+  if (!ynab.token || !ynab.budgetId) {
+    showToast('error', 'YNAB not connected. Open Settings first.');
+    return;
+  }
+
+  const btn = document.getElementById('add-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Creating…';
+
+  try {
+    // First, find or create the "Installment Plans" category group
+    const catRes = await ynabFetch(`/budgets/${ynab.budgetId}/categories`);
+    const groups = catRes.data.category_groups || [];
+    let instGroup = groups.find(g =>
+      g.name.trim().toLowerCase() === INSTALLMENT_GROUP.toLowerCase() && !g.deleted
+    );
+
+    let groupId;
+    if (instGroup) {
+      groupId = instGroup.id;
+    } else {
+      // Create the category group
+      const groupRes = await fetch(YNAB_API + `/budgets/${ynab.budgetId}/categories`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + ynab.token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category_group: { name: INSTALLMENT_GROUP } }),
+      });
+      if (!groupRes.ok) {
+        const err = await groupRes.json().catch(() => ({}));
+        throw new Error(err?.error?.detail || `Failed to create group (HTTP ${groupRes.status})`);
+      }
+      const groupData = await groupRes.json();
+      groupId = groupData.data.category_group.id;
+    }
+
+    // Create the category in the group
+    const createRes = await fetch(YNAB_API + `/budgets/${ynab.budgetId}/categories`, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + ynab.token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category: { category_group_id: groupId, name: catName } }),
+    });
+
+    if (!createRes.ok) {
+      const err = await createRes.json().catch(() => ({}));
+      throw new Error(err?.error?.detail || `Failed to create category (HTTP ${createRes.status})`);
+    }
+
+    showToast('success', `Created: ${catName}`);
+    closeAddModal();
+    // Reload data to show the new installment
+    await loadData();
+
+  } catch (err) {
+    showToast('error', `Error: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Create in YNAB';
+  }
+}
+
+/* ═══════════════════════════════════════════════
    INIT
 ═══════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
@@ -1239,10 +1491,23 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === document.getElementById('settings-overlay')) closeSettings();
   });
   document.getElementById('refresh-btn').addEventListener('click', loadData);
-  document.getElementById('add-btn').addEventListener('click', () =>
-    showToast('success', 'Add installment — coming soon.'));
-  document.getElementById('add-btn-bar').addEventListener('click', () =>
-    showToast('success', 'Add installment — coming soon.'));
+
+  // Add Installment buttons
+  document.getElementById('add-btn').addEventListener('click', openAddModal);
+  document.getElementById('add-btn-bar').addEventListener('click', openAddModal);
+
+  // Add Installment modal controls
+  document.getElementById('add-close').addEventListener('click', closeAddModal);
+  document.getElementById('add-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('add-overlay')) closeAddModal();
+  });
+  document.getElementById('add-submit-btn').addEventListener('click', submitAddInstallment);
+
+  // Live preview update
+  document.getElementById('add-name').addEventListener('input', updateAddPreview);
+  document.getElementById('add-amount').addEventListener('input', updateAddPreview);
+  document.getElementById('add-months').addEventListener('input', updateAddPreview);
+  document.getElementById('add-end').addEventListener('input', updateAddPreview);
 
   // Auto-load if we already have credentials
   loadData();
