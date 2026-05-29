@@ -10,6 +10,11 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  html {
+    overflow-x: hidden;
+    overscroll-behavior: none;
+  }
+
   :root {
     --bg: #f7f7f8;
     --card: #ffffff;
@@ -38,6 +43,8 @@
     font-size: 14px;
     min-height: 100vh;
     padding-bottom: 120px;
+    overflow-x: hidden;
+    overscroll-behavior: none;
   }
 
   /* ── Header ── */
@@ -62,6 +69,7 @@
 
   .mode-toggle {
     display: flex;
+    position: relative;
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 999px;
@@ -69,7 +77,22 @@
     gap: 2px;
   }
 
+  .mode-toggle-slider {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    height: calc(100% - 6px);
+    border-radius: 999px;
+    background: var(--accent);
+    transition: transform 0.35s cubic-bezier(0.4, 0.0, 0.2, 1),
+                width 0.35s cubic-bezier(0.4, 0.0, 0.2, 1);
+    z-index: 0;
+    pointer-events: none;
+  }
+
   .mode-toggle button {
+    position: relative;
+    z-index: 1;
     border: none;
     background: transparent;
     padding: 6px 16px;
@@ -78,11 +101,10 @@
     font-weight: 500;
     cursor: pointer;
     color: var(--text-sec);
-    transition: background 0.2s, color 0.2s;
+    transition: color 0.25s ease;
   }
 
   .mode-toggle button.active {
-    background: var(--accent);
     color: #fff;
   }
 
@@ -950,9 +972,49 @@
   .td-actions {
     white-space: nowrap;
     display: flex;
-    flex-wrap: wrap;
     gap: 4px;
     align-items: center;
+  }
+
+  /* Actions column auto-width — never shrink */
+  th[data-col="actions"],
+  td:last-child {
+    width: 1%;
+    white-space: nowrap;
+  }
+
+  /* iOS-style minus badge for removing splits */
+  .btn-minus-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--error);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+    flex-shrink: 0;
+  }
+
+  .btn-minus-badge:hover {
+    transform: scale(1.15);
+  }
+
+  .btn-minus-badge:active {
+    transform: scale(0.9);
+  }
+
+  .btn-minus-badge:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: none;
   }
 
   /* Drag overlay */
@@ -1431,6 +1493,7 @@
 <header>
   <span class="app-name">Split-NAB</span>
   <div class="mode-toggle" role="group" aria-label="View mode">
+    <span class="mode-toggle-slider" id="mode-slider"></span>
     <button id="btn-single" class="active" aria-pressed="true" onclick="setMode('single')">Single Entry</button>
     <button id="btn-batch" aria-pressed="false" onclick="setMode('batch')">Batch</button>
   </div>
@@ -1917,6 +1980,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Apply dev tools visibility based on saved flag
   applyDevToolsVisibility();
+
+  // Position the mode toggle slider on initial load (no transition)
+  const slider = document.getElementById('mode-slider');
+  if (slider) slider.style.transition = 'none';
+  updateModeSlider();
+  if (slider) requestAnimationFrame(() => { slider.style.transition = ''; });
 });
 
 /* ═══════════════════════════════════════════════
@@ -2526,6 +2595,18 @@ function setMode(mode) {
     // Re-apply column widths after the table becomes visible
     applyColWidths(loadColWidths());
   }
+  updateModeSlider();
+}
+
+function updateModeSlider() {
+  const slider = document.getElementById('mode-slider');
+  const activeBtn = document.querySelector('.mode-toggle button.active');
+  if (!slider || !activeBtn) return;
+  const toggle = activeBtn.parentElement;
+  const toggleRect = toggle.getBoundingClientRect();
+  const btnRect = activeBtn.getBoundingClientRect();
+  slider.style.width = btnRect.width + 'px';
+  slider.style.transform = `translateX(${btnRect.left - toggleRect.left - 3}px)`;
 }
 
 /* ═══════════════════════════════════════════════
@@ -2960,7 +3041,6 @@ const COL_DEFAULTS = {
   category: 140,
   amount:   100,
   note:     120,
-  actions:  200,
 };
 
 const COL_MIN = 48; // minimum column width in px
@@ -2982,6 +3062,7 @@ function applyColWidths(widths) {
   const ths = table.querySelectorAll('thead th[data-col]');
   ths.forEach(th => {
     const col = th.dataset.col;
+    if (col === 'actions') return; // actions column auto-sizes
     if (widths[col]) th.style.width = widths[col] + 'px';
   });
   // Update table min-width to sum of all columns
@@ -3449,8 +3530,8 @@ function renderBatchTable() {
                 aria-label="Note" oninput="updateSplitField(${tx.id},${sp.id},'note',this.value)"></td>
           <td>
             <div class="td-actions">
-              <button class="btn btn-danger-ghost btn-sm" onclick="removeBatchSplit(${tx.id},${sp.id})"
-                ${tx.splits.length <= 1 ? 'disabled' : ''}>Remove Split</button>
+              <button class="btn-minus-badge" onclick="removeBatchSplit(${tx.id},${sp.id})"
+                ${tx.splits.length <= 1 ? 'disabled' : ''} aria-label="Remove split" title="Remove split">−</button>
             </div>
             ${sw.enabled ? `
             <div class="sw-user-row" style="margin-top:6px;">
