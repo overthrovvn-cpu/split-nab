@@ -1077,6 +1077,7 @@
       align-items: flex-start;
       gap: 6px;
       padding: 8px 16px;
+      bottom: 105px;
     }
     .sw-payer-wrap {
       margin-left: 0 !important;
@@ -1277,6 +1278,64 @@
 
   .nav-link:hover { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
 
+  /* ── Hamburger menu (mobile only) ── */
+  .hamburger-wrap {
+    display: none;
+    position: relative;
+    margin-left: auto;
+  }
+
+  .hamburger-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    color: var(--text-sec);
+    transition: background 0.15s;
+  }
+
+  .hamburger-btn:hover { background: var(--bg); }
+
+  .hamburger-icon { display: block; }
+
+  .hamburger-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    min-width: 180px;
+    z-index: 500;
+    padding: 6px 0;
+  }
+
+  .hamburger-menu.open { display: block; }
+
+  .hamburger-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    text-decoration: none;
+    transition: background 0.15s;
+  }
+
+  .hamburger-item:hover { background: var(--accent-light); color: var(--accent); }
+
+  @media (max-width: 640px) {
+    .nav-link { display: none; }
+    .hamburger-wrap { display: block; }
+  }
+
   /* ── Swipe-to-delete (split rows — all viewports) ── */
 
   /* Outer wrapper clips the sliding row and holds the delete button behind it */
@@ -1371,6 +1430,15 @@
   <a href="installments.html" class="nav-link" aria-label="Go to Installments tracker">
     📋 Installments
   </a>
+  <!-- Hamburger menu (mobile only) -->
+  <div class="hamburger-wrap">
+    <button class="hamburger-btn" id="hamburger-btn" aria-label="Menu" aria-expanded="false" onclick="toggleHamburger()">
+      <span class="hamburger-icon">☰</span>
+    </button>
+    <div class="hamburger-menu" id="hamburger-menu">
+      <a href="installments.html" class="hamburger-item">📋 Installments</a>
+    </div>
+  </div>
 </header>
 
 <!-- ══ MAIN ══ -->
@@ -1700,6 +1768,29 @@
 </body>
 
 <script>
+/* ═══════════════════════════════════════════════
+   HAMBURGER MENU
+═══════════════════════════════════════════════ */
+function toggleHamburger() {
+  const menu = document.getElementById('hamburger-menu');
+  const btn  = document.getElementById('hamburger-btn');
+  const isOpen = menu.classList.toggle('open');
+  btn.setAttribute('aria-expanded', String(isOpen));
+}
+
+// Close hamburger when clicking outside
+document.addEventListener('click', (e) => {
+  const wrap = document.querySelector('.hamburger-wrap');
+  if (wrap && !wrap.contains(e.target)) {
+    const menu = document.getElementById('hamburger-menu');
+    const btn  = document.getElementById('hamburger-btn');
+    if (menu && menu.classList.contains('open')) {
+      menu.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+  }
+});
+
 /* ═══════════════════════════════════════════════
    YNAB CONFIG
 ═══════════════════════════════════════════════ */
