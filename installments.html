@@ -268,6 +268,28 @@
     background: #fffbeb;
   }
 
+  /* Subtle dot indicator for forwarded payments (advance from previous month) */
+  .month-paid.has-note,
+  .month-cleared.has-note,
+  .month-pending.has-note {
+    position: relative;
+    cursor: help;
+  }
+
+  .month-paid.has-note::after,
+  .month-cleared.has-note::after,
+  .month-pending.has-note::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #6366f1;
+    border: 1px solid #fff;
+  }
+
   /* Zero-balance rows — slightly muted */
   .zero-balance-row td { opacity: 0.55; }
 
@@ -723,9 +745,11 @@ async function loadData() {
     const rowMap = new Map(rows.map(r => [r.categoryId, r]));
 
     // Scan all transactions for installment category payments
+    // Collect all valid payments per category (sorted by date) for forwarding logic
     const allTx = txRes.data.transactions || [];
+    const paymentsByCategory = new Map(); // categoryId → [{ key, amount, cleared, reconciled, date }]
+
     for (const tx of allTx) {
-      // A transaction can be a direct category assignment or a split
       const entries = [];
 
       if (tx.subtransactions && tx.subtransactions.length) {
@@ -747,15 +771,54 @@ async function loadData() {
         // Only count payments that exactly match the monthly due
         if (Math.abs(amountAbs - row.monthly_due) > 0.01) continue;
 
-        // cleared values: "cleared", "reconciled", "uncleared"
         const isReconciled = entry.cleared === 'reconciled';
         const isCleared    = entry.cleared === 'cleared' || isReconciled;
 
-        // Keep the most "confirmed" status if multiple entries hit the same month
-        const existing = row.txByMonth.get(key);
-        if (!existing || (!existing.reconciled && isReconciled)) {
-          row.txByMonth.set(key, { cleared: isCleared, reconciled: isReconciled, amount: amountAbs });
+        if (!paymentsByCategory.has(entry.category_id)) paymentsByCategory.set(entry.category_id, []);
+        paymentsByCategory.get(entry.category_id).push({
+          key, amount: amountAbs, cleared: isCleared, reconciled: isReconciled, date: tx.date,
+        });
+      }
+    }
+
+    // Distribute payments: if multiple payments land in the same month,
+    // forward extras to the next unpaid month in sequence.
+    for (const row of rows) {
+      const payments = paymentsByCategory.get(row.categoryId) || [];
+      // Sort by date so earlier payments get assigned first
+      payments.sort((a, b) => a.date.localeCompare(b.date));
+
+      // Assign payments month by month; extras overflow to next month
+      // Track which months are already filled
+      const filled = new Map(); // "YYYY-MM" → { cleared, reconciled, amount, forwarded, fromMonth }
+
+      for (const pay of payments) {
+        let targetKey = pay.key;
+
+        // If this month is already filled, find the next unfilled month
+        let forwarded = false;
+        let fromMonth = null;
+        while (filled.has(targetKey)) {
+          forwarded = true;
+          fromMonth = fromMonth || pay.key;
+          // Advance to next month
+          const [y, m] = targetKey.split('-').map(Number);
+          const next = new Date(y, m, 1); // m is already 1-based, so this gives next month
+          targetKey = monthKey(next.getFullYear(), next.getMonth());
         }
+
+        filled.set(targetKey, {
+          cleared: pay.cleared,
+          reconciled: pay.reconciled,
+          amount: pay.amount,
+          forwarded,
+          fromMonth, // original month the payment was made in
+        });
+      }
+
+      // Store into row.txByMonth
+      for (const [key, val] of filled) {
+        row.txByMonth.set(key, val);
       }
     }
 
@@ -959,20 +1022,34 @@ function render() {
 
       if (col.isMonth) {
         if (rowActiveInMonth(row, col.key)) {
+          // Compute progress: which month number is this within the installment period
+          const [colY, colM] = col.key.split('-').map(Number);
+          const [fpY, fpM] = row.first_payment ? row.first_payment.slice(0, 7).split('-').map(Number) : [colY, colM];
+          const monthNum = (colY - fpY) * 12 + (colM - fpM) + 1;
+          const progressNote = `${monthNum} of ${row.installment_period}`;
+
           const tx = row.txByMonth.get(col.key);
           if (tx) {
             const badge = document.createElement('span');
+            const forwardNote = tx.forwarded ? `\n↳ Paid in ${tx.fromMonth} (advance)` : '';
             if (tx.reconciled) {
-              badge.className = 'month-paid';    badge.textContent = '✓'; badge.title = `Reconciled · ₱${fmt(tx.amount)}`;
+              badge.className = 'month-paid' + (tx.forwarded ? ' has-note' : '');
+              badge.textContent = '✓';
+              badge.title = `Reconciled · ₱${fmt(tx.amount)} (${progressNote})${forwardNote}`;
             } else if (tx.cleared) {
-              badge.className = 'month-cleared'; badge.textContent = '✓'; badge.title = `Cleared · ₱${fmt(tx.amount)}`;
+              badge.className = 'month-cleared' + (tx.forwarded ? ' has-note' : '');
+              badge.textContent = '✓';
+              badge.title = `Cleared · ₱${fmt(tx.amount)} (${progressNote})${forwardNote}`;
             } else {
-              badge.className = 'month-pending'; badge.textContent = '○'; badge.title = `Pending · ₱${fmt(tx.amount)}`;
+              badge.className = 'month-pending' + (tx.forwarded ? ' has-note' : '');
+              badge.textContent = '○';
+              badge.title = `Pending · ₱${fmt(tx.amount)} (${progressNote})${forwardNote}`;
             }
             td.appendChild(badge);
           } else {
             const badge = document.createElement('span');
-            badge.className = 'month-pending'; badge.textContent = '○'; badge.title = 'No payment recorded';
+            badge.className = 'month-pending'; badge.textContent = '○';
+            badge.title = `No payment recorded (${progressNote})`;
             td.appendChild(badge);
           }
         } else {
