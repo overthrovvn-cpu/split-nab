@@ -2688,6 +2688,8 @@ function addSplitRow(clearExisting = false) {
     : '';
 
   row.innerHTML = `
+    <span class="split-field-label">Payee</span>
+    <input type="text" id="sp-payee-${id}" placeholder="Payee" aria-label="Split payee" style="flex:1;min-width:0;">
     <span class="split-field-label">Category</span>
     <div class="dropdown-wrap" style="flex:1;min-width:0;">
       <input type="text" id="sc-${id}" placeholder="Search category" aria-label="Category"
@@ -2712,19 +2714,17 @@ function addSplitRow(clearExisting = false) {
   // Attach swipe gesture to this row
   attachSwipeGesture(wrapper, row, id);
 
-  // Always show payee field per split; conditionally show SW user select
-  const swRow = document.createElement('div');
-  swRow.className = 'sw-user-row';
-  swRow.innerHTML = `
-    <label>Payee →</label>
-    <input type="text" class="sw-split-payee" id="sp-payee-${id}" placeholder="Split payee" aria-label="Split payee"
-           style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;font-family:var(--font);color:var(--text);background:var(--card);outline:none;">
-    ${sw.enabled ? `
-    <label style="margin-left:8px;">SW →</label>
-    <select class="sw-user-select" aria-label="Splitwise user for this split">
-      ${getSplitwiseUserOptions('')}
-    </select>` : ''}`;
-  row.appendChild(swRow);
+  // Conditionally show SW user select
+  if (sw.enabled) {
+    const swRow = document.createElement('div');
+    swRow.className = 'sw-user-row';
+    swRow.innerHTML = `
+      <label>SW →</label>
+      <select class="sw-user-select" aria-label="Splitwise user for this split">
+        ${getSplitwiseUserOptions('')}
+      </select>`;
+    row.appendChild(swRow);
+  }
 
   // Wire category dropdown for this row — sorted by usage for current payee
   const catInput = document.getElementById(`sc-${id}`);
@@ -3430,17 +3430,13 @@ function renderBatchTable() {
       <td>${multiSplit ? '<span class="text-muted">—</span>' : `
         <input type="text" value="${escHtml(inlineNote)}" placeholder="Note"
                aria-label="Note" oninput="updateSplitField(${tx.id},${splitId0},'note',this.value)">
+        ${sw.enabled ? `
         <div class="sw-user-row" style="margin-top:6px;">
-          <label>Payee →</label>
-          <input type="text" value="${escHtml(tx.splits[0]?.payee || '')}" placeholder="Split payee" aria-label="Split payee"
-                 oninput="updateSplitField(${tx.id},${splitId0},'payee',this.value)"
-                 style="flex:1;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;font-family:var(--font);color:var(--text);background:var(--card);outline:none;">
-          ${sw.enabled ? `
-          <label style="margin-left:8px;">SW →</label>
+          <label>SW →</label>
           <select class="sw-user-select" onchange="updateSplitField(${tx.id},${splitId0},'swUserId',this.value)" aria-label="Splitwise user for this split">
             ${getSplitwiseUserOptions(tx.splits[0]?.swUserId || '')}
-          </select>` : ''}
-        </div>`}
+          </select>
+        </div>` : ''}`}
       </td>
       <td>
         <div class="td-actions">
@@ -3527,7 +3523,10 @@ function renderBatchTable() {
         cRow.dataset.spId = sp.id;
         cRow.innerHTML = `
           <td class="td-num"></td>
-          <td></td><td></td><td></td><td></td><td></td>
+          <td></td><td></td><td></td>
+          <td><input type="text" value="${escHtml(sp.payee || '')}" placeholder="Split payee" aria-label="Split payee"
+                oninput="updateSplitField(${tx.id},${sp.id},'payee',this.value)"></td>
+          <td></td>
           <td>
             <div class="dropdown-wrap">
               <input type="text" value="${escHtml(sp.category)}" placeholder="Category"
@@ -3546,17 +3545,13 @@ function renderBatchTable() {
               <button class="btn-minus-badge" onclick="removeBatchSplit(${tx.id},${sp.id})"
                 ${tx.splits.length <= 1 ? 'disabled' : ''} aria-label="Remove split" title="Remove split">−</button>
             </div>
+            ${sw.enabled ? `
             <div class="sw-user-row" style="margin-top:6px;">
-              <label>Payee →</label>
-              <input type="text" value="${escHtml(sp.payee || '')}" placeholder="Split payee" aria-label="Split payee"
-                     oninput="updateSplitField(${tx.id},${sp.id},'payee',this.value)"
-                     style="flex:1;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;font-family:var(--font);color:var(--text);background:var(--card);outline:none;">
-              ${sw.enabled ? `
-              <label style="margin-left:8px;">SW →</label>
+              <label>SW →</label>
               <select class="sw-user-select" onchange="updateSplitField(${tx.id},${sp.id},'swUserId',this.value)" aria-label="Splitwise user for this split">
                 ${getSplitwiseUserOptions(sp.swUserId || '')}
-              </select>` : ''}
-            </div>
+              </select>
+            </div>` : ''}
           </td>
         `;
         tbody.appendChild(cRow);
@@ -4602,29 +4597,25 @@ async function saveSwSettings() {
  * Called after toggling Splitwise on/off or switching active account.
  */
 function refreshSplitwiseUI() {
-  // Single entry: re-render split rows to add/remove sw-user-row elements
+  // Single entry: add/remove sw-user-row (SW select only) from split rows
   document.querySelectorAll('#split-rows .split-row').forEach(row => {
     const id = row.dataset.id;
     let swRow = row.querySelector('.sw-user-row');
-    const currentPayee = swRow?.querySelector('.sw-split-payee')?.value || '';
-    const currentVal = swRow?.querySelector('.sw-user-select')?.value || '';
-
-    // Always ensure the sw-user-row exists (it holds the payee field)
-    if (!swRow) {
-      swRow = document.createElement('div');
-      swRow.className = 'sw-user-row';
-      row.appendChild(swRow);
+    if (sw.enabled) {
+      const currentVal = swRow?.querySelector('.sw-user-select')?.value || '';
+      if (!swRow) {
+        swRow = document.createElement('div');
+        swRow.className = 'sw-user-row';
+        row.appendChild(swRow);
+      }
+      swRow.innerHTML = `
+        <label>SW →</label>
+        <select class="sw-user-select" aria-label="Splitwise user for this split">
+          ${getSplitwiseUserOptions(currentVal)}
+        </select>`;
+    } else if (swRow) {
+      swRow.remove();
     }
-    swRow.innerHTML = `
-      <label>Payee →</label>
-      <input type="text" class="sw-split-payee" id="sp-payee-${id}" placeholder="Split payee" aria-label="Split payee"
-             value="${escHtml(currentPayee)}"
-             style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;font-family:var(--font);color:var(--text);background:var(--card);outline:none;">
-      ${sw.enabled ? `
-      <label style="margin-left:8px;">SW →</label>
-      <select class="sw-user-select" aria-label="Splitwise user for this split">
-        ${getSplitwiseUserOptions(currentVal)}
-      </select>` : ''}`;
   });
 
   // Batch: full re-render (adds/removes sw columns)
