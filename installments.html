@@ -271,11 +271,11 @@
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    border: 2px solid #f59e0b;
-    color: #f59e0b;
-    font-size: 13px;
+    border: 2px solid #d1d5db;
+    color: transparent;
+    font-size: 11px;
     font-weight: 700;
-    background: #fffbeb;
+    background: #fff;
   }
 
   /* Subtle dot indicator for forwarded payments (advance from previous month) */
@@ -300,7 +300,7 @@
     border: 1px solid #fff;
   }
 
-  /* Subtle green flag for the last payment of an installment */
+  /* Green triangle flag for the last payment of an installment (top-right) */
   .month-paid.is-last,
   .month-cleared.is-last,
   .month-pending.is-last {
@@ -310,38 +310,51 @@
   .month-paid.is-last::before,
   .month-cleared.is-last::before,
   .month-pending.is-last::before {
-    content: '⚑';
+    content: '';
     position: absolute;
-    bottom: -4px;
+    top: -4px;
     right: -5px;
-    font-size: 9px;
-    line-height: 1;
-    color: var(--success);
-    opacity: 0.85;
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 7px solid var(--success);
+  }
+
+  /* When both advance dot and last flag are present, offset the flag */
+  .month-paid.has-note.is-last::before,
+  .month-cleared.has-note.is-last::before,
+  .month-pending.has-note.is-last::before {
+    top: -4px;
+    right: -12px;
   }
 
   /* Zero-balance rows — slightly muted */
   .zero-balance-row td { opacity: 0.55; }
 
-  /* Toggle footer row */
-  .zero-balance-toggle-row { cursor: pointer; }
-  .zero-balance-toggle-cell {
-    padding: 10px 16px !important;
-    font-size: 12px !important;
+  /* Toggle footer bar (sticky at bottom of table-card) */
+  .zero-balance-toggle-bar {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 15;
+    padding: 10px 16px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text-muted);
-    text-align: center !important;
-    background: var(--bg) !important;
+    text-align: center;
+    background: var(--bg);
     border-top: 1px solid var(--border);
     letter-spacing: 0.02em;
     user-select: none;
     -webkit-user-select: none;
     white-space: nowrap;
-    position: sticky;
-    left: 0;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
   }
-  .zero-balance-toggle-row:hover .zero-balance-toggle-cell {
-    background: var(--accent-light) !important;
+  .zero-balance-toggle-bar:hover {
+    background: var(--accent-light);
     color: var(--accent);
   }
 
@@ -356,22 +369,12 @@
   .status-title { font-size: 15px; font-weight: 600; color: var(--text-sec); margin-bottom: 6px; }
   .status-sub   { font-size: 13px; color: var(--text-muted); }
 
-  /* Sortable column header */
-  thead th.sortable { cursor: pointer; }
-  thead th.sortable:hover { background: #eef0fb; }
+  /* Sortable column header — DISABLED */
+  thead th.sortable { cursor: default; }
 
   .sort-indicator {
-    display: inline-block;
-    font-size: 10px;
-    margin-left: 3px;
-    color: var(--accent);
-    opacity: 0;
-    transition: opacity 0.15s;
+    display: none;
   }
-
-  thead th.sorted .sort-indicator { opacity: 1; }
-  thead th.sortable:hover .sort-indicator { opacity: 0.5; }
-  thead th.sorted:hover .sort-indicator { opacity: 1; }
 
   /* Pin button inside th */
   .th-wrap {
@@ -521,6 +524,59 @@
   .toast-close { background: none; border: none; cursor: pointer; font-size: 14px; color: inherit; opacity: 0.6; padding: 0; }
   .toast-close:hover { opacity: 1; }
 
+  /* Description clickable for notes */
+  .desc-link {
+    cursor: pointer;
+    color: var(--text);
+    text-decoration: none;
+    border-bottom: 1px dashed var(--text-muted);
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .desc-link:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  /* Notes modal */
+  .notes-textarea {
+    width: 100%;
+    min-height: 180px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-family: var(--font);
+    color: var(--text);
+    background: var(--card);
+    outline: none;
+    resize: vertical;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    line-height: 1.5;
+  }
+  .notes-textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79,110,247,0.12);
+  }
+
+  /* Show older months button */
+  .show-older-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    margin-bottom: 10px;
+    border-radius: var(--radius);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-sec);
+    font-family: var(--font);
+    transition: background 0.15s, color 0.15s;
+  }
+  .show-older-btn:hover { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
+
   @media (max-width: 640px) {
     header { padding: 10px 14px; }
     .container { padding: 16px 12px; }
@@ -622,6 +678,7 @@
         <tbody id="inst-tbody"></tbody>
       </table>
     </div>
+    <div id="zero-balance-footer" class="zero-balance-toggle-bar" style="display:none;"></div>
   </div>
 
 </main>
@@ -732,6 +789,22 @@
   </div>
 </div>
 
+<!-- ══ NOTES MODAL ══ -->
+<div class="overlay" id="notes-overlay" role="dialog" aria-modal="true" aria-labelledby="notes-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="notes-title">Category Notes</h2>
+      <button class="modal-close" id="notes-close" aria-label="Close">×</button>
+    </div>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;" id="notes-category-label"></p>
+    <textarea class="notes-textarea" id="notes-textarea" placeholder="No notes yet. Type here to add notes…"></textarea>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-primary" style="flex:1;" id="notes-save-btn">Save Notes</button>
+      <button class="btn btn-ghost" id="notes-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
 </body>
 
 <script>
@@ -775,15 +848,26 @@ const ynab = {
 let installments = [];
 let showZeroBalance = false;
 
-// Sort state: { key: column key, dir: 'asc' | 'desc' } or null
-let sortState = null;
+// Month visibility: how many "older" months to show (expands 5 at a time)
+let olderMonthsVisible = 0;
+
+// Notes modal state
+let notesCurrentCategoryId = null;
+let notesCurrentCategoryName = '';
+// Cache for category notes fetched from YNAB
+let categoryNotesCache = new Map();
+
+// Sorting disabled
 
 let pinnedCols = (() => {
   try {
     const raw = JSON.parse(localStorage.getItem('inst_pinned_cols') || 'null');
     // null means never saved — use defaults
     if (raw === null) return ['description', 'monthly_due', 'balance'];
-    return Array.isArray(raw) ? raw : ['description', 'monthly_due', 'balance'];
+    if (!Array.isArray(raw)) return ['description', 'monthly_due', 'balance'];
+    // Filter out any month keys (YYYY-MM format) — only fixed cols can be pinned
+    const fixedKeys = FIXED_COLS.map(c => c.key);
+    return raw.filter(k => fixedKeys.includes(k));
   } catch { return ['description', 'monthly_due', 'balance']; }
 })();
 
@@ -1054,8 +1138,10 @@ function showStatus(state, detail = '') {
 
 /* ═══════════════════════════════════════════════
    MONTH COLUMNS
+   Default: show from previous month onward.
+   Older months are hidden and revealed 5 at a time.
 ═══════════════════════════════════════════════ */
-function getMonthCols() {
+function getAllMonthCols() {
   if (!installments.length) {
     const n = new Date();
     return [{ key: monthKey(n.getFullYear(), n.getMonth()), label: monthLabel(n.getFullYear(), n.getMonth()), isMonth: true, width: 100, align: 'center' }];
@@ -1079,6 +1165,34 @@ function getMonthCols() {
   return cols;
 }
 
+function getMonthCols() {
+  const allMonths = getAllMonthCols();
+  if (!allMonths.length) return allMonths;
+
+  // Default cutoff: previous month (one month before current)
+  const now = new Date();
+  const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const cutoffKey = monthKey(prevMonth.getFullYear(), prevMonth.getMonth());
+
+  // Find the index of the cutoff month in allMonths
+  let cutoffIdx = allMonths.findIndex(c => c.key >= cutoffKey);
+  if (cutoffIdx < 0) cutoffIdx = allMonths.length; // all months are older
+
+  // How many older months exist (before the cutoff)
+  const olderCount = cutoffIdx;
+
+  // How many older months to actually show
+  const showCount = Math.min(olderMonthsVisible, olderCount);
+
+  // Start index: skip the hidden older months
+  const startIdx = olderCount - showCount;
+
+  // Track how many more can be revealed
+  window._hiddenOlderMonths = olderCount - showCount;
+
+  return allMonths.slice(startIdx);
+}
+
 function rowActiveInMonth(row, key) {
   if (!row.first_payment || !row.last_payment) return false;
   const [ky, km] = key.split('-').map(Number);
@@ -1090,75 +1204,10 @@ function rowActiveInMonth(row, key) {
 }
 
 /* ═══════════════════════════════════════════════
-   SORTING
+   SORTING — DISABLED
 ═══════════════════════════════════════════════ */
-function toggleSort(key) {
-  if (sortState && sortState.key === key) {
-    // Cycle: asc → desc → none
-    if (sortState.dir === 'asc') {
-      sortState = { key, dir: 'desc' };
-    } else {
-      sortState = null;
-    }
-  } else {
-    sortState = { key, dir: 'asc' };
-  }
-  render();
-}
-
-function getSortedRows(rows) {
-  if (!sortState) return rows;
-  const { key, dir } = sortState;
-  const sorted = [...rows];
-
-  sorted.sort((a, b) => {
-    let valA, valB;
-
-    switch (key) {
-      case 'description':
-        valA = (a.description || '').toLowerCase();
-        valB = (b.description || '').toLowerCase();
-        return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-      case 'amount':
-        valA = a.amount || 0;
-        valB = b.amount || 0;
-        break;
-      case 'monthly_due':
-        valA = a.monthly_due || 0;
-        valB = b.monthly_due || 0;
-        break;
-      case 'balance':
-        valA = a.balance || 0;
-        valB = b.balance || 0;
-        break;
-      case 'first_payment':
-        valA = a.first_payment || '';
-        valB = b.first_payment || '';
-        return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-      case 'last_payment':
-        valA = a.last_payment || '';
-        valB = b.last_payment || '';
-        return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-      case 'installment_period':
-        valA = a.installment_period || 0;
-        valB = b.installment_period || 0;
-        break;
-      default:
-        // Month columns — sort by payment status (paid > pending > none)
-        const txA = a.txByMonth.get(key);
-        const txB = b.txByMonth.get(key);
-        valA = txA ? (txA.cleared ? 2 : 1) : 0;
-        valB = txB ? (txB.cleared ? 2 : 1) : 0;
-        break;
-    }
-
-    if (valA < valB) return dir === 'asc' ? -1 : 1;
-    if (valA > valB) return dir === 'asc' ? 1 : -1;
-    return 0;
-  });
-
-  return sorted;
-}
+function toggleSort(key) { /* sorting disabled */ }
+function getSortedRows(rows) { return rows; }
 
 /* ═══════════════════════════════════════════════
    COMPUTE STICKY LEFT OFFSETS
@@ -1203,8 +1252,6 @@ function render() {
     th.style.maxWidth = col.width + 'px';
     th.style.textAlign = col.align || 'left';
     th.dataset.col = col.key;
-    th.classList.add('sortable');
-    if (sortState && sortState.key === col.key) th.classList.add('sorted');
     if (isPinned) {
       th.classList.add('pinned');
       th.style.left = offsets[col.key] + 'px';
@@ -1220,26 +1267,18 @@ function render() {
     lbl.textContent = col.label;
     wrap.appendChild(lbl);
 
-    // Sort indicator
-    const sortInd = document.createElement('span');
-    sortInd.className = 'sort-indicator';
-    if (sortState && sortState.key === col.key) {
-      sortInd.textContent = sortState.dir === 'asc' ? '▲' : '▼';
-    } else {
-      sortInd.textContent = '▲';
+    // Pin button — only for fixed (non-month) columns
+    if (!col.isMonth) {
+      const pinBtn = document.createElement('button');
+      pinBtn.className   = 'pin-btn' + (isPinned ? ' is-pinned' : '');
+      pinBtn.title       = isPinned ? 'Unpin column' : 'Pin column';
+      pinBtn.textContent = '●';
+      pinBtn.setAttribute('aria-label', pinBtn.title);
+      pinBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePin(col.key); });
+      wrap.appendChild(pinBtn);
     }
-    wrap.appendChild(sortInd);
-
-    const pinBtn = document.createElement('button');
-    pinBtn.className   = 'pin-btn' + (isPinned ? ' is-pinned' : '');
-    pinBtn.title       = isPinned ? 'Unpin column' : 'Pin column';
-    pinBtn.textContent = '●';
-    pinBtn.setAttribute('aria-label', pinBtn.title);
-    pinBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePin(col.key); });
-    wrap.appendChild(pinBtn);
 
     th.appendChild(wrap);
-    th.addEventListener('click', () => toggleSort(col.key));
     trh.appendChild(th);
   }
 
@@ -1298,13 +1337,13 @@ function render() {
               badge.title = `Cleared · ₱${fmt(tx.amount)} (${progressNote})${txDetails}${forwardNote}${lastNote}`;
             } else {
               badge.className = 'month-pending' + (tx.forwarded ? ' has-note' : '') + (isLast ? ' is-last' : '');
-              badge.textContent = '○';
+              badge.textContent = '';
               badge.title = `Pending · ₱${fmt(tx.amount)} (${progressNote})${txDetails}${forwardNote}${lastNote}`;
             }
             td.appendChild(badge);
           } else {
             const badge = document.createElement('span');
-            badge.className = 'month-pending' + (isLast ? ' is-last' : ''); badge.textContent = '○';
+            badge.className = 'month-pending' + (isLast ? ' is-last' : ''); badge.textContent = '';
             badge.title = `No payment recorded (${progressNote})${isLast ? '\n🏁 Final payment' : ''}`;
             td.appendChild(badge);
           }
@@ -1315,7 +1354,14 @@ function render() {
         if (col.align === 'right')  td.classList.add('cell-num');
         if (col.align === 'center') td.classList.add('cell-center');
         switch (col.key) {
-          case 'description':        td.textContent = row.description || '—'; break;
+          case 'description':
+            const descLink = document.createElement('span');
+            descLink.className = 'desc-link';
+            descLink.textContent = row.description || '—';
+            descLink.title = 'Click to view/edit notes';
+            descLink.addEventListener('click', () => openNotesModal(row.categoryId, row.description));
+            td.appendChild(descLink);
+            break;
           case 'amount':             td.textContent = '₱' + fmt(row.amount); break;
           case 'monthly_due':        td.textContent = '₱' + fmt(row.monthly_due); break;
           case 'balance':
@@ -1346,52 +1392,122 @@ function render() {
     });
   }
 
-  // Toggle footer row (only when there are zero-balance items)
+  // Toggle footer (sticky bar outside table)
+  const footer = document.getElementById('zero-balance-footer');
   if (zeroRows.length > 0) {
-    const tfr = document.createElement('tr');
-    tfr.className = 'zero-balance-toggle-row';
-
-    const td = document.createElement('td');
-    td.colSpan = allCols.length;
-    td.className = 'zero-balance-toggle-cell';
-
     const label = showZeroBalance
       ? `▲ Hide paid-off installments (${zeroRows.length})`
       : `▼ Show paid-off installments (${zeroRows.length})`;
-
-    td.textContent = label;
-    td.addEventListener('click', () => {
+    footer.textContent = label;
+    footer.style.display = 'block';
+    footer.onclick = () => {
       showZeroBalance = !showZeroBalance;
       render();
-    });
-
-    tfr.appendChild(td);
-    tbody.appendChild(tfr);
+    };
+  } else {
+    footer.style.display = 'none';
   }
 
   document.getElementById('row-count-label').textContent =
     installments.length ? `${installments.length} installment${installments.length !== 1 ? 's' : ''}` : '';
 
-  // Scroll current month into view after DOM settles
-  requestAnimationFrame(scrollToCurrentMonth);
+  // Render "Show older months" button if there are hidden months
+  renderOlderMonthsBtn();
 }
 
 /* ═══════════════════════════════════════════════
-   SCROLL TO CURRENT MONTH
-   After render, find the th for the current month
-   and scroll it into view inside the table-wrap.
+   SHOW OLDER MONTHS BUTTON
 ═══════════════════════════════════════════════ */
-function scrollToCurrentMonth() {
-  const now = new Date();
-  const key = monthKey(now.getFullYear(), now.getMonth());
-  const th  = document.querySelector(`#inst-thead th[data-col="${key}"]`);
-  if (!th) return;
+function renderOlderMonthsBtn() {
+  let btn = document.getElementById('show-older-months-btn');
+  const hidden = window._hiddenOlderMonths || 0;
 
-  const wrap = document.getElementById('table-wrap');
-  // Align the current month's left edge flush with the scroll container's left edge
-  wrap.scrollTo({ left: th.offsetLeft, behavior: 'smooth' });
+  if (hidden > 0) {
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.id = 'show-older-months-btn';
+      btn.className = 'show-older-btn';
+      const toolbar = document.querySelector('.toolbar');
+      toolbar.parentNode.insertBefore(btn, document.querySelector('.table-card'));
+    }
+    btn.textContent = `← Show older months (${hidden} hidden)`;
+    btn.style.display = 'inline-flex';
+    btn.onclick = () => {
+      olderMonthsVisible += 5;
+      render();
+    };
+  } else if (btn) {
+    btn.style.display = 'none';
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   NOTES MODAL — View/edit YNAB category notes
+═══════════════════════════════════════════════ */
+async function openNotesModal(categoryId, description) {
+  notesCurrentCategoryId = categoryId;
+  notesCurrentCategoryName = description;
+
+  document.getElementById('notes-category-label').textContent = description;
+  document.getElementById('notes-textarea').value = '';
+  document.getElementById('notes-overlay').classList.add('open');
+  document.getElementById('notes-save-btn').disabled = false;
+  document.getElementById('notes-save-btn').textContent = 'Save Notes';
+
+  // Fetch notes from YNAB
+  try {
+    const res = await ynabFetch(`/budgets/${ynab.budgetId}/categories/${categoryId}`);
+    const note = res.data.category.note || '';
+    document.getElementById('notes-textarea').value = note;
+    categoryNotesCache.set(categoryId, note);
+  } catch (err) {
+    document.getElementById('notes-textarea').value = '';
+    showToast('error', `Could not load notes: ${err.message}`);
+  }
+
+  document.getElementById('notes-textarea').focus();
+}
+
+function closeNotesModal() {
+  document.getElementById('notes-overlay').classList.remove('open');
+  notesCurrentCategoryId = null;
+}
+
+async function saveNotes() {
+  if (!notesCurrentCategoryId) return;
+
+  const note = document.getElementById('notes-textarea').value;
+  const btn = document.getElementById('notes-save-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  try {
+    const res = await fetch(YNAB_API + `/budgets/${ynab.budgetId}/categories/${notesCurrentCategoryId}`, {
+      method: 'PATCH',
+      headers: { 'Authorization': 'Bearer ' + ynab.token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category: { note: note } }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.error?.detail || `HTTP ${res.status}`);
+    }
+
+    categoryNotesCache.set(notesCurrentCategoryId, note);
+    showToast('success', `Notes saved for "${notesCurrentCategoryName}"`);
+    closeNotesModal();
+  } catch (err) {
+    showToast('error', `Failed to save notes: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Notes';
+  }
 }
 function togglePin(key) {
+  // Only fixed columns can be pinned (not month columns)
+  const fixedKeys = FIXED_COLS.map(c => c.key);
+  if (!fixedKeys.includes(key)) return;
+
   if (pinnedCols.includes(key)) {
     pinnedCols = pinnedCols.filter(k => k !== key);
   } else {
@@ -1410,12 +1526,11 @@ function renderSettingsModal() {
   document.getElementById('set-token').value    = ynab.token;
   document.getElementById('set-budget-id').value = ynab.budgetId;
 
-  const monthCols = getMonthCols();
-  const allCols   = [...FIXED_COLS, ...monthCols];
+  // Only show fixed columns in pin list (month columns cannot be pinned)
   const list      = document.getElementById('pin-col-list');
   list.innerHTML  = '';
 
-  for (const col of allCols) {
+  for (const col of FIXED_COLS) {
     const isPinned = pinnedCols.includes(col.key);
     const item = document.createElement('div');
     item.className = 'pin-col-item' + (isPinned ? ' is-pinned' : '');
@@ -1645,6 +1760,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === document.getElementById('add-overlay')) closeAddModal();
   });
   document.getElementById('add-submit-btn').addEventListener('click', submitAddInstallment);
+
+  // Notes modal controls
+  document.getElementById('notes-close').addEventListener('click', closeNotesModal);
+  document.getElementById('notes-cancel-btn').addEventListener('click', closeNotesModal);
+  document.getElementById('notes-save-btn').addEventListener('click', saveNotes);
+  document.getElementById('notes-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('notes-overlay')) closeNotesModal();
+  });
 
   // Live preview update
   document.getElementById('add-name').addEventListener('input', updateAddPreview);
