@@ -1,0 +1,22 @@
+Payees are allowed to be set for each splits.
+But upon saving, the payees are not being passed in YNAB.
+Fix this issue.
+
+Additionally, 
+- In Single Entry Mode, only show the “Split Payee” field when there are two or more splits. 
+- When there is only one split, split payee is not needed
+- When a second split is created, the first split payee should default to the value of the parent Payee field.
+- In both single entry and batch entry, the split payee field should also be searchable, same as the parent payee field.
+
+
+Let us enhance the functionality of the Batch Entry table.
+- Allow row selection, with a blue row selector.
+- Allow up/down arrow key navigation
+- Allow mutliple selection by holding the shift key. this includes shift + click, or shift + arrow key up/down
+- When there is an active selection, introduce called out actions at the table header, in line with the “Batch Transactions” table name. The called out actions are for Split, Balance, and Remove
+- Remove the actions column for each row
+- Also introduce a new “Edit” called out action that will reveal a selector checkbox for each rows (similar to iOS circle checkboxes)
+- Move the remove minus badge of the split rows at the left of the row instead of the right most., put in in the same column as the # and make it smaller.
+- Also introduce an maximize button for focus mode. that will zoom the Batch Transactions table to take up the full screen so that more columns are visible.
+
+Let us enhance the Installments functionality.
