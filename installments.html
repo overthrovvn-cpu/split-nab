@@ -179,6 +179,8 @@
     position: sticky;
     z-index: 10;
     background: var(--bg);
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   td.pinned {
@@ -748,7 +750,7 @@ const INST_PATTERN = /^(.+?)\s*@[₱P]?([\d,]+(?:\.\d+)?)\s+for\s+(\d+)mo(?:\s+t
 const FIXED_COLS = [
   { key: 'description',        label: 'Description',        width: 200, align: 'left'   },
   { key: 'amount',             label: 'Amount',             width: 130, align: 'right'  },
-  { key: 'monthly_due',        label: 'Monthly Due',        width: 120, align: 'right'  },
+  { key: 'monthly_due',        label: 'Monthly Due',        width: 140, align: 'right'  },
   { key: 'balance',            label: 'Balance',            width: 130, align: 'right'  },
   { key: 'first_payment',      label: 'First Payment',      width: 130, align: 'center' },
   { key: 'last_payment',       label: 'Last Payment',       width: 130, align: 'center' },
@@ -1198,6 +1200,7 @@ function render() {
     const th = document.createElement('th');
     th.style.width    = col.width + 'px';
     th.style.minWidth = col.width + 'px';
+    th.style.maxWidth = col.width + 'px';
     th.style.textAlign = col.align || 'left';
     th.dataset.col = col.key;
     th.classList.add('sortable');
@@ -1261,6 +1264,7 @@ function render() {
       const td = document.createElement('td');
       td.style.width    = col.width + 'px';
       td.style.minWidth = col.width + 'px';
+      td.style.maxWidth = col.width + 'px';
       td.style.textAlign = col.align || 'left';
       if (isPinned) { td.classList.add('pinned'); td.style.left = offsets[col.key] + 'px'; }
       if (isLast)   td.classList.add('pinned-last');
