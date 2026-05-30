@@ -166,6 +166,12 @@
     .two-col.splitwise-expanded {
       grid-template-columns: 1fr 2fr;
     }
+    .two-col.splits-expanded {
+      grid-template-columns: 1fr 2fr;
+    }
+    .two-col.splitwise-expanded.splits-expanded {
+      grid-template-columns: 1fr 2fr;
+    }
   }
 
   /* ── Form elements ── */
@@ -1859,6 +1865,15 @@
           <label for="s-memo">Memo</label>
           <input type="text" id="s-memo" placeholder="e.g. Team lunch">
         </div>
+
+        <div class="field">
+          <label for="s-category">Category</label>
+          <div class="dropdown-wrap">
+            <input type="text" id="s-category" placeholder="Search category" autocomplete="off"
+                   aria-autocomplete="list" aria-controls="s-category-list">
+            <div class="dropdown-list" id="s-category-list" role="listbox"></div>
+          </div>
+        </div>
       </div>
 
       <!-- Right: Split Entries -->
@@ -2691,6 +2706,12 @@ function applyPayeeDefaults(payeeName, { accountInputEl, splitCategoryInputs } =
           catInput.dataset.autoSet = 'true';
         }
       });
+      // Also auto-fill the standalone category field
+      const standaloneCategory = document.getElementById('s-category');
+      if (standaloneCategory && !standaloneCategory.value.trim()) {
+        standaloneCategory.value = topCat.name;
+        standaloneCategory.dataset.id = topCat.id;
+      }
     }
   }
 }
@@ -2984,6 +3005,29 @@ function initSingleEntryDropdowns() {
     item => { accountInput.value = item.name; accountInput.dataset.id = item.id; },
     'name'
   );
+
+  // Category — sorted by usage for current payee, syncs with first split row
+  const categoryInput = document.getElementById('s-category');
+  const categoryList  = document.getElementById('s-category-list');
+  setupSearchableInput(
+    categoryInput, categoryList,
+    () => getSortedCategories(document.getElementById('s-payee')?.value?.trim() || ''),
+    item => {
+      categoryInput.value = item.name;
+      categoryInput.dataset.id = item.id;
+      // Sync to first split row's category
+      const firstRow = document.querySelector('#split-rows .split-row');
+      if (firstRow) {
+        const firstCatInput = document.getElementById(`sc-${firstRow.dataset.id}`);
+        if (firstCatInput) {
+          firstCatInput.value = item.name;
+          firstCatInput.dataset.id = item.id;
+          firstCatInput.dataset.autoSet = '';
+        }
+      }
+    },
+    'name'
+  );
 }
 
 /* ═══════════════════════════════════════════════
@@ -3077,6 +3121,15 @@ function addSplitRow(clearExisting = false) {
       catInput.dataset.id = item.id;
       catInput.dataset.autoSet = '';
       updateRemaining();
+      // Sync to standalone category field if this is the first split row
+      const firstRow = document.querySelector('#split-rows .split-row');
+      if (firstRow && firstRow.dataset.id === String(id)) {
+        const standaloneCategory = document.getElementById('s-category');
+        if (standaloneCategory) {
+          standaloneCategory.value = item.name;
+          standaloneCategory.dataset.id = item.id;
+        }
+      }
     },
     'name'
   );
@@ -3321,6 +3374,16 @@ function updateSplitPayeeVisibility() {
     if (payeeLabel) payeeLabel.style.display = show ? '' : 'none';
   });
 
+  // Expand the split entries panel when 2+ splits exist
+  const twoCol = document.querySelector('#view-single .two-col');
+  if (twoCol) {
+    if (rows.length >= 2) {
+      twoCol.classList.add('splits-expanded');
+    } else {
+      twoCol.classList.remove('splits-expanded');
+    }
+  }
+
   // When a second split is created, default the first split's payee to the parent payee
   if (show && rows.length === 2) {
     const firstId = rows[0].dataset.id;
@@ -3379,10 +3442,22 @@ function autoBalance() {
   });
   if (emptyIds.length === 0) return;
   const remaining = total - sumFilled;
-  const share = remaining / emptyIds.length;
-  emptyIds.forEach(id => {
+  // Distribute equally, rounded to 2 decimal places
+  const share = Math.floor((remaining / emptyIds.length) * 100) / 100;
+  // Calculate the total distributed and apply any rounding remainder to the first split
+  const distributed = share * emptyIds.length;
+  const remainder = Math.round((remaining - distributed) * 100) / 100;
+
+  emptyIds.forEach((id, idx) => {
     const inp = document.getElementById(`sa-${id}`);
-    if (inp) inp.value = fmt(share);
+    if (inp) {
+      if (idx === 0) {
+        // First split gets the extra cent(s) from rounding
+        inp.value = fmt(share + remainder);
+      } else {
+        inp.value = fmt(share);
+      }
+    }
   });
   updateRemaining();
 }
@@ -4898,6 +4973,8 @@ function clearSingleEntry() {
   document.getElementById('s-account').value = '';
   document.getElementById('s-date').value   = todayStr();
   document.getElementById('s-memo').value   = '';
+  document.getElementById('s-category').value = '';
+  document.getElementById('s-category').dataset.id = '';
   // Clear split rows and reset to one empty row
   document.getElementById('split-rows').innerHTML = '';
   splitRowId = 0;
