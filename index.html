@@ -2598,6 +2598,7 @@ function setMode(mode) {
     document.getElementById('preset-btn').closest('.popover-wrap').style.display = 'none';
     document.getElementById('preset-panel').classList.remove('open');
     renderBatchTable();
+    updateDuplicateBadges();
     // Re-apply column widths after the table becomes visible
     applyColWidths(loadColWidths());
   }
@@ -3672,6 +3673,7 @@ function addBatchSplit(txId) {
   tx.splits.forEach(sp => { sp.amount = ''; });
   tx.splits.push(newSplit());
   renderBatchTable();
+  updateDuplicateBadges();
 }
 
 function removeBatchSplit(txId, spId) {
@@ -3683,11 +3685,13 @@ function removeBatchSplit(txId, spId) {
     tx.splits[0].amount = tx.total || '';
   }
   renderBatchTable();
+  updateDuplicateBadges();
 }
 
 function removeBatchTx(txId) {
   batchData = batchData.filter(t => t.id !== txId);
   renderBatchTable();
+  updateDuplicateBadges();
 }
 
 function batchAutoBalance(txId) {
@@ -3707,6 +3711,7 @@ function batchAutoBalance(txId) {
   const share = (total - sumFilled) / emptySplits.length;
   emptySplits.forEach(sp => { sp.amount = fmt(share); });
   renderBatchTable();
+  updateDuplicateBadges();
 }
 
 /* ═══════════════════════════════════════════════
@@ -4619,7 +4624,10 @@ function refreshSplitwiseUI() {
   });
 
   // Batch: full re-render (adds/removes sw columns)
-  if (currentMode === 'batch') renderBatchTable();
+  if (currentMode === 'batch') {
+    renderBatchTable();
+    updateDuplicateBadges();
+  }
 }
 
 /* ═══════════════════════════════════════════════
