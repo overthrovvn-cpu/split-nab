@@ -521,6 +521,12 @@
     color: #991b1b;
   }
 
+  .toast.warning {
+    background: #fffbeb;
+    border-color: #f59e0b;
+    color: #92400e;
+  }
+
   .toast-msg { flex: 1; line-height: 1.4; }
 
   .toast-close {
@@ -774,6 +780,66 @@
     overflow: visible;
     user-select: none;
     -webkit-user-select: none;
+  }
+
+  /* ── Sortable column headers ── */
+  thead th.sortable { cursor: pointer; }
+  thead th.sortable:hover { background: #eef0fb; }
+
+  .sort-indicator {
+    display: inline-block;
+    font-size: 10px;
+    margin-left: 3px;
+    color: var(--accent);
+    opacity: 0;
+    transition: opacity 0.15s;
+    vertical-align: middle;
+  }
+
+  thead th.sorted .sort-indicator { opacity: 1; }
+  thead th.sortable:hover .sort-indicator { opacity: 0.5; }
+  thead th.sorted:hover .sort-indicator { opacity: 1; }
+
+  /* ── Context menu (right-click / long-press) ── */
+  .ctx-menu {
+    position: fixed;
+    z-index: 9999;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    padding: 4px 0;
+    min-width: 160px;
+    display: none;
+  }
+
+  .ctx-menu.visible { display: block; }
+
+  .ctx-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    font-size: 13px;
+    font-family: var(--font);
+    color: var(--text);
+    cursor: pointer;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    transition: background 0.1s;
+  }
+
+  .ctx-menu-item:hover { background: var(--accent-light); color: var(--accent); }
+
+  .ctx-menu-item.danger { color: var(--error); }
+  .ctx-menu-item.danger:hover { background: var(--error-light); }
+
+  .ctx-menu-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 0;
   }
 
   /* ── Column resize handle ── */
@@ -1668,6 +1734,14 @@
 <!-- ══ TOAST AREA ══ -->
 <div class="toast-area" id="toast-area" aria-live="polite" aria-atomic="false"></div>
 
+<!-- ══ BATCH CONTEXT MENU ══ -->
+<div class="ctx-menu" id="batch-ctx-menu" role="menu" aria-label="Row actions">
+  <button class="ctx-menu-item" data-action="split" role="menuitem">+ Split</button>
+  <button class="ctx-menu-item" data-action="balance" role="menuitem">⚖ Balance</button>
+  <div class="ctx-menu-divider"></div>
+  <button class="ctx-menu-item danger" data-action="remove" role="menuitem">🗑 Remove</button>
+</div>
+
 <!-- ══ SETTINGS MODAL ══ -->
 <div class="overlay" id="settings-overlay" role="dialog" aria-modal="true" aria-labelledby="settings-title"
      onclick="overlayClickClose(event)">
@@ -1907,6 +1981,9 @@ const ynab = {
 // tx: { id, date, account, accountId, total, payee, payeeId, memo, splits: [{id, category, categoryId, amount, note, swUserId}], swPayerAccountLabel }
 let batchData = [];
 
+// Batch sort state: { key: column key, dir: 'asc' | 'desc' } or null
+let batchSortState = null;
+
 // Feature flags (persisted in localStorage)
 const flags = {
   createPayee:    localStorage.getItem('flag_create_payee')    === 'true',
@@ -1978,6 +2055,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Init column resize handles for batch table
   initColResize();
+
+  // Init batch context menu (right-click / long-press)
+  initBatchCtxMenu();
 
   // Apply dev tools visibility based on saved flag
   applyDevToolsVisibility();
@@ -3361,12 +3441,233 @@ function updateDuplicateBadges() {
 }
 
 /* ═══════════════════════════════════════════════
+   BATCH — CONTEXT MENU (right-click / long-press)
+═══════════════════════════════════════════════ */
+let ctxMenuTxId = null;
+let longPressTimer = null;
+
+function showBatchCtxMenu(x, y, txId) {
+  const menu = document.getElementById('batch-ctx-menu');
+  ctxMenuTxId = txId;
+
+  // Position the menu, clamped within viewport
+  menu.style.left = '0';
+  menu.style.top  = '0';
+  menu.classList.add('visible');
+
+  const mw = menu.offsetWidth;
+  const mh = menu.offsetHeight;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  let left = x;
+  let top  = y;
+  if (left + mw > vw - 8) left = vw - mw - 8;
+  if (top + mh > vh - 8)  top  = vh - mh - 8;
+  if (left < 8) left = 8;
+  if (top < 8)  top  = 8;
+
+  menu.style.left = left + 'px';
+  menu.style.top  = top + 'px';
+}
+
+function hideBatchCtxMenu() {
+  const menu = document.getElementById('batch-ctx-menu');
+  menu.classList.remove('visible');
+  ctxMenuTxId = null;
+}
+
+function initBatchCtxMenu() {
+  const menu = document.getElementById('batch-ctx-menu');
+
+  // Handle menu item clicks
+  menu.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const item = e.target.closest('.ctx-menu-item');
+    if (!item || ctxMenuTxId == null) return;
+    const action = item.dataset.action;
+    const txId = ctxMenuTxId;
+    hideBatchCtxMenu();
+
+    switch (action) {
+      case 'split':   addBatchSplit(txId); break;
+      case 'balance': batchAutoBalance(txId); break;
+      case 'remove':  removeBatchTx(txId); break;
+    }
+  });
+
+  // Hide on click outside
+  document.addEventListener('click', (e) => {
+    if (!menu.contains(e.target)) hideBatchCtxMenu();
+  });
+
+  // Hide on Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') hideBatchCtxMenu();
+  });
+
+  // Hide on scroll
+  document.addEventListener('scroll', hideBatchCtxMenu, true);
+}
+
+function attachBatchRowContextEvents(pRow, txId) {
+  // Right-click (desktop)
+  pRow.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    showBatchCtxMenu(e.clientX, e.clientY, txId);
+  });
+
+  // Long-press (mobile) — 500ms threshold
+  let touchStartX = 0, touchStartY = 0;
+
+  pRow.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    longPressTimer = setTimeout(() => {
+      // Prevent text selection / default context menu
+      e.preventDefault();
+      showBatchCtxMenu(touchStartX, touchStartY, txId);
+    }, 500);
+  }, { passive: false });
+
+  pRow.addEventListener('touchmove', (e) => {
+    // Cancel if finger moves more than 10px (scrolling)
+    const dx = Math.abs(e.touches[0].clientX - touchStartX);
+    const dy = Math.abs(e.touches[0].clientY - touchStartY);
+    if (dx > 10 || dy > 10) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+  });
+
+  pRow.addEventListener('touchend', () => {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  });
+
+  pRow.addEventListener('touchcancel', () => {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   BATCH — COLUMN SORTING
+═══════════════════════════════════════════════ */
+function toggleBatchSort(key) {
+  if (batchSortState && batchSortState.key === key) {
+    if (batchSortState.dir === 'asc') {
+      batchSortState = { key, dir: 'desc' };
+    } else {
+      batchSortState = null;
+    }
+  } else {
+    batchSortState = { key, dir: 'asc' };
+  }
+  renderBatchTable();
+  updateDuplicateBadges();
+}
+
+function getSortedBatchData() {
+  if (!batchSortState) return batchData;
+  const { key, dir } = batchSortState;
+  const sorted = [...batchData];
+
+  sorted.sort((a, b) => {
+    let valA, valB;
+
+    switch (key) {
+      case 'date':
+        valA = a.date || '';
+        valB = b.date || '';
+        return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      case 'account':
+        valA = (a.account || '').toLowerCase();
+        valB = (b.account || '').toLowerCase();
+        return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      case 'total':
+        valA = parseFloat(a.total) || 0;
+        valB = parseFloat(b.total) || 0;
+        break;
+      case 'payee':
+        valA = (a.payee || '').toLowerCase();
+        valB = (b.payee || '').toLowerCase();
+        return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      case 'memo':
+        valA = (a.memo || '').toLowerCase();
+        valB = (b.memo || '').toLowerCase();
+        return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      case 'category':
+        valA = (a.splits[0]?.category || '').toLowerCase();
+        valB = (b.splits[0]?.category || '').toLowerCase();
+        return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      case 'amount':
+        valA = parseFloat(a.splits[0]?.amount) || 0;
+        valB = parseFloat(b.splits[0]?.amount) || 0;
+        break;
+      case 'note':
+        valA = (a.splits[0]?.note || '').toLowerCase();
+        valB = (b.splits[0]?.note || '').toLowerCase();
+        return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      default:
+        return 0;
+    }
+
+    if (valA < valB) return dir === 'asc' ? -1 : 1;
+    if (valA > valB) return dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  return sorted;
+}
+
+/* ═══════════════════════════════════════════════
    BATCH — TABLE RENDER
 ═══════════════════════════════════════════════ */
 function renderBatchTable() {
   const tbody = document.getElementById('batch-tbody');
   tbody.innerHTML = '';
-  batchData.forEach((tx, txIdx) => {
+
+  // Update header sort indicators
+  const ths = document.querySelectorAll('#batch-table thead th[data-col]');
+  ths.forEach(th => {
+    const col = th.dataset.col;
+    if (col === 'num' || col === 'actions') return;
+    th.classList.add('sortable');
+    th.classList.toggle('sorted', batchSortState && batchSortState.key === col);
+
+    // Add or update sort indicator
+    let indicator = th.querySelector('.sort-indicator');
+    if (!indicator) {
+      indicator = document.createElement('span');
+      indicator.className = 'sort-indicator';
+      // Insert before the resize handle if present
+      const resizeHandle = th.querySelector('.col-resize-handle');
+      if (resizeHandle) {
+        th.insertBefore(indicator, resizeHandle);
+      } else {
+        th.appendChild(indicator);
+      }
+    }
+    if (batchSortState && batchSortState.key === col) {
+      indicator.textContent = batchSortState.dir === 'asc' ? ' ▲' : ' ▼';
+    } else {
+      indicator.textContent = ' ▲';
+    }
+
+    // Attach click handler (only once)
+    if (!th.dataset.sortBound) {
+      th.dataset.sortBound = '1';
+      th.addEventListener('click', (e) => {
+        // Don't sort if clicking the resize handle
+        if (e.target.classList.contains('col-resize-handle')) return;
+        toggleBatchSort(col);
+      });
+    }
+  });
+
+  const sortedData = getSortedBatchData();
+  sortedData.forEach((tx, txIdx) => {
     const txNum = txIdx + 1;
     const multiSplit = tx.splits.length > 1;
     const splitId0   = tx.splits[0]?.id;
@@ -3449,6 +3750,9 @@ function renderBatchTable() {
       </td>
     `;
     tbody.appendChild(pRow);
+
+    // Attach right-click / long-press context menu
+    attachBatchRowContextEvents(pRow, tx.id);
 
     // Wire account dropdown — sorted by usage
     const accInput = document.getElementById(`bt-acc-${tx.id}`);
@@ -3863,8 +4167,33 @@ function showToast(type, message) {
   `;
   area.appendChild(div);
 
-  const delay = type === 'error' ? 7000 : type === 'warning' ? 6000 : 4000;
-  setTimeout(() => dismissToast(id), delay);
+  // Auto-dismiss after 10 seconds, but pause while any toast is hovered.
+  // After mouse leaves, wait 5 seconds before dismissing.
+  let timer = null;
+  let remaining = 10000;
+  let startTime = Date.now();
+
+  function startTimer() {
+    startTime = Date.now();
+    timer = setTimeout(() => dismissToast(id), remaining);
+  }
+
+  function pauseTimer() {
+    if (timer) { clearTimeout(timer); timer = null; }
+    remaining -= (Date.now() - startTime);
+    if (remaining < 0) remaining = 0;
+  }
+
+  function resetAfterLeave() {
+    // After mouse leaves, wait 5 seconds then dismiss
+    remaining = 5000;
+    startTimer();
+  }
+
+  div.addEventListener('mouseenter', pauseTimer);
+  div.addEventListener('mouseleave', resetAfterLeave);
+
+  startTimer();
 }
 
 function dismissToast(id) {
