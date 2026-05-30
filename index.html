@@ -45,6 +45,15 @@
     padding-bottom: 120px;
     overflow-x: clip;
     overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* Allow text selection inside form inputs */
+  input, select, textarea {
+    -webkit-user-select: text;
+    user-select: text;
   }
 
   /* ── Header ── */
@@ -903,30 +912,10 @@
 
   tbody tr.parent-row {
     background: var(--card);
-    -webkit-user-select: none;
-    user-select: none;
-    -webkit-touch-callout: none;
-  }
-
-  tbody tr.parent-row input,
-  tbody tr.parent-row select,
-  tbody tr.parent-row textarea {
-    -webkit-user-select: text;
-    user-select: text;
   }
 
   tbody tr.child-row {
     background: var(--child-bg);
-    -webkit-user-select: none;
-    user-select: none;
-    -webkit-touch-callout: none;
-  }
-
-  tbody tr.child-row input,
-  tbody tr.child-row select,
-  tbody tr.child-row textarea {
-    -webkit-user-select: text;
-    user-select: text;
   }
 
   tbody tr.child-row td:first-child {
@@ -2082,6 +2071,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Init batch context menu (right-click / long-press)
   initBatchCtxMenu();
+
+  // Auto-select all text on focus for populated inputs
+  document.addEventListener('focus', (e) => {
+    const el = e.target;
+    if ((el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'number' || el.type === 'password')) || el.tagName === 'TEXTAREA') {
+      if (el.value) {
+        // Use requestAnimationFrame to ensure selection works on mobile browsers
+        requestAnimationFrame(() => el.select());
+      }
+    }
+  }, true);
 
   // Apply dev tools visibility based on saved flag
   applyDevToolsVisibility();
