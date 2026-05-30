@@ -20,3 +20,11 @@ Let us enhance the functionality of the Batch Entry table.
 - Also introduce an maximize button for focus mode. that will zoom the Batch Transactions table to take up the full screen so that more columns are visible.
 
 Let us enhance the Installments functionality.
+- Disable the sorting functionality here as it is not needed.
+- Disable “column pinning” for the payment month columns. Only the 
+- Instead of an orange double circle, use an empty circle with the same look and size of the paid check. just without the green check. 
+- For the last payment flag, move it at the top right similar to the advanced payment bullet. instead of an actual flag, change it into a green triangle that points to the right like a flag.
+- The “Show Paid-off installements” button should not be scrollable. it should act like a table footer.
+- Enable notes acces for the categories, When the installment description is clicked, the notes for that installment category from YNAB should be displayed in an editable modal
+- Remove the auto scroll to current month feature. 
+- On page load, default to showing columns from the previous month. All the older months should be hidden with an option for the user to “Show older months” to expand the columns 5 month at a time.
