@@ -901,10 +901,32 @@
     cursor: col-resize !important;
   }
 
-  tbody tr.parent-row { background: var(--card); }
+  tbody tr.parent-row {
+    background: var(--card);
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  tbody tr.parent-row input,
+  tbody tr.parent-row select,
+  tbody tr.parent-row textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
 
   tbody tr.child-row {
     background: var(--child-bg);
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  tbody tr.child-row input,
+  tbody tr.child-row select,
+  tbody tr.child-row textarea {
+    -webkit-user-select: text;
+    user-select: text;
   }
 
   tbody tr.child-row td:first-child {
@@ -1559,21 +1581,23 @@
 <!-- ══ HEADER ══ -->
 <header>
   <span class="app-name">Split-NAB</span>
-  <div class="mode-toggle" role="group" aria-label="View mode">
-    <span class="mode-toggle-slider" id="mode-slider"></span>
-    <button id="btn-single" class="active" aria-pressed="true" onclick="setMode('single')">Single Entry</button>
-    <button id="btn-batch" aria-pressed="false" onclick="setMode('batch')">Batch</button>
-  </div>
-  <a href="installments.html" class="nav-link" aria-label="Go to Installments tracker">
-    📋 Installments
-  </a>
-  <!-- Hamburger menu (mobile only) -->
-  <div class="hamburger-wrap">
-    <button class="hamburger-btn" id="hamburger-btn" aria-label="Menu" aria-expanded="false" onclick="toggleHamburger()">
-      <span class="hamburger-icon">☰</span>
-    </button>
-    <div class="hamburger-menu" id="hamburger-menu">
-      <a href="installments.html" class="hamburger-item">📋 Installments</a>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <a href="installments.html" class="nav-link" aria-label="Go to Installments tracker">
+      📋 Installments
+    </a>
+    <div class="mode-toggle" role="group" aria-label="View mode">
+      <span class="mode-toggle-slider" id="mode-slider"></span>
+      <button id="btn-single" class="active" aria-pressed="true" onclick="setMode('single')">Single Entry</button>
+      <button id="btn-batch" aria-pressed="false" onclick="setMode('batch')">Batch</button>
+    </div>
+    <!-- Hamburger menu (mobile only) -->
+    <div class="hamburger-wrap">
+      <button class="hamburger-btn" id="hamburger-btn" aria-label="Menu" aria-expanded="false" onclick="toggleHamburger()">
+        <span class="hamburger-icon">☰</span>
+      </button>
+      <div class="hamburger-menu" id="hamburger-menu">
+        <a href="installments.html" class="hamburger-item">📋 Installments</a>
+      </div>
     </div>
   </div>
 </header>
