@@ -354,6 +354,23 @@
   .status-title { font-size: 15px; font-weight: 600; color: var(--text-sec); margin-bottom: 6px; }
   .status-sub   { font-size: 13px; color: var(--text-muted); }
 
+  /* Sortable column header */
+  thead th.sortable { cursor: pointer; }
+  thead th.sortable:hover { background: #eef0fb; }
+
+  .sort-indicator {
+    display: inline-block;
+    font-size: 10px;
+    margin-left: 3px;
+    color: var(--accent);
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  thead th.sorted .sort-indicator { opacity: 1; }
+  thead th.sortable:hover .sort-indicator { opacity: 0.5; }
+  thead th.sorted:hover .sort-indicator { opacity: 1; }
+
   /* Pin button inside th */
   .th-wrap {
     display: inline-flex;
@@ -756,6 +773,9 @@ const ynab = {
 let installments = [];
 let showZeroBalance = false;
 
+// Sort state: { key: column key, dir: 'asc' | 'desc' } or null
+let sortState = null;
+
 let pinnedCols = (() => {
   try {
     const raw = JSON.parse(localStorage.getItem('inst_pinned_cols') || 'null');
@@ -1068,6 +1088,77 @@ function rowActiveInMonth(row, key) {
 }
 
 /* ═══════════════════════════════════════════════
+   SORTING
+═══════════════════════════════════════════════ */
+function toggleSort(key) {
+  if (sortState && sortState.key === key) {
+    // Cycle: asc → desc → none
+    if (sortState.dir === 'asc') {
+      sortState = { key, dir: 'desc' };
+    } else {
+      sortState = null;
+    }
+  } else {
+    sortState = { key, dir: 'asc' };
+  }
+  render();
+}
+
+function getSortedRows(rows) {
+  if (!sortState) return rows;
+  const { key, dir } = sortState;
+  const sorted = [...rows];
+
+  sorted.sort((a, b) => {
+    let valA, valB;
+
+    switch (key) {
+      case 'description':
+        valA = (a.description || '').toLowerCase();
+        valB = (b.description || '').toLowerCase();
+        return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      case 'amount':
+        valA = a.amount || 0;
+        valB = b.amount || 0;
+        break;
+      case 'monthly_due':
+        valA = a.monthly_due || 0;
+        valB = b.monthly_due || 0;
+        break;
+      case 'balance':
+        valA = a.balance || 0;
+        valB = b.balance || 0;
+        break;
+      case 'first_payment':
+        valA = a.first_payment || '';
+        valB = b.first_payment || '';
+        return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      case 'last_payment':
+        valA = a.last_payment || '';
+        valB = b.last_payment || '';
+        return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      case 'installment_period':
+        valA = a.installment_period || 0;
+        valB = b.installment_period || 0;
+        break;
+      default:
+        // Month columns — sort by payment status (paid > pending > none)
+        const txA = a.txByMonth.get(key);
+        const txB = b.txByMonth.get(key);
+        valA = txA ? (txA.cleared ? 2 : 1) : 0;
+        valB = txB ? (txB.cleared ? 2 : 1) : 0;
+        break;
+    }
+
+    if (valA < valB) return dir === 'asc' ? -1 : 1;
+    if (valA > valB) return dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  return sorted;
+}
+
+/* ═══════════════════════════════════════════════
    COMPUTE STICKY LEFT OFFSETS
    Walk columns in order; for each pinned column,
    its `left` = sum of widths of all pinned columns before it.
@@ -1109,6 +1200,8 @@ function render() {
     th.style.minWidth = col.width + 'px';
     th.style.textAlign = col.align || 'left';
     th.dataset.col = col.key;
+    th.classList.add('sortable');
+    if (sortState && sortState.key === col.key) th.classList.add('sorted');
     if (isPinned) {
       th.classList.add('pinned');
       th.style.left = offsets[col.key] + 'px';
@@ -1124,6 +1217,16 @@ function render() {
     lbl.textContent = col.label;
     wrap.appendChild(lbl);
 
+    // Sort indicator
+    const sortInd = document.createElement('span');
+    sortInd.className = 'sort-indicator';
+    if (sortState && sortState.key === col.key) {
+      sortInd.textContent = sortState.dir === 'asc' ? '▲' : '▼';
+    } else {
+      sortInd.textContent = '▲';
+    }
+    wrap.appendChild(sortInd);
+
     const pinBtn = document.createElement('button');
     pinBtn.className   = 'pin-btn' + (isPinned ? ' is-pinned' : '');
     pinBtn.title       = isPinned ? 'Unpin column' : 'Pin column';
@@ -1133,6 +1236,7 @@ function render() {
     wrap.appendChild(pinBtn);
 
     th.appendChild(wrap);
+    th.addEventListener('click', () => toggleSort(col.key));
     trh.appendChild(th);
   }
 
@@ -1143,8 +1247,9 @@ function render() {
   const tbody = document.getElementById('inst-tbody');
   tbody.innerHTML = '';
 
-  const activeRows = installments.filter(r => r.balance > 0);
-  const zeroRows   = installments.filter(r => r.balance <= 0);
+  const sortedInstallments = getSortedRows(installments);
+  const activeRows = sortedInstallments.filter(r => r.balance > 0);
+  const zeroRows   = sortedInstallments.filter(r => r.balance <= 0);
 
   // Helper: build a single data row
   function buildRow(row) {
@@ -1366,7 +1471,37 @@ function showToast(type, msg) {
   toast.innerHTML = `<span class="toast-msg">${msg}</span><button class="toast-close" aria-label="Dismiss">×</button>`;
   toast.querySelector('.toast-close').addEventListener('click', () => toast.remove());
   area.appendChild(toast);
-  setTimeout(() => toast.remove(), 4000);
+
+  // Auto-dismiss after 10 seconds, pause while hovered, 5s after mouse leaves
+  let timer = null;
+  let remaining = 10000;
+  let startTime = Date.now();
+
+  function startTimer() {
+    startTime = Date.now();
+    timer = setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(-16px)';
+      toast.style.transition = 'opacity 0.2s, transform 0.2s';
+      setTimeout(() => toast.remove(), 220);
+    }, remaining);
+  }
+
+  function pauseTimer() {
+    if (timer) { clearTimeout(timer); timer = null; }
+    remaining -= (Date.now() - startTime);
+    if (remaining < 0) remaining = 0;
+  }
+
+  function resetAfterLeave() {
+    remaining = 5000;
+    startTimer();
+  }
+
+  toast.addEventListener('mouseenter', pauseTimer);
+  toast.addEventListener('mouseleave', resetAfterLeave);
+
+  startTimer();
 }
 
 /* ═══════════════════════════════════════════════
