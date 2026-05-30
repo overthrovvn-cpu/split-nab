@@ -920,7 +920,6 @@
 
   tbody tr.child-row td:first-child {
     border-left: 3px solid var(--accent);
-    padding-left: 24px;
   }
 
   tbody td {
@@ -1054,13 +1053,6 @@
     align-items: center;
   }
 
-  /* Actions column auto-width — never shrink */
-  th[data-col="actions"] {
-    width: auto !important;
-    min-width: 260px;
-    white-space: nowrap;
-  }
-
   /* iOS-style minus badge for removing splits */
   .btn-minus-badge {
     display: inline-flex;
@@ -1113,6 +1105,231 @@
   }
 
   .drag-overlay.visible { display: flex; }
+
+  /* ── Row Selection ── */
+  tbody tr.row-selected {
+    background: #e8f0fe !important;
+  }
+
+  tbody tr.row-focused {
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+
+  .row-selector-cell {
+    width: 4px;
+    min-width: 4px;
+    max-width: 4px;
+    padding: 0 !important;
+    border-bottom: 1px solid var(--border);
+    background: transparent;
+    transition: background 0.15s;
+    cursor: pointer;
+  }
+
+  thead .row-selector-cell {
+    background: var(--bg);
+  }
+
+  tbody tr.row-selected .row-selector-cell {
+    background: var(--accent);
+  }
+
+  /* ── Batch Selection Actions (called out in header) ── */
+  .batch-selection-actions {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    margin-left: 12px;
+    animation: batchActFadeIn 0.15s ease;
+  }
+
+  .batch-selection-actions.visible {
+    display: inline-flex;
+  }
+
+  @keyframes batchActFadeIn {
+    from { opacity: 0; transform: translateY(-2px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .batch-selection-actions .action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text-sec);
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    font-family: var(--font);
+  }
+
+  .batch-selection-actions .action-btn:hover {
+    background: var(--accent-light);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .batch-selection-actions .action-btn.danger:hover {
+    background: var(--error-light);
+    color: var(--error);
+    border-color: var(--error);
+  }
+
+  .selection-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    padding: 3px 8px;
+    background: var(--accent-light);
+    border-radius: 999px;
+  }
+
+  /* ── Edit Mode (iOS-style checkboxes) ── */
+  .edit-checkbox-cell {
+    width: 28px;
+    min-width: 28px;
+    text-align: center;
+    padding: 4px !important;
+  }
+
+  .edit-checkbox-cell.hidden-cell {
+    display: none;
+  }
+
+  .batch-edit-mode .edit-checkbox-cell.hidden-cell {
+    display: table-cell;
+  }
+
+  .edit-checkbox {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid #d1d5db;
+    background: var(--card);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+  }
+
+  .edit-checkbox:hover {
+    border-color: var(--accent);
+  }
+
+  .edit-checkbox.checked {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .edit-checkbox.checked::after {
+    content: '✓';
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  /* ── Focus Mode (maximize) ── */
+  .batch-focus-mode {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    background: var(--card);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .batch-focus-mode .table-wrap {
+    flex: 1;
+    overflow: auto;
+    border-radius: var(--radius);
+  }
+
+  .batch-focus-mode table {
+    min-width: unset;
+  }
+
+  .focus-mode-close {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-sec);
+    transition: background 0.15s;
+    font-family: var(--font);
+  }
+
+  .focus-mode-close:hover {
+    background: var(--border);
+  }
+
+  /* ── Split row minus badge on left ── */
+  .child-row .btn-minus-badge-left {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--error);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+    flex-shrink: 0;
+  }
+
+  .child-row .btn-minus-badge-left:hover {
+    transform: scale(1.15);
+  }
+
+  .child-row .btn-minus-badge-left:active {
+    transform: scale(0.9);
+  }
+
+  .child-row .btn-minus-badge-left:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* ── Maximize button ── */
+  .btn-maximize {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-sec);
+    transition: background 0.15s, color 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font);
+  }
+
+  .btn-maximize:hover {
+    background: var(--accent-light);
+    color: var(--accent);
+  }
 
   /* ── Utility ── */
   .mt-8 { margin-top: 8px; }
@@ -1677,8 +1894,22 @@
   <section id="view-batch" class="view" aria-label="Batch mode">
     <div class="card">
       <div class="batch-toolbar">
-        <h2 class="batch-title">Batch Transactions</h2>
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;">
+          <h2 class="batch-title">Batch Transactions</h2>
+          <span class="batch-selection-actions" id="batch-selection-actions">
+            <span class="selection-count" id="batch-selection-count">0 selected</span>
+            <button class="action-btn" onclick="batchSelectionSplit()" title="Split selected">✂ Split</button>
+            <button class="action-btn" onclick="batchSelectionBalance()" title="Balance selected">⚖ Balance</button>
+            <button class="action-btn danger" onclick="batchSelectionRemove()" title="Remove selected">✕ Remove</button>
+          </span>
+        </div>
         <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn-maximize" id="batch-edit-btn" onclick="toggleBatchEditMode()" title="Edit mode">
+            ✎ <span style="font-size:12px;">Edit</span>
+          </button>
+          <button class="btn-maximize" id="batch-maximize-btn" onclick="toggleBatchFocusMode()" title="Focus mode — expand table">
+            ⛶ <span style="font-size:12px;">Focus</span>
+          </button>
           <button class="btn btn-ghost btn-sm" onclick="document.getElementById('csv-input').click()">
             ↑ Import CSV
           </button>
@@ -1701,7 +1932,9 @@
         <table id="batch-table" aria-label="Batch transactions">
           <thead>
             <tr>
+              <th class="row-selector-cell"></th>
               <th class="td-num" data-col="num">#</th>
+              <th class="edit-checkbox-cell hidden-cell"></th>
               <th data-col="date">Date<span class="col-resize-handle" data-col="date"></span></th>
               <th data-col="account">Account<span class="col-resize-handle" data-col="account"></span></th>
               <th data-col="total">Total Amount<span class="col-resize-handle" data-col="total"></span></th>
@@ -1710,7 +1943,6 @@
               <th data-col="category">Category<span class="col-resize-handle" data-col="category"></span></th>
               <th data-col="amount">Amount<span class="col-resize-handle" data-col="amount"></span></th>
               <th data-col="note">Note<span class="col-resize-handle" data-col="note"></span></th>
-              <th data-col="actions">Actions</th>
             </tr>
           </thead>
           <tbody id="batch-tbody"></tbody>
@@ -2793,8 +3025,11 @@ function addSplitRow(clearExisting = false) {
     : '';
 
   row.innerHTML = `
-    <span class="split-field-label">Payee</span>
-    <input type="text" id="sp-payee-${id}" placeholder="Payee" aria-label="Split payee" style="flex:1;min-width:0;">
+    <span class="split-field-label split-payee-label">Payee</span>
+    <div class="dropdown-wrap split-payee-wrap" style="flex:1;min-width:0;">
+      <input type="text" id="sp-payee-${id}" placeholder="Payee" aria-label="Split payee" autocomplete="off">
+      <div class="dropdown-list" id="sp-payee-list-${id}" role="listbox"></div>
+    </div>
     <span class="split-field-label">Category</span>
     <div class="dropdown-wrap" style="flex:1;min-width:0;">
       <input type="text" id="sc-${id}" placeholder="Search category" aria-label="Category"
@@ -2846,8 +3081,22 @@ function addSplitRow(clearExisting = false) {
     'name'
   );
 
+  // Wire split payee dropdown — searchable like parent payee
+  const spPayeeInput = document.getElementById(`sp-payee-${id}`);
+  const spPayeeList  = document.getElementById(`sp-payee-list-${id}`);
+  setupSearchableInput(
+    spPayeeInput, spPayeeList,
+    () => getSortedPayees(),
+    item => {
+      spPayeeInput.value = item.name;
+      spPayeeInput.dataset.id = item.id;
+    },
+    'name'
+  );
+
   updateDeleteButtons();
   updateRemaining();
+  updateSplitPayeeVisibility();
 }
 
 /* ═══════════════════════════════════════════════
@@ -3030,6 +3279,7 @@ function deleteSplitRow(id) {
     (wrapper || row).remove();
   }
   updateDeleteButtons();
+  updateSplitPayeeVisibility();
   // If back to one split, restore the total as its amount
   const remaining = document.querySelectorAll('#split-rows .split-row');
   if (remaining.length === 1) {
@@ -3053,6 +3303,35 @@ function updateDeleteButtons() {
       }
     }
   });
+}
+
+/**
+ * Show/hide split payee fields based on number of splits.
+ * Only show when there are 2+ splits in single entry mode.
+ * When going from 1 to 2 splits, default the first split's payee to the parent payee.
+ */
+function updateSplitPayeeVisibility() {
+  const rows = document.querySelectorAll('#split-rows .split-row');
+  const show = rows.length >= 2;
+  rows.forEach(row => {
+    const id = row.dataset.id;
+    const payeeWrap = row.querySelector('.split-payee-wrap');
+    const payeeLabel = row.querySelector('.split-payee-label');
+    if (payeeWrap) payeeWrap.style.display = show ? '' : 'none';
+    if (payeeLabel) payeeLabel.style.display = show ? '' : 'none';
+  });
+
+  // When a second split is created, default the first split's payee to the parent payee
+  if (show && rows.length === 2) {
+    const firstId = rows[0].dataset.id;
+    const firstPayeeInput = document.getElementById(`sp-payee-${firstId}`);
+    if (firstPayeeInput && !firstPayeeInput.value.trim()) {
+      const parentPayee = document.getElementById('s-payee')?.value?.trim() || '';
+      if (parentPayee) {
+        firstPayeeInput.value = parentPayee;
+      }
+    }
+  }
 }
 
 function onTotalAmountInput() {
@@ -3715,7 +3994,9 @@ function renderBatchTable() {
       </div>` : '';
 
     pRow.innerHTML = `
+      <td class="row-selector-cell"></td>
       <td class="td-num"><span class="td-num-val">${txNum}</span></td>
+      <td class="edit-checkbox-cell hidden-cell"><span class="edit-checkbox" data-tx-id="${tx.id}" onclick="toggleEditCheckbox(this)"></span></td>
       <td><input type="date" value="${tx.date}" aria-label="Date"
             onchange="updateTxField(${tx.id},'date',this.value)"></td>
       <td>
@@ -3763,14 +4044,6 @@ function renderBatchTable() {
             ${getSplitwiseUserOptions(tx.splits[0]?.swUserId || '')}
           </select>
         </div>` : ''}`}
-      </td>
-      <td>
-        <div class="td-actions">
-          <button class="btn btn-outline btn-sm" onclick="addBatchSplit(${tx.id})">+ Split</button>
-          <button class="btn btn-ghost btn-sm"   onclick="batchAutoBalance(${tx.id})">Balance</button>
-          <button class="btn btn-danger-ghost btn-sm" onclick="removeBatchTx(${tx.id})">Remove</button>
-        </div>
-        ${swPayerHtml}
       </td>
     `;
     tbody.appendChild(pRow);
@@ -3851,10 +4124,22 @@ function renderBatchTable() {
         cRow.dataset.txId = tx.id;
         cRow.dataset.spId = sp.id;
         cRow.innerHTML = `
-          <td class="td-num"></td>
+          <td class="row-selector-cell"></td>
+          <td class="td-num">
+            <button class="btn-minus-badge-left" onclick="removeBatchSplit(${tx.id},${sp.id})"
+              ${tx.splits.length <= 1 ? 'disabled' : ''} aria-label="Remove split" title="Remove split">−</button>
+          </td>
+          <td class="edit-checkbox-cell hidden-cell"></td>
           <td></td><td></td><td></td>
-          <td><input type="text" value="${escHtml(sp.payee || '')}" placeholder="Split payee" aria-label="Split payee"
-                oninput="updateSplitField(${tx.id},${sp.id},'payee',this.value)"></td>
+          <td>
+            <div class="dropdown-wrap">
+              <input type="text" value="${escHtml(sp.payee || '')}" placeholder="Split payee" aria-label="Split payee"
+                     autocomplete="off"
+                     oninput="updateSplitField(${tx.id},${sp.id},'payee',this.value)"
+                     id="bt-sp-payee-${tx.id}-${sp.id}">
+              <div class="dropdown-list" id="bt-sp-payee-list-${tx.id}-${sp.id}" role="listbox"></div>
+            </div>
+          </td>
           <td></td>
           <td>
             <div class="dropdown-wrap">
@@ -3868,12 +4153,7 @@ function renderBatchTable() {
           <td><input type="number" value="${escHtml(sp.amount)}" placeholder="0.00" step="0.01" inputmode="decimal"
                 aria-label="Amount" oninput="updateSplitField(${tx.id},${sp.id},'amount',this.value)"></td>
           <td><input type="text" value="${escHtml(sp.note)}" placeholder="Note"
-                aria-label="Note" oninput="updateSplitField(${tx.id},${sp.id},'note',this.value)"></td>
-          <td>
-            <div class="td-actions">
-              <button class="btn-minus-badge" onclick="removeBatchSplit(${tx.id},${sp.id})"
-                ${tx.splits.length <= 1 ? 'disabled' : ''} aria-label="Remove split" title="Remove split">−</button>
-            </div>
+                aria-label="Note" oninput="updateSplitField(${tx.id},${sp.id},'note',this.value)">
             ${sw.enabled ? `
             <div class="sw-user-row" style="margin-top:6px;">
               <label>SW →</label>
@@ -3884,6 +4164,19 @@ function renderBatchTable() {
           </td>
         `;
         tbody.appendChild(cRow);
+
+        // Wire split payee dropdown for child row — searchable
+        const spPayeeInput = document.getElementById(`bt-sp-payee-${tx.id}-${sp.id}`);
+        const spPayeeList  = document.getElementById(`bt-sp-payee-list-${tx.id}-${sp.id}`);
+        if (spPayeeInput && spPayeeList) {
+          setupSearchableInput(spPayeeInput, spPayeeList,
+            () => getSortedPayees(),
+            item => {
+              spPayeeInput.value = item.name;
+              spPayeeInput.dataset.id = item.id;
+              updateSplitField(tx.id, sp.id, 'payee', item.name);
+            }, 'name');
+        }
 
         // Wire category dropdown for child row — sorted by payee usage
         const catInput = document.getElementById(`bt-cat-${tx.id}-${sp.id}`);
@@ -4356,11 +4649,12 @@ async function saveToYNABSingle() {
     const catName  = catInput?.value.trim() || '';
     const amt      = parseNum(document.getElementById(`sa-${id}`)?.value);
     const note     = document.getElementById(`sn-${id}`)?.value.trim() || '';
+    const splitPayee = document.getElementById(`sp-payee-${id}`)?.value.trim() || '';
 
     if (!catName) { showToast('error', 'Every split row needs a category.'); return; }
     if (!amt)     { showToast('error', 'Every split row needs an amount.');  return; }
 
-    splitDefs.push({ catName, amt, note });
+    splitDefs.push({ catName, amt, note, splitPayee });
     splitTotal += amt;
   }
 
@@ -4371,7 +4665,7 @@ async function saveToYNABSingle() {
 
   // Resolve categories (may create new ones — must be async, do before disabling button)
   const subtransactions = [];
-  for (const { catName, amt, note } of splitDefs) {
+  for (const { catName, amt, note, splitPayee } of splitDefs) {
     let catObj;
     try {
       catObj = await resolveCategory(catName);
@@ -4383,11 +4677,23 @@ async function saveToYNABSingle() {
       showToast('error', `Category "${catName}" not found in YNAB. Enable "Auto-create missing categories" in Settings, or select an existing category.`);
       return;
     }
-    subtransactions.push({
+    const subTx = {
       amount:      -amountToMilliunits(amt),
       category_id: catObj.id,
       memo:        note || undefined,
-    });
+    };
+    // Resolve split payee if provided and different from parent
+    if (splitPayee) {
+      const splitPayeeObj = resolvePayee(splitPayee);
+      if (splitPayeeObj) {
+        if (splitPayeeObj.id) {
+          subTx.payee_id = splitPayeeObj.id;
+        } else {
+          subTx.payee_name = splitPayeeObj.name;
+        }
+      }
+    }
+    subtransactions.push(subTx);
   }
 
   const btn = document.getElementById('save-ynab-btn');
@@ -4507,11 +4813,23 @@ async function saveToYNABBatch() {
       for (const sp of tx.splits) {
         const catObj = await resolveCategory(sp.category);
         if (!catObj) throw new Error(`Category "${sp.category}" not found in YNAB`);
-        subtransactions.push({
+        const subTx = {
           amount:      -amountToMilliunits(sp.amount),
           category_id: catObj.id,
           memo:        sp.note || undefined,
-        });
+        };
+        // Resolve split payee if provided
+        if (sp.payee) {
+          const splitPayeeObj = resolvePayee(sp.payee);
+          if (splitPayeeObj) {
+            if (splitPayeeObj.id) {
+              subTx.payee_id = splitPayeeObj.id;
+            } else {
+              subTx.payee_name = splitPayeeObj.name;
+            }
+          }
+        }
+        subtransactions.push(subTx);
       }
 
       const isSingleSplit = subtransactions.length === 1;
@@ -5767,6 +6085,235 @@ function cancelCleanup() {
   document.getElementById('cleanup-cancel-btn').textContent = 'Cancel';
   _cleanupCandidates = [];
 }
+
+/* ═══════════════════════════════════════════════
+   BATCH — ROW SELECTION & NAVIGATION
+═══════════════════════════════════════════════ */
+let batchSelectedIds = new Set();
+let batchFocusedTxId = null;
+let batchEditMode = false;
+let batchFocusMode = false;
+let batchEditChecked = new Set();
+
+function getBatchParentRows() {
+  return Array.from(document.querySelectorAll('#batch-tbody tr.parent-row'));
+}
+
+function getTxIdFromRow(row) {
+  return row ? parseInt(row.dataset.txId) : null;
+}
+
+function updateBatchSelectionUI() {
+  const rows = getBatchParentRows();
+  rows.forEach(row => {
+    const txId = getTxIdFromRow(row);
+    row.classList.toggle('row-selected', batchSelectedIds.has(txId));
+    row.classList.toggle('row-focused', txId === batchFocusedTxId);
+  });
+
+  // Update selection actions visibility
+  const actionsEl = document.getElementById('batch-selection-actions');
+  const countEl = document.getElementById('batch-selection-count');
+  if (batchSelectedIds.size > 0) {
+    actionsEl.classList.add('visible');
+    countEl.textContent = batchSelectedIds.size + ' selected';
+  } else {
+    actionsEl.classList.remove('visible');
+  }
+}
+
+function batchSelectRow(txId, opts = {}) {
+  const { shift = false, toggle = false } = opts;
+  const rows = getBatchParentRows();
+  const txIds = rows.map(r => getTxIdFromRow(r));
+
+  if (shift && batchFocusedTxId !== null) {
+    // Range select from focused to clicked
+    const startIdx = txIds.indexOf(batchFocusedTxId);
+    const endIdx = txIds.indexOf(txId);
+    if (startIdx !== -1 && endIdx !== -1) {
+      const lo = Math.min(startIdx, endIdx);
+      const hi = Math.max(startIdx, endIdx);
+      for (let i = lo; i <= hi; i++) {
+        batchSelectedIds.add(txIds[i]);
+      }
+    }
+  } else if (toggle) {
+    if (batchSelectedIds.has(txId)) {
+      batchSelectedIds.delete(txId);
+    } else {
+      batchSelectedIds.add(txId);
+    }
+  } else {
+    batchSelectedIds.clear();
+    batchSelectedIds.add(txId);
+  }
+
+  batchFocusedTxId = txId;
+  updateBatchSelectionUI();
+}
+
+function batchClearSelection() {
+  batchSelectedIds.clear();
+  batchFocusedTxId = null;
+  updateBatchSelectionUI();
+}
+
+function batchNavigate(direction, shift = false) {
+  const rows = getBatchParentRows();
+  if (rows.length === 0) return;
+  const txIds = rows.map(r => getTxIdFromRow(r));
+
+  let currentIdx = txIds.indexOf(batchFocusedTxId);
+  if (currentIdx === -1) currentIdx = 0;
+
+  let newIdx = currentIdx + direction;
+  if (newIdx < 0) newIdx = 0;
+  if (newIdx >= txIds.length) newIdx = txIds.length - 1;
+
+  const newTxId = txIds[newIdx];
+
+  if (shift) {
+    batchSelectedIds.add(newTxId);
+    batchFocusedTxId = newTxId;
+  } else {
+    batchSelectedIds.clear();
+    batchSelectedIds.add(newTxId);
+    batchFocusedTxId = newTxId;
+  }
+
+  updateBatchSelectionUI();
+
+  // Scroll into view
+  const targetRow = rows[newIdx];
+  if (targetRow) {
+    targetRow.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+}
+
+// Attach click handlers to parent rows after render
+function attachBatchSelectionEvents() {
+  const rows = getBatchParentRows();
+  rows.forEach(row => {
+    // Click on row-selector-cell or the row itself (but not on inputs/buttons)
+    row.addEventListener('mousedown', (e) => {
+      // Only handle clicks on the row-selector-cell or if no input/button is target
+      const target = e.target;
+      const isSelector = target.classList.contains('row-selector-cell') || target.closest('.row-selector-cell');
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'BUTTON' || target.closest('button') || target.closest('.dropdown-wrap');
+
+      if (isSelector) {
+        e.preventDefault();
+        const txId = getTxIdFromRow(row);
+        batchSelectRow(txId, { shift: e.shiftKey, toggle: !e.shiftKey && batchSelectedIds.has(txId) });
+      }
+    });
+  });
+}
+
+// Selection actions
+function batchSelectionSplit() {
+  batchSelectedIds.forEach(txId => addBatchSplit(txId));
+}
+
+function batchSelectionBalance() {
+  batchSelectedIds.forEach(txId => batchAutoBalance(txId));
+}
+
+function batchSelectionRemove() {
+  if (batchSelectedIds.size === 0) return;
+  const ids = [...batchSelectedIds];
+  batchData = batchData.filter(t => !ids.includes(t.id));
+  batchSelectedIds.clear();
+  batchFocusedTxId = null;
+  renderBatchTable();
+  updateDuplicateBadges();
+  updateBatchSelectionUI();
+}
+
+// Edit mode
+function toggleBatchEditMode() {
+  batchEditMode = !batchEditMode;
+  batchEditChecked.clear();
+  const card = document.querySelector('#view-batch .card');
+  if (card) {
+    card.classList.toggle('batch-edit-mode', batchEditMode);
+  }
+  const btn = document.getElementById('batch-edit-btn');
+  if (btn) {
+    btn.style.background = batchEditMode ? 'var(--accent-light)' : '';
+    btn.style.color = batchEditMode ? 'var(--accent)' : '';
+    btn.style.borderColor = batchEditMode ? 'var(--accent)' : '';
+  }
+  updateBatchSelectionUI();
+}
+
+function toggleEditCheckbox(el) {
+  const txId = parseInt(el.dataset.txId);
+  el.classList.toggle('checked');
+  if (el.classList.contains('checked')) {
+    batchSelectedIds.add(txId);
+  } else {
+    batchSelectedIds.delete(txId);
+  }
+  batchFocusedTxId = txId;
+  updateBatchSelectionUI();
+}
+
+// Focus mode (maximize)
+function toggleBatchFocusMode() {
+  batchFocusMode = !batchFocusMode;
+  const card = document.querySelector('#view-batch .card');
+  if (!card) return;
+
+  if (batchFocusMode) {
+    card.classList.add('batch-focus-mode');
+    // Add close button
+    let closeBtn = card.querySelector('.focus-mode-close');
+    if (!closeBtn) {
+      closeBtn = document.createElement('button');
+      closeBtn.className = 'focus-mode-close';
+      closeBtn.innerHTML = '✕ Exit Focus';
+      closeBtn.onclick = toggleBatchFocusMode;
+      card.querySelector('.batch-toolbar').appendChild(closeBtn);
+    }
+    document.body.style.overflow = 'hidden';
+  } else {
+    card.classList.remove('batch-focus-mode');
+    const closeBtn = card.querySelector('.focus-mode-close');
+    if (closeBtn) closeBtn.remove();
+    document.body.style.overflow = '';
+  }
+}
+
+// Keyboard navigation for batch table
+document.addEventListener('keydown', (e) => {
+  // Only handle when batch view is active and no modal is open
+  const batchView = document.getElementById('view-batch');
+  if (!batchView || !batchView.classList.contains('active')) return;
+
+  // Don't intercept if user is typing in an input
+  const active = document.activeElement;
+  if (active && (active.tagName === 'INPUT' || active.tagName === 'SELECT' || active.tagName === 'TEXTAREA')) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    batchNavigate(1, e.shiftKey);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    batchNavigate(-1, e.shiftKey);
+  } else if (e.key === 'Escape' && batchSelectedIds.size > 0) {
+    batchClearSelection();
+  }
+});
+
+// Patch renderBatchTable to re-attach selection events after render
+const _origRenderBatchTable = renderBatchTable;
+renderBatchTable = function() {
+  _origRenderBatchTable();
+  attachBatchSelectionEvents();
+  updateBatchSelectionUI();
+};
 
 /* ═══════════════════════════════════════════════
    KEYBOARD: ESC closes modal
