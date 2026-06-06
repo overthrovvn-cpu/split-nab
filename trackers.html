@@ -1,0 +1,2296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Trackers – Split-NAB</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f6ef7'/%3E%3Ctext x='16' y='22' font-family='-apple-system,BlinkMacSystemFont,sans-serif' font-size='14' font-weight='700' fill='white' text-anchor='middle'%3ESN%3C/text%3E%3C/svg%3E">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html {
+    overflow-x: hidden;
+    overscroll-behavior: none;
+  }
+
+  :root {
+    --bg: #f7f7f8;
+    --card: #ffffff;
+    --border: #e5e7eb;
+    --text: #111827;
+    --text-sec: #6b7280;
+    --text-muted: #9ca3af;
+    --accent: #4f6ef7;
+    --accent-hover: #3b5bdb;
+    --accent-light: #eef2ff;
+    --error: #ef4444;
+    --error-light: #fef2f2;
+    --success: #10b981;
+    --success-light: #ecfdf5;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --radius-card: 12px;
+    --radius: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 2px 12px rgba(0,0,0,0.08);
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    min-height: 100vh;
+    padding-bottom: 80px;
+    overflow-x: hidden;
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* ── Header ── */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-sec);
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+    font-family: var(--font);
+    flex-shrink: 0;
+  }
+  .back-btn:hover { background: var(--bg); color: var(--text); }
+
+  .header-divider { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+
+  .app-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.3px;
+    flex-shrink: 0;
+  }
+
+  .page-title { font-size: 15px; font-weight: 600; color: var(--text); flex-shrink: 0; }
+
+  /* ── Container ── */
+  .container { padding: 24px 16px; }
+
+  /* ── Month Navigator ── */
+  .month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    gap: 12px;
+  }
+
+  .month-nav-center {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .month-nav-label {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  .month-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--card);
+    font-size: 16px;
+    color: var(--text-sec);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+  }
+  .month-nav-btn:hover { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
+
+  /* Plus badge for creating a new tracker / category group */
+  .plus-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    line-height: 1;
+    transition: background 0.15s, transform 0.1s;
+    flex-shrink: 0;
+    border: none;
+    outline: none;
+  }
+  .plus-badge:hover { background: var(--accent-hover); transform: scale(1.1); }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s, color 0.15s;
+    font-family: var(--font);
+    white-space: nowrap;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-outline { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+  .btn-outline:hover { background: var(--accent-light); }
+  .btn-ghost { background: transparent; color: var(--text-sec); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--bg); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-danger { background: var(--error); color: #fff; }
+  .btn-danger:hover { background: #dc2626; }
+  .btn-icon {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 10px;
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--text-sec);
+    transition: background 0.15s;
+    font-family: var(--font);
+  }
+  .btn-icon:hover { background: var(--bg); }
+
+  /* ── Table card ── */
+  .table-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: max-content;
+  }
+
+  thead th {
+    background: var(--bg);
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  thead th.col-check { width: 40px; text-align: center; padding: 10px 8px; }
+  thead th.col-num   { text-align: right; }
+  thead th.col-friend { text-align: right; }
+
+  tbody td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+
+  td.col-check {
+    text-align: center;
+    padding: 9px 8px;
+    width: 40px;
+  }
+
+  td.col-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+
+  td.col-friend {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+
+  /* ── Category Group row ── */
+  .group-row td {
+    background: #f1f3f9;
+    color: var(--text-sec);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 7px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .group-row:hover td { background: #eaecf5; }
+
+  .group-row-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .group-row-name {
+    flex: 1;
+    cursor: pointer;
+    min-width: 0;
+  }
+
+  .group-row-name:hover { color: var(--accent); }
+
+  /* ── Category row ── */
+  .category-row:hover td { background: #f5f7ff; }
+
+  .category-row.is-checked td {
+    opacity: 0.55;
+  }
+
+  .category-row.is-checked td.col-check { opacity: 1; }
+
+  /* Checkbox */
+  .custom-checkbox {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 2px solid var(--border);
+    background: var(--card);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+  }
+
+  .custom-checkbox.checked {
+    background: var(--success);
+    border-color: var(--success);
+    color: #fff;
+  }
+
+  .custom-checkbox svg {
+    display: none;
+  }
+
+  .custom-checkbox.checked svg {
+    display: block;
+  }
+
+  /* Amount display */
+  .amount-display {
+    cursor: pointer;
+    border-bottom: 1px dashed var(--text-muted);
+    transition: color 0.15s;
+  }
+  .amount-display:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* Category name display */
+  .cat-name-display {
+    cursor: pointer;
+    border-bottom: 1px dashed transparent;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .cat-name-display:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* Due date */
+  .due-date-display {
+    cursor: pointer;
+    border-bottom: 1px dashed var(--text-muted);
+    transition: color 0.15s;
+    color: var(--text-sec);
+    font-size: 12px;
+  }
+  .due-date-display:hover { color: var(--accent); border-color: var(--accent); }
+  .due-date-display.empty { color: var(--text-muted); border-color: var(--border); font-style: italic; }
+
+  /* Notes */
+  .notes-display {
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 12px;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-bottom: 1px dashed var(--border);
+    transition: color 0.15s;
+  }
+  .notes-display:hover { color: var(--accent); border-color: var(--accent); }
+  .notes-display.has-notes { color: var(--text-sec); font-style: normal; }
+
+  /* Shared badge */
+  .shared-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #fef3c7;
+    color: #92400e;
+    white-space: nowrap;
+  }
+
+  .solo-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--accent-light);
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  /* Empty state */
+  .empty-state {
+    padding: 56px 24px;
+    text-align: center;
+    color: var(--text-muted);
+  }
+  .empty-icon  { font-size: 40px; margin-bottom: 14px; }
+  .empty-title { font-size: 16px; font-weight: 600; color: var(--text-sec); margin-bottom: 8px; }
+  .empty-sub   { font-size: 13px; max-width: 320px; margin: 0 auto; line-height: 1.5; }
+
+  /* No tracker banner */
+  .no-tracker-banner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 56px 24px;
+    text-align: center;
+  }
+
+  /* ── Bottom bar ── */
+  .bottom-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 100;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .bottom-bar-left  { display: flex; align-items: center; gap: 10px; }
+  .bottom-bar-right { display: flex; align-items: center; gap: 10px; }
+
+  /* ── Overlay / Modal ── */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 300;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 24px 16px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .overlay.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: var(--card);
+    border-radius: var(--radius-card);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+    padding: 28px;
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .modal-wide { max-width: 580px; }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+  }
+
+  .modal-title { font-size: 17px; font-weight: 700; }
+
+  .modal-close {
+    background: none; border: none; font-size: 20px;
+    cursor: pointer; color: var(--text-muted);
+    line-height: 1; padding: 2px 6px; border-radius: 6px;
+  }
+  .modal-close:hover { background: var(--bg); color: var(--text); }
+
+  .modal-section-title {
+    font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--text-muted); margin-bottom: 10px;
+  }
+
+  .modal-divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+
+  /* Form fields */
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 14px;
+  }
+
+  .form-field:last-of-type { margin-bottom: 0; }
+
+  .form-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-sec);
+  }
+
+  .form-input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-family: var(--font);
+    color: var(--text);
+    background: var(--card);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  .form-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79,110,247,0.12);
+  }
+
+  .form-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+
+  .form-select {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-family: var(--font);
+    color: var(--text);
+    background: var(--card);
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+  }
+
+  .form-select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79,110,247,0.12);
+  }
+
+  /* Radio/toggle for share type */
+  .share-type-toggle {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .share-type-option {
+    flex: 1;
+    padding: 8px 12px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--text-sec);
+    font-family: var(--font);
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .share-type-option.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .share-type-option:first-child { border-right: 1px solid var(--border); }
+
+  /* Toast */
+  .toast-area {
+    position: fixed; bottom: 70px; left: 16px;
+    z-index: 400; display: flex; flex-direction: column;
+    gap: 8px; max-width: 320px;
+  }
+  .toast {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 12px 14px; border-radius: var(--radius);
+    border-left: 3px solid; font-size: 13px;
+    box-shadow: var(--shadow); animation: slideIn 0.25s ease;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-16px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  .toast.success { background: var(--success-light); border-color: var(--success); color: #065f46; }
+  .toast.error   { background: var(--error-light);   border-color: var(--error);   color: #991b1b; }
+  .toast.warning { background: #fffbeb; border-color: #f59e0b; color: #92400e; }
+  .toast-msg { flex: 1; line-height: 1.4; }
+  .toast-close { background: none; border: none; cursor: pointer; font-size: 14px; color: inherit; opacity: 0.6; padding: 0; }
+  .toast-close:hover { opacity: 1; }
+
+  /* Confirm modal action row */
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+  }
+
+  .modal-actions .btn { flex: 1; justify-content: center; }
+
+  /* Category group inline add-category badge */
+  .add-cat-cell {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    width: fit-content;
+    transition: color 0.15s;
+  }
+
+  .add-cat-cell:hover { color: var(--accent); }
+
+  /* Settings section: YNAB */
+  #settings-overlay .modal { max-width: 520px; }
+
+  /* Splitwise friend amount column — per-friend */
+  .friend-amount-cell {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    color: var(--text-sec);
+  }
+
+  /* Inline editable inline-input */
+  .inline-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--accent);
+    outline: none;
+    font-size: 13px;
+    font-family: var(--font);
+    color: var(--text);
+    padding: 2px 4px;
+    width: 100%;
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  /* Confirm log modal */
+  .confirm-detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .confirm-detail-row:last-child { border-bottom: none; }
+  .confirm-detail-label { color: var(--text-sec); font-weight: 500; }
+  .confirm-detail-value { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* Disabled overlay on checked rows for Splitwise friend columns */
+  .amount-dash { color: var(--text-muted); }
+
+  @media (max-width: 640px) {
+    header { padding: 10px 14px; }
+    .container { padding: 16px 12px; }
+    .bottom-bar { padding: 10px 14px; }
+    .page-title { display: none; }
+    .modal { padding: 20px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══ -->
+<header>
+  <a href="index.html" class="back-btn">← Back</a>
+  <div class="header-divider"></div>
+  <span class="app-name">Split-NAB</span>
+  <div class="header-divider"></div>
+  <span class="page-title">Trackers</span>
+</header>
+
+<!-- ══ MAIN ══ -->
+<main class="container">
+
+  <!-- Month Navigator -->
+  <div class="month-nav">
+    <button class="month-nav-btn" id="prev-month-btn" title="Previous month">&#8592;</button>
+    <div class="month-nav-center">
+      <span class="month-nav-label" id="month-nav-label">—</span>
+      <button class="plus-badge" id="add-group-btn" title="Add Category Group">+</button>
+    </div>
+    <button class="month-nav-btn" id="next-month-btn" title="Next month">&#8594;</button>
+  </div>
+
+  <!-- Tracker Table Card -->
+  <div class="table-card" id="tracker-card">
+    <div id="tracker-empty" class="no-tracker-banner" style="display:none;">
+      <div class="empty-icon">📅</div>
+      <div class="empty-title">No Tracker for this month</div>
+      <div class="empty-sub">Create a tracker to start logging your monthly expenses.</div>
+      <button class="btn btn-primary" id="create-tracker-btn">+ Create Tracker</button>
+    </div>
+    <div class="table-wrap" id="table-wrap" style="display:none;">
+      <table id="tracker-table">
+        <thead id="tracker-thead"></thead>
+        <tbody id="tracker-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<!-- ══ BOTTOM BAR ══ -->
+<div class="bottom-bar">
+  <div class="bottom-bar-left">
+    <button class="btn-icon" id="settings-btn" title="Settings" aria-label="Settings">⚙</button>
+    <span id="tracker-status-label" style="font-size:12px;color:var(--text-muted);"></span>
+  </div>
+  <div class="bottom-bar-right">
+    <button class="btn btn-ghost btn-sm" id="refresh-btn" title="Reload YNAB data">↺ Refresh</button>
+  </div>
+</div>
+
+<!-- ══ TOAST ══ -->
+<div class="toast-area" id="toast-area" aria-live="polite"></div>
+
+<!-- ══ SETTINGS MODAL ══ -->
+<div class="overlay" id="settings-overlay" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title" id="settings-title">Settings</h2>
+      <button class="modal-close" id="settings-close" aria-label="Close">×</button>
+    </div>
+
+    <p class="modal-section-title">YNAB Connection</p>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:4px;">
+      <div>
+        <label class="form-label" style="display:block;margin-bottom:4px;">Personal Access Token</label>
+        <div style="position:relative;display:flex;align-items:center;">
+          <input type="password" id="set-token" class="form-input" placeholder="Paste your YNAB token" style="padding-right:36px;" autocomplete="off">
+          <button onclick="toggleEye()" id="eye-btn"
+            style="position:absolute;right:8px;background:none;border:none;cursor:pointer;font-size:14px;color:var(--text-muted);"
+            aria-label="Show/hide token">👁</button>
+        </div>
+        <span class="form-hint" style="margin-top:4px;display:block;">
+          Get it at <a href="https://app.ynab.com/settings/developer" target="_blank" style="color:var(--accent);">app.ynab.com/settings/developer</a>
+        </span>
+      </div>
+      <div>
+        <label class="form-label" style="display:block;margin-bottom:4px;">Budget ID</label>
+        <input type="text" id="set-budget-id" class="form-input" placeholder="e.g. a1b2c3d4-…" autocomplete="off">
+        <span class="form-hint" style="margin-top:4px;display:block;">
+          Found in your YNAB URL: app.ynab.com/budgets/<strong>BUDGET-ID</strong>/…
+        </span>
+      </div>
+    </div>
+
+    <hr class="modal-divider">
+
+    <p class="modal-section-title">Splitwise</p>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:4px;">
+      <div>
+        <label class="form-label" style="display:block;margin-bottom:4px;">Proxy URL</label>
+        <input type="text" id="set-sw-proxy" class="form-input" placeholder="https://your-worker.workers.dev" autocomplete="off">
+        <span class="form-hint" style="margin-top:4px;display:block;">Your Cloudflare Worker proxy URL.</span>
+      </div>
+    </div>
+
+    <hr class="modal-divider">
+
+    <p class="modal-section-title">GitHub Sync</p>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:4px;">
+      <div>
+        <label class="form-label" style="display:block;margin-bottom:4px;">Personal Access Token</label>
+        <input type="password" id="set-gh-token" class="form-input" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
+        <span class="form-hint" style="margin-top:4px;display:block;">
+          Create at <a href="https://github.com/settings/tokens" target="_blank" style="color:var(--accent);">github.com/settings/tokens</a> with <strong>repo</strong> scope (or <strong>contents: write</strong> for fine-grained tokens).
+        </span>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <div style="flex:1;">
+          <label class="form-label" style="display:block;margin-bottom:4px;">Owner</label>
+          <input type="text" id="set-gh-owner" class="form-input" placeholder="your-username" autocomplete="off">
+        </div>
+        <div style="flex:1;">
+          <label class="form-label" style="display:block;margin-bottom:4px;">Repository</label>
+          <input type="text" id="set-gh-repo" class="form-input" placeholder="SPLITNAB" autocomplete="off">
+        </div>
+      </div>
+      <div>
+        <label class="form-label" style="display:block;margin-bottom:4px;">Branch</label>
+        <input type="text" id="set-gh-branch" class="form-input" placeholder="main" autocomplete="off">
+        <span class="form-hint" style="margin-top:4px;display:block;">
+          Tracker data is saved as <strong>splitnab-trackers.json</strong> in your repo root.
+        </span>
+      </div>
+    </div>
+
+    <hr class="modal-divider">
+    <button class="btn btn-primary" style="width:100%;" id="settings-done-btn">Save &amp; Reload</button>
+    <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;" id="clear-cache-btn">↺ Reset Local Cache</button>
+  </div>
+</div>
+
+<!-- ══ ADD CATEGORY GROUP MODAL ══ -->
+<div class="overlay" id="add-group-overlay" role="dialog" aria-modal="true" aria-labelledby="add-group-title">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title" id="add-group-title">Add Category Group</h2>
+      <button class="modal-close" id="add-group-close" aria-label="Close">×</button>
+    </div>
+    <div class="form-field">
+      <label class="form-label" for="add-group-name">Group Name</label>
+      <input type="text" id="add-group-name" class="form-input" placeholder="e.g. Fixed Expenses" autocomplete="off">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="add-group-submit">Add Group</button>
+      <button class="btn btn-ghost" id="add-group-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ EDIT GROUP NAME MODAL ══ -->
+<div class="overlay" id="edit-group-overlay" role="dialog" aria-modal="true" aria-labelledby="edit-group-title">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title" id="edit-group-title">Edit Group Name</h2>
+      <button class="modal-close" id="edit-group-close" aria-label="Close">×</button>
+    </div>
+    <div class="form-field">
+      <label class="form-label" for="edit-group-name">Group Name</label>
+      <input type="text" id="edit-group-name" class="form-input" autocomplete="off">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="edit-group-submit">Save</button>
+      <button class="btn btn-danger btn-sm" id="delete-group-btn" style="flex:0 0 auto;">Delete Group</button>
+      <button class="btn btn-ghost" id="edit-group-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ADD / EDIT CATEGORY MODAL ══ -->
+<div class="overlay" id="add-cat-overlay" role="dialog" aria-modal="true" aria-labelledby="add-cat-title">
+  <div class="modal modal-wide" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title" id="add-cat-title">Add Category</h2>
+      <button class="modal-close" id="add-cat-close" aria-label="Close">×</button>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" for="add-cat-name">Category Name</label>
+      <input type="text" id="add-cat-name" class="form-input" placeholder="e.g. Netflix" autocomplete="off">
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" for="add-cat-ynab">YNAB Category</label>
+      <select id="add-cat-ynab" class="form-select">
+        <option value="">— Select YNAB Category —</option>
+      </select>
+      <span class="form-hint">Checking this row will log a transaction to this YNAB category.</span>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" for="add-cat-due">Due Date (day of month)</label>
+      <input type="number" id="add-cat-due" class="form-input" placeholder="e.g. 15" min="1" max="31" step="1" inputmode="numeric">
+      <span class="form-hint">Day of the month this expense is due. Leave blank to skip.</span>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" for="add-cat-amount">Amount (₱)</label>
+      <input type="number" id="add-cat-amount" class="form-input" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
+    </div>
+
+    <div class="form-field">
+      <label class="form-label">Type</label>
+      <div class="share-type-toggle" id="cat-type-toggle">
+        <button class="share-type-option active" data-type="solo" onclick="setCatType('solo')">Solo</button>
+        <button class="share-type-option" data-type="shared" onclick="setCatType('shared')">Shared</button>
+      </div>
+    </div>
+
+    <!-- Shared options (hidden when solo) -->
+    <div id="shared-options" style="display:none;">
+      <hr class="modal-divider" style="margin:14px 0;">
+      <p class="modal-section-title">Shared Settings</p>
+
+      <div class="form-field">
+        <label class="form-label" for="add-cat-sw-friend">Splitwise Friend</label>
+        <select id="add-cat-sw-friend" class="form-select">
+          <option value="">— Select Friend —</option>
+        </select>
+        <span class="form-hint">This expense will also be logged to Splitwise with this friend.</span>
+      </div>
+
+      <div class="form-field">
+        <label class="form-label">Split Type</label>
+        <div class="share-type-toggle" id="split-type-toggle">
+          <button class="share-type-option active" data-split="equal" onclick="setSplitType('equal')">Equal (50/50)</button>
+          <button class="share-type-option" data-split="fixed" onclick="setSplitType('fixed')">Fixed Amount</button>
+        </div>
+        <span class="form-hint" id="split-type-hint" style="margin-top:6px;">You each pay half. "Me" column shows your share.</span>
+      </div>
+
+      <div class="form-field" id="fixed-amount-field" style="display:none;">
+        <label class="form-label" for="add-cat-my-share">My Share (₱)</label>
+        <input type="number" id="add-cat-my-share" class="form-input" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
+        <span class="form-hint">The amount you personally pay. The rest goes to your friend.</span>
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:20px;">
+      <button class="btn btn-primary" id="add-cat-submit">Add Category</button>
+      <button class="btn btn-danger btn-sm" id="delete-cat-btn" style="flex:0 0 auto;display:none;">Delete</button>
+      <button class="btn btn-ghost" id="add-cat-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CATEGORY NOTES MODAL ══ -->
+<div class="overlay" id="notes-overlay" role="dialog" aria-modal="true" aria-labelledby="notes-title">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title" id="notes-title">Payment Notes</h2>
+      <button class="modal-close" id="notes-close" aria-label="Close">×</button>
+    </div>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;" id="notes-cat-label"></p>
+    <textarea id="notes-textarea" class="form-input" style="min-height:120px;resize:vertical;-webkit-user-select:text;user-select:text;" placeholder="Add payment notes…"></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="notes-save-btn">Save Notes</button>
+      <button class="btn btn-ghost" id="notes-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CONFIRM LOG MODAL ══ -->
+<div class="overlay" id="confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title" id="confirm-title">Log Expense</h2>
+      <button class="modal-close" id="confirm-close" aria-label="Close">×</button>
+    </div>
+    <p style="font-size:13px;color:var(--text-sec);margin-bottom:18px;" id="confirm-subtitle"></p>
+
+    <div id="confirm-details"></div>
+
+    <div style="margin-top:14px;">
+      <hr class="modal-divider" style="margin:0 0 14px;">
+      <div class="form-field" style="margin-bottom:0;">
+        <label class="form-label" for="confirm-account-id">YNAB Account</label>
+        <select id="confirm-account-id" class="form-select">
+          <option value="">— Select Account —</option>
+        </select>
+        <span class="form-hint" style="margin-top:4px;display:block;">Transaction will be logged to this account.</span>
+      </div>
+    </div>
+
+    <div id="confirm-sw-section" style="display:none;margin-top:14px;">
+      <hr class="modal-divider" style="margin:0 0 14px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <input type="checkbox" id="confirm-sw-check" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;">
+        <label for="confirm-sw-check" style="font-size:13px;font-weight:500;color:var(--text);cursor:pointer;">Also log to Splitwise</label>
+      </div>
+      <div id="confirm-sw-details" style="font-size:12px;color:var(--text-sec);padding-left:24px;line-height:1.6;"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="confirm-log-btn">Log Expense</button>
+      <button class="btn btn-ghost" id="confirm-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+</body>
+
+<script>
+/* ═══════════════════════════════════════════════
+   CONFIG & CONSTANTS
+═══════════════════════════════════════════════ */
+const YNAB_API           = 'https://api.ynab.com/v1';
+const GITHUB_API         = 'https://api.github.com';
+const GITHUB_FILENAME    = 'splitnab-trackers.json';
+// localStorage cache keys
+const CACHE_KEY_TRACKERS = 'splitnab_trackers';
+const CACHE_KEY_TEMPLATE = 'splitnab_tracker_tpl';
+const CACHE_KEY_GH_SHA   = 'splitnab_gh_sha'; // current file SHA from GitHub
+
+/* ═══════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════ */
+const ynab = {
+  token:      localStorage.getItem('ynab_token')      || '',
+  budgetId:   localStorage.getItem('ynab_budget_id')  || '',
+  accountId:  localStorage.getItem('ynab_account_id') || '', // last-used, pre-fills the confirm modal
+  categories: [], // { id, name, group }
+  accounts:   [], // { id, name } loaded at runtime
+  connected:  false,
+};
+
+const sw = {
+  proxyUrl: localStorage.getItem('sw_proxy_url') || '',
+  // Array of { label, apiKey, user, friends, loaded }
+  accounts: (() => {
+    try {
+      return JSON.parse(localStorage.getItem('sw_accounts') || '[]')
+        .map(a => ({ ...a, user: null, friends: [], loaded: false }));
+    } catch { return []; }
+  })(),
+  activeAccountIndex: parseInt(localStorage.getItem('sw_active_account_index') || '0', 10),
+};
+
+function swActiveAccount() {
+  return sw.accounts[sw.activeAccountIndex] || sw.accounts[0] || null;
+}
+
+// Current view month (year + month, 0-indexed)
+let viewYear  = new Date().getFullYear();
+let viewMonth = new Date().getMonth(); // 0-based
+
+// All trackers: { "YYYY-MM": TrackerData }
+// TrackerData: {
+//   groups: [GroupData]
+// }
+// GroupData: {
+//   id: string,
+//   name: string,
+//   categories: [CategoryData]
+// }
+// CategoryData: {
+//   id: string,
+//   name: string,
+//   ynabCategoryId: string,
+//   ynabCategoryName: string,
+//   dueDay: number|null,           // day of month
+//   amount: number,
+//   type: "solo" | "shared",
+//   swFriendId: string|null,       // Splitwise friend user ID
+//   swFriendName: string|null,
+//   splitType: "equal" | "fixed",
+//   myShare: number|null,          // used when splitType = "fixed"
+//   // Per-month state (NOT copied to template):
+//   checked: false,
+//   notes: "",
+// }
+
+let allTrackers = {};
+try {
+  allTrackers = JSON.parse(localStorage.getItem(CACHE_KEY_TRACKERS) || '{}');
+} catch { allTrackers = {}; }
+
+let trackerTemplate = null;
+try {
+  trackerTemplate = JSON.parse(localStorage.getItem(CACHE_KEY_TEMPLATE) || 'null');
+} catch { trackerTemplate = null; }
+
+// GitHub config — persisted in localStorage
+const gh = {
+  token:  localStorage.getItem('gh_token')  || '',
+  owner:  localStorage.getItem('gh_owner')  || '',
+  repo:   localStorage.getItem('gh_repo')   || '',
+  branch: localStorage.getItem('gh_branch') || 'main',
+  // Current file SHA (required for updates) — refreshed on every load/save
+  sha:    localStorage.getItem(CACHE_KEY_GH_SHA) || null,
+};
+
+// Current tracker being viewed (TrackerData or null)
+let currentTracker = null;
+
+// All Splitwise friends (across all accounts)
+let allFriends = []; // [{ id, name, accountLabel }]
+
+/* ─── Modal state ─── */
+let editingGroupId   = null;
+let editingCatId     = null;
+let editingCatGroup  = null;
+let notesCatId       = null;
+let confirmCatId     = null;
+let confirmChecking  = true;
+
+/* ═══════════════════════════════════════════════
+   UTILITIES
+═══════════════════════════════════════════════ */
+function fmt(n) {
+  return Number(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function monthKey(y, m) {
+  return `${y}-${String(m + 1).padStart(2, '0')}`;
+}
+
+function monthLabel(y, m) {
+  return new Date(y, m, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function dueDateStr(dueDay) {
+  if (!dueDay) return null;
+  const d = new Date(viewYear, viewMonth, dueDay);
+  // Clamp to last day of month if dueDay > days in month
+  if (d.getMonth() !== viewMonth) {
+    const last = new Date(viewYear, viewMonth + 1, 0);
+    return last.toISOString().slice(0, 10);
+  }
+  return d.toISOString().slice(0, 10);
+}
+
+function fmtDueDate(dueDay) {
+  if (!dueDay) return null;
+  const ds = dueDateStr(dueDay);
+  const d = new Date(ds + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function uid() {
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+}
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ═══════════════════════════════════════════════
+   STORAGE  —  GitHub repository file as backend
+   All tracker data is stored in a single JSON file
+   (splitnab-trackers.json) in your GitHub repo.
+   localStorage is used as a read-through cache for
+   instant rendering and offline access.
+═══════════════════════════════════════════════ */
+
+function ghConfigured() {
+  return !!(gh.token && gh.owner && gh.repo);
+}
+
+// ── Write cache ──────────────────────────────
+function cacheWrite() {
+  localStorage.setItem(CACHE_KEY_TRACKERS, JSON.stringify(allTrackers));
+  localStorage.setItem(CACHE_KEY_TEMPLATE, JSON.stringify(trackerTemplate));
+  if (gh.sha) localStorage.setItem(CACHE_KEY_GH_SHA, gh.sha);
+}
+
+// ── Build the full data object to persist ────
+function buildPayload() {
+  return {
+    version: 1,
+    updatedAt: new Date().toISOString(),
+    template: trackerTemplate ? deepCloneStructure(trackerTemplate) : null,
+    trackers: allTrackers,
+  };
+}
+
+// ── GitHub API fetch wrapper ─────────────────
+async function ghFetch(endpoint, options = {}) {
+  const res = await fetch(GITHUB_API + endpoint, {
+    ...options,
+    headers: {
+      'Authorization': 'Bearer ' + gh.token,
+      'Accept': 'application/vnd.github+json',
+      'Content-Type': 'application/json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      ...(options.headers || {}),
+    },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `GitHub HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// ── Load from GitHub ─────────────────────────
+async function loadFromGitHub() {
+  if (!ghConfigured()) return;
+  try {
+    const data = await ghFetch(
+      `/repos/${gh.owner}/${gh.repo}/contents/${GITHUB_FILENAME}?ref=${gh.branch}`
+    );
+    gh.sha = data.sha;
+    localStorage.setItem(CACHE_KEY_GH_SHA, gh.sha);
+
+    const content = JSON.parse(atob(data.content.replace(/\n/g, '')));
+    if (content.trackers)  allTrackers     = content.trackers;
+    if (content.template)  trackerTemplate = content.template;
+    cacheWrite();
+  } catch (e) {
+    if (e.message && e.message.includes('404')) {
+      // File doesn't exist yet — will be created on first save
+      gh.sha = null;
+    } else {
+      showToast('error', 'GitHub load failed: ' + e.message);
+    }
+  }
+}
+
+// ── Save to GitHub ───────────────────────────
+let _ghSavePending = false;
+let _ghSaveTimer   = null;
+
+function scheduleGitHubSave() {
+  // Debounce: coalesce rapid saves into one write after 1.5s
+  clearTimeout(_ghSaveTimer);
+  _ghSaveTimer = setTimeout(flushToGitHub, 1500);
+}
+
+async function flushToGitHub() {
+  if (!ghConfigured()) return;
+  if (_ghSavePending) { scheduleGitHubSave(); return; }
+  _ghSavePending = true;
+  try {
+    const payload  = buildPayload();
+    const content  = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+    const body     = {
+      message: `Update tracker data – ${new Date().toISOString().slice(0,10)}`,
+      content,
+      branch: gh.branch,
+    };
+    if (gh.sha) body.sha = gh.sha; // required for updates; omit for first create
+
+    const res = await ghFetch(
+      `/repos/${gh.owner}/${gh.repo}/contents/${GITHUB_FILENAME}`,
+      { method: 'PUT', body: JSON.stringify(body) }
+    );
+    gh.sha = res.content?.sha || gh.sha;
+    localStorage.setItem(CACHE_KEY_GH_SHA, gh.sha);
+  } catch (e) {
+    showToast('error', 'GitHub save failed: ' + e.message);
+  } finally {
+    _ghSavePending = false;
+  }
+}
+
+// ── saveTrackers / saveTemplate (called throughout the app) ─
+function saveTrackers() {
+  localStorage.setItem(CACHE_KEY_TRACKERS, JSON.stringify(allTrackers));
+  scheduleGitHubSave();
+}
+
+function saveTemplate() {
+  if (!trackerTemplate) return;
+  localStorage.setItem(CACHE_KEY_TEMPLATE, JSON.stringify(trackerTemplate));
+  scheduleGitHubSave();
+}
+
+// Deep clone a tracker, stripping per-month state
+function deepCloneStructure(tracker) {
+  if (!tracker) return null;
+  return {
+    groups: (tracker.groups || []).map(g => ({
+      id: g.id,
+      name: g.name,
+      categories: (g.categories || []).map(c => ({
+        id: c.id,
+        name: c.name,
+        ynabCategoryId:   c.ynabCategoryId   || '',
+        ynabCategoryName: c.ynabCategoryName || '',
+        dueDay:     c.dueDay     || null,
+        amount:     c.amount     || 0,
+        type:       c.type       || 'solo',
+        swFriendId:   c.swFriendId   || null,
+        swFriendName: c.swFriendName || null,
+        splitType:  c.splitType  || 'equal',
+        myShare:    c.myShare    || null,
+        // per-month state reset
+        checked: false,
+        notes:   '',
+      })),
+    })),
+  };
+}
+
+// Deep clone a tracker preserving all state
+function deepClone(tracker) {
+  return JSON.parse(JSON.stringify(tracker));
+}
+
+/* ═══════════════════════════════════════════════
+   YNAB API
+═══════════════════════════════════════════════ */
+async function ynabFetch(endpoint, options = {}) {
+  const res = await fetch(YNAB_API + endpoint, {
+    ...options,
+    headers: {
+      'Authorization': 'Bearer ' + ynab.token,
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+  });
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({}));
+    console.error('[YNAB Error]', res.status, endpoint, JSON.stringify(errBody));
+    const detail  = errBody?.error?.detail || errBody?.error?.id || JSON.stringify(errBody);
+    throw new Error(`YNAB ${res.status}: ${detail}`);
+  }
+  return res.json();
+}
+
+async function loadYNABCategories() {
+  if (!ynab.token || !ynab.budgetId) return;
+  try {
+    const [catData, acctData] = await Promise.all([
+      ynabFetch(`/budgets/${ynab.budgetId}/categories`),
+      ynabFetch(`/budgets/${ynab.budgetId}/accounts`),
+    ]);
+
+    // Categories
+    const groups = catData.data.category_groups || [];
+    ynab.categories = [];
+    for (const g of groups) {
+      if (g.deleted || g.hidden) continue;
+      for (const c of (g.categories || [])) {
+        if (c.deleted || c.hidden) continue;
+        ynab.categories.push({ id: c.id, name: c.name, group: g.name });
+      }
+    }
+
+    // Accounts
+    ynab.accounts = (acctData.data.accounts || [])
+      .filter(a => !a.closed && !a.deleted);
+
+    ynab.connected = true;
+  } catch (e) {
+    showToast('error', 'YNAB: ' + e.message);
+    ynab.connected = false;
+  }
+}
+
+async function logYNABTransaction(cat, notes, accountId) {
+  if (!cat.ynabCategoryId) throw new Error('No YNAB category linked.');
+  if (!accountId)          throw new Error('No YNAB account selected.');
+
+  const amount = cat.type === 'shared' && cat.splitType === 'fixed' && cat.myShare != null
+    ? cat.myShare
+    : (cat.type === 'shared' && cat.splitType === 'equal')
+      ? cat.amount / 2
+      : cat.amount;
+
+  const payload = {
+    transaction: {
+      account_id:  accountId,
+      date:        dueDateStr(cat.dueDay) || todayStr(),
+      amount:      -Math.round(amount * 1000),
+      category_id: cat.ynabCategoryId,
+      memo:        notes || cat.name,
+      cleared:     'uncleared',
+      approved:    false,
+    },
+  };
+
+  await ynabFetch(`/budgets/${ynab.budgetId}/transactions`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   SPLITWISE API
+═══════════════════════════════════════════════ */
+async function splitwiseFetch(endpoint, options = {}, accountIndex) {
+  const proxyUrl = (sw.proxyUrl || '').replace(/\/$/, '');
+  if (!proxyUrl) throw new Error('Splitwise proxy URL not set. Add it in Settings.');
+  const idx = accountIndex !== undefined ? accountIndex : sw.activeAccountIndex;
+  const account = sw.accounts[idx];
+  if (!account) throw new Error('No Splitwise account configured.');
+  if (!account.apiKey) throw new Error('Splitwise API key missing.');
+
+  const res = await fetch(proxyUrl + '/splitwise' + endpoint, {
+    ...options,
+    headers: {
+      'Authorization': 'Bearer ' + account.apiKey,
+      ...(options.headers || {}),
+    },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error || `Splitwise HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+async function loadSWFriends() {
+  allFriends = [];
+  for (let i = 0; i < sw.accounts.length; i++) {
+    try {
+      if (!sw.accounts[i].apiKey) continue;
+      const data = await splitwiseFetch('/get_friends', {}, i);
+      const friends = data.friends || [];
+      for (const f of friends) {
+        const name = [f.first_name, f.last_name].filter(Boolean).join(' ').trim() || f.email || `User ${f.id}`;
+        if (!allFriends.find(x => x.id === String(f.id))) {
+          allFriends.push({ id: String(f.id), name, accountLabel: sw.accounts[i].label || `Account ${i+1}` });
+        }
+      }
+      sw.accounts[i].friends = friends;
+      sw.accounts[i].loaded  = true;
+    } catch (e) {
+      // non-fatal
+    }
+  }
+}
+
+async function logSplitwiseExpense(cat, notes) {
+  if (!cat.swFriendId) throw new Error('No Splitwise friend linked.');
+  const account = swActiveAccount();
+  if (!account) throw new Error('No active Splitwise account.');
+
+  const total = cat.amount;
+  let myShare, friendShare;
+  if (cat.splitType === 'fixed' && cat.myShare != null) {
+    myShare     = cat.myShare;
+    friendShare = total - myShare;
+  } else {
+    myShare     = total / 2;
+    friendShare = total / 2;
+  }
+
+  const params = new URLSearchParams();
+  params.append('description',  notes || cat.name);
+  params.append('cost',         total.toFixed(2));
+  params.append('currency_code', 'PHP');
+  params.append('users__0__user_id',    String(account.user?.id || ''));
+  params.append('users__0__paid_share', total.toFixed(2));
+  params.append('users__0__owed_share', myShare.toFixed(2));
+  params.append('users__1__user_id',    cat.swFriendId);
+  params.append('users__1__paid_share', '0.00');
+  params.append('users__1__owed_share', friendShare.toFixed(2));
+
+  await splitwiseFetch('/create_expense', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params.toString(),
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   LOAD SPLITWISE USER (active account)
+═══════════════════════════════════════════════ */
+async function loadSWUser() {
+  try {
+    const account = swActiveAccount();
+    if (!account || !account.apiKey) return;
+    const data = await splitwiseFetch('/get_current_user');
+    account.user = data.user;
+  } catch (e) {
+    // non-fatal
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   TRACKER DATA HELPERS
+═══════════════════════════════════════════════ */
+function getCurrentKey() { return monthKey(viewYear, viewMonth); }
+
+function getOrNullTracker(key) { return allTrackers[key] || null; }
+
+function getCategory(catId) {
+  if (!currentTracker) return null;
+  for (const g of currentTracker.groups) {
+    const c = g.categories.find(x => x.id === catId);
+    if (c) return c;
+  }
+  return null;
+}
+
+function getGroup(groupId) {
+  if (!currentTracker) return null;
+  return currentTracker.groups.find(g => g.id === groupId) || null;
+}
+
+// Get all unique Splitwise friends used in any category of current tracker
+function getTrackerFriends() {
+  if (!currentTracker) return [];
+  const seen = new Map();
+  for (const g of currentTracker.groups) {
+    for (const c of g.categories) {
+      if (c.type === 'shared' && c.swFriendId && !seen.has(c.swFriendId)) {
+        seen.set(c.swFriendId, c.swFriendName || c.swFriendId);
+      }
+    }
+  }
+  return Array.from(seen.entries()).map(([id, name]) => ({ id, name }));
+}
+
+// Compute the "Me" share for a category
+function myShareOf(cat) {
+  if (cat.type === 'solo') return cat.amount;
+  if (cat.splitType === 'fixed' && cat.myShare != null) return cat.myShare;
+  return cat.amount / 2; // equal
+}
+
+// Compute friend's share for a category
+function friendShareOf(cat) {
+  const total = cat.amount;
+  const mine  = myShareOf(cat);
+  return total - mine;
+}
+
+/* ═══════════════════════════════════════════════
+   TEMPLATE SYNC
+   When the current month has a tracker, keep the
+   template in sync with any structural changes.
+═══════════════════════════════════════════════ */
+function syncTemplate() {
+  if (!currentTracker) return;
+  trackerTemplate = deepCloneStructure(currentTracker);
+  saveTemplate();
+}
+
+/* ═══════════════════════════════════════════════
+   RENDER
+═══════════════════════════════════════════════ */
+function render() {
+  const key = getCurrentKey();
+  currentTracker = allTrackers[key] || null;
+
+  // Update month label
+  document.getElementById('month-nav-label').textContent = monthLabel(viewYear, viewMonth);
+
+  // Show/hide table vs empty banner
+  const emptyEl = document.getElementById('tracker-empty');
+  const tableWrap = document.getElementById('table-wrap');
+
+  if (!currentTracker) {
+    emptyEl.style.display = '';
+    tableWrap.style.display = 'none';
+    document.getElementById('tracker-status-label').textContent = '';
+    return;
+  }
+
+  emptyEl.style.display = 'none';
+  tableWrap.style.display = '';
+
+  const friends = getTrackerFriends();
+  renderTable(friends);
+  updateStatusLabel();
+}
+
+function updateStatusLabel() {
+  if (!currentTracker) return;
+  let total = 0, checked = 0;
+  for (const g of currentTracker.groups) {
+    for (const c of g.categories) {
+      total++;
+      if (c.checked) checked++;
+    }
+  }
+  document.getElementById('tracker-status-label').textContent =
+    total ? `${checked} / ${total} logged` : '';
+}
+
+function renderTable(friends) {
+  const thead = document.getElementById('tracker-thead');
+  const tbody = document.getElementById('tracker-tbody');
+
+  // ── Head ──
+  let headHtml = '<tr>';
+  headHtml += '<th class="col-check"></th>';
+  headHtml += '<th>Category</th>';
+  headHtml += '<th>Due Date</th>';
+  headHtml += '<th class="col-num">Amount</th>';
+  headHtml += '<th class="col-num">Me</th>';
+  for (const f of friends) {
+    headHtml += `<th class="col-friend">${escHtml(f.name)}</th>`;
+  }
+  headHtml += '<th>Notes</th>';
+  headHtml += '</tr>';
+  thead.innerHTML = headHtml;
+
+  // ── Body ──
+  let bodyHtml = '';
+  for (const group of currentTracker.groups) {
+    // Group row
+    bodyHtml += `<tr class="group-row" data-group-id="${group.id}">`;
+    // colspan = 5 (base cols: check, category, due, amount, me) + friends + notes
+    const colspan = 5 + friends.length + 1;
+    bodyHtml += `<td colspan="${colspan}">`;
+    bodyHtml += `<div class="group-row-cell">`;
+    bodyHtml += `<span class="group-row-name" data-edit-group="${group.id}">${escHtml(group.name)}</span>`;
+    bodyHtml += `<button class="plus-badge" style="width:18px;height:18px;font-size:12px;" data-add-cat-group="${group.id}" title="Add Category">+</button>`;
+    bodyHtml += `</div>`;
+    bodyHtml += `</td></tr>`;
+
+    if (group.categories.length === 0) {
+      // Empty group placeholder row
+      bodyHtml += `<tr>`;
+      bodyHtml += `<td colspan="${colspan}" style="padding:10px 20px;">`;
+      bodyHtml += `<span class="add-cat-cell" data-add-cat-group="${group.id}">`;
+      bodyHtml += `<span style="font-size:16px;">+</span> Add first category`;
+      bodyHtml += `</span></td></tr>`;
+    }
+
+    for (const cat of group.categories) {
+      const isChecked   = cat.checked;
+      const dueLabel    = cat.dueDay ? fmtDueDate(cat.dueDay) : null;
+      const myShare     = myShareOf(cat);
+      const friendAmt   = cat.type === 'shared' ? friendShareOf(cat) : null;
+
+      bodyHtml += `<tr class="category-row${isChecked ? ' is-checked' : ''}" data-cat-id="${cat.id}" data-group-id="${group.id}">`;
+
+      // Checkbox
+      bodyHtml += `<td class="col-check">`;
+      bodyHtml += `<div class="custom-checkbox${isChecked ? ' checked' : ''}" data-toggle-cat="${cat.id}">`;
+      bodyHtml += `<svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4.5L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+      bodyHtml += `</div></td>`;
+
+      // Category name
+      bodyHtml += `<td>`;
+      bodyHtml += `<span class="cat-name-display" data-edit-cat="${cat.id}" data-group-id="${group.id}">${escHtml(cat.name)}</span>`;
+      if (cat.type === 'shared') {
+        bodyHtml += ` <span class="shared-badge" title="Shared with ${escHtml(cat.swFriendName || 'friend')}">⇄ ${escHtml(cat.swFriendName || 'shared')}</span>`;
+      }
+      bodyHtml += `</td>`;
+
+      // Due date
+      bodyHtml += `<td>`;
+      if (dueLabel) {
+        bodyHtml += `<span class="due-date-display" data-edit-cat="${cat.id}" data-group-id="${group.id}">${dueLabel}</span>`;
+      } else {
+        bodyHtml += `<span class="due-date-display empty" data-edit-cat="${cat.id}" data-group-id="${group.id}">—</span>`;
+      }
+      bodyHtml += `</td>`;
+
+      // Amount
+      bodyHtml += `<td class="col-num">`;
+      bodyHtml += `<span class="amount-display" data-edit-cat="${cat.id}" data-group-id="${group.id}">₱${fmt(cat.amount)}</span>`;
+      bodyHtml += `</td>`;
+
+      // Me
+      bodyHtml += `<td class="col-num">₱${fmt(myShare)}</td>`;
+
+      // Friend columns
+      for (const f of friends) {
+        if (cat.type === 'shared' && cat.swFriendId === f.id) {
+          bodyHtml += `<td class="col-friend">₱${fmt(friendAmt)}</td>`;
+        } else {
+          bodyHtml += `<td class="col-friend"><span class="amount-dash">—</span></td>`;
+        }
+      }
+
+      // Notes
+      bodyHtml += `<td>`;
+      if (cat.notes) {
+        bodyHtml += `<span class="notes-display has-notes" data-notes-cat="${cat.id}" title="${escHtml(cat.notes)}">${escHtml(cat.notes)}</span>`;
+      } else {
+        bodyHtml += `<span class="notes-display" data-notes-cat="${cat.id}">Add note…</span>`;
+      }
+      bodyHtml += `</td>`;
+
+      bodyHtml += `</tr>`;
+    }
+  }
+
+  tbody.innerHTML = bodyHtml;
+  bindTableEvents();
+}
+
+function bindTableEvents() {
+  const tbody = document.getElementById('tracker-tbody');
+
+  // Checkbox toggle
+  tbody.querySelectorAll('[data-toggle-cat]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const catId = el.dataset.toggleCat;
+      const cat   = getCategory(catId);
+      if (!cat) return;
+      if (!cat.checked) {
+        // Opening confirm modal
+        openConfirmLog(catId, true);
+      } else {
+        // Uncheck directly
+        cat.checked = false;
+        cat.notes   = '';
+        saveTrackers();
+        render();
+      }
+    });
+  });
+
+  // Edit category (name, amount, due date click)
+  tbody.querySelectorAll('[data-edit-cat]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openEditCategory(el.dataset.editCat, el.dataset.groupId);
+    });
+  });
+
+  // Edit group name
+  tbody.querySelectorAll('[data-edit-group]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openEditGroup(el.dataset.editGroup);
+    });
+  });
+
+  // Add category from group row or empty state
+  tbody.querySelectorAll('[data-add-cat-group]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openAddCategory(el.dataset.addCatGroup);
+    });
+  });
+
+  // Notes
+  tbody.querySelectorAll('[data-notes-cat]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openNotes(el.dataset.notesCat);
+    });
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════ */
+function showToast(type, msg) {
+  const area = document.getElementById('toast-area');
+  const el   = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span class="toast-msg">${escHtml(msg)}</span><button class="toast-close" aria-label="Dismiss">×</button>`;
+  el.querySelector('.toast-close').addEventListener('click', () => el.remove());
+  area.appendChild(el);
+  let timer = setTimeout(() => el.remove(), 10000);
+  el.addEventListener('mouseenter', () => clearTimeout(timer));
+  el.addEventListener('mouseleave', () => { timer = setTimeout(() => el.remove(), 5000); });
+}
+
+/* ═══════════════════════════════════════════════
+   MONTH NAVIGATION
+═══════════════════════════════════════════════ */
+function goPrevMonth() {
+  viewMonth--;
+  if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+  render();
+}
+
+function goNextMonth() {
+  viewMonth++;
+  if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+  render();
+}
+
+/* ═══════════════════════════════════════════════
+   CREATE TRACKER FOR CURRENT MONTH
+═══════════════════════════════════════════════ */
+function createTrackerForMonth() {
+  const key = getCurrentKey();
+  if (allTrackers[key]) return; // already exists
+
+  // Use template if available, else start blank
+  if (trackerTemplate) {
+    allTrackers[key] = deepClone(deepCloneStructure(trackerTemplate));
+  } else {
+    allTrackers[key] = { groups: [] };
+  }
+  saveTrackers();
+  render();
+  showToast('success', `Tracker created for ${monthLabel(viewYear, viewMonth)}.`);
+}
+
+/* ═══════════════════════════════════════════════
+   SETTINGS MODAL
+═══════════════════════════════════════════════ */
+function openSettings() {
+  document.getElementById('set-token').value     = ynab.token;
+  document.getElementById('set-budget-id').value = ynab.budgetId;
+  document.getElementById('set-sw-proxy').value  = sw.proxyUrl;
+  document.getElementById('set-gh-token').value  = gh.token;
+  document.getElementById('set-gh-owner').value  = gh.owner;
+  document.getElementById('set-gh-repo').value   = gh.repo;
+  document.getElementById('set-gh-branch').value = gh.branch || 'main';
+  openOverlay('settings-overlay');
+}
+
+function closeSettings() { closeOverlay('settings-overlay'); }
+
+function toggleEye() {
+  const inp = document.getElementById('set-token');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+document.getElementById('settings-done-btn').addEventListener('click', () => {
+  const token    = document.getElementById('set-token').value.trim();
+  const budgetId = document.getElementById('set-budget-id').value.trim();
+  const proxy    = document.getElementById('set-sw-proxy').value.trim();
+  const ghToken  = document.getElementById('set-gh-token').value.trim();
+  const ghOwner  = document.getElementById('set-gh-owner').value.trim();
+  const ghRepo   = document.getElementById('set-gh-repo').value.trim();
+  const ghBranch = document.getElementById('set-gh-branch').value.trim() || 'main';
+
+  if (token)    { localStorage.setItem('ynab_token', token);        ynab.token    = token; }
+  if (budgetId) { localStorage.setItem('ynab_budget_id', budgetId); ynab.budgetId = budgetId; }
+  if (proxy)    { localStorage.setItem('sw_proxy_url', proxy);      sw.proxyUrl   = proxy; }
+  if (ghToken)  { localStorage.setItem('gh_token', ghToken);        gh.token      = ghToken; }
+  if (ghOwner)  { localStorage.setItem('gh_owner', ghOwner);        gh.owner      = ghOwner; }
+  if (ghRepo)   { localStorage.setItem('gh_repo', ghRepo);          gh.repo       = ghRepo; }
+  localStorage.setItem('gh_branch', ghBranch); gh.branch = ghBranch;
+
+  closeSettings();
+  init();
+});
+
+document.getElementById('clear-cache-btn').addEventListener('click', () => {
+  localStorage.removeItem(CACHE_KEY_TRACKERS);
+  localStorage.removeItem(CACHE_KEY_TEMPLATE);
+  localStorage.removeItem(CACHE_KEY_GH_SHA);
+  allTrackers     = {};
+  trackerTemplate = null;
+  gh.sha          = null;
+  closeSettings();
+  showToast('success', 'Local cache cleared. Reloading from GitHub…');
+  init();
+});
+
+/* ═══════════════════════════════════════════════
+   ADD / EDIT CATEGORY GROUP
+═══════════════════════════════════════════════ */
+function openAddGroup() {
+  if (!currentTracker) {
+    showToast('warning', 'Create a tracker for this month first.');
+    return;
+  }
+  document.getElementById('add-group-name').value = '';
+  openOverlay('add-group-overlay');
+  setTimeout(() => document.getElementById('add-group-name').focus(), 50);
+}
+
+document.getElementById('add-group-submit').addEventListener('click', () => {
+  const name = document.getElementById('add-group-name').value.trim();
+  if (!name) { showToast('error', 'Please enter a group name.'); return; }
+
+  const group = { id: uid(), name, categories: [] };
+  currentTracker.groups.push(group);
+  saveTrackers();
+  syncTemplate();
+  closeOverlay('add-group-overlay');
+  render();
+  showToast('success', `Group "${name}" added.`);
+});
+
+function openEditGroup(groupId) {
+  const group = getGroup(groupId);
+  if (!group) return;
+  editingGroupId = groupId;
+  document.getElementById('edit-group-name').value = group.name;
+  openOverlay('edit-group-overlay');
+  setTimeout(() => document.getElementById('edit-group-name').focus(), 50);
+}
+
+document.getElementById('edit-group-submit').addEventListener('click', () => {
+  const group = getGroup(editingGroupId);
+  if (!group) return;
+  const name = document.getElementById('edit-group-name').value.trim();
+  if (!name) { showToast('error', 'Group name cannot be empty.'); return; }
+  group.name = name;
+  saveTrackers();
+  syncTemplate();
+  closeOverlay('edit-group-overlay');
+  render();
+});
+
+document.getElementById('delete-group-btn').addEventListener('click', () => {
+  const group = getGroup(editingGroupId);
+  if (!group) return;
+  if (!confirm(`Delete group "${group.name}" and all its categories?`)) return;
+  currentTracker.groups = currentTracker.groups.filter(g => g.id !== editingGroupId);
+  saveTrackers();
+  syncTemplate();
+  closeOverlay('edit-group-overlay');
+  render();
+  showToast('success', 'Group deleted.');
+});
+
+/* ═══════════════════════════════════════════════
+   ADD / EDIT CATEGORY
+═══════════════════════════════════════════════ */
+let currentCatType   = 'solo';
+let currentSplitType = 'equal';
+
+function setCatType(type) {
+  currentCatType = type;
+  document.querySelectorAll('#cat-type-toggle .share-type-option').forEach(b => {
+    b.classList.toggle('active', b.dataset.type === type);
+  });
+  document.getElementById('shared-options').style.display = type === 'shared' ? '' : 'none';
+}
+
+function setSplitType(type) {
+  currentSplitType = type;
+  document.querySelectorAll('#split-type-toggle .share-type-option').forEach(b => {
+    b.classList.toggle('active', b.dataset.split === type);
+  });
+  const hint = document.getElementById('split-type-hint');
+  const fixedField = document.getElementById('fixed-amount-field');
+  if (type === 'equal') {
+    hint.textContent = 'You each pay half. "Me" column shows your share.';
+    fixedField.style.display = 'none';
+  } else {
+    hint.textContent = 'Set your share below. The rest goes to your friend.';
+    fixedField.style.display = '';
+  }
+}
+
+function populateFriendSelect(selectedId) {
+  const sel = document.getElementById('add-cat-sw-friend');
+  sel.innerHTML = '<option value="">— Select Friend —</option>';
+  for (const f of allFriends) {
+    const opt = document.createElement('option');
+    opt.value = f.id;
+    opt.textContent = f.name + (f.accountLabel ? ` (${f.accountLabel})` : '');
+    if (String(f.id) === String(selectedId)) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
+
+function populateYNABSelect(selectedId) {
+  const sel = document.getElementById('add-cat-ynab');
+  sel.innerHTML = '<option value="">— Select YNAB Category —</option>';
+  // Group by category group
+  const groups = {};
+  for (const c of ynab.categories) {
+    if (!groups[c.group]) groups[c.group] = [];
+    groups[c.group].push(c);
+  }
+  for (const [groupName, cats] of Object.entries(groups)) {
+    const optgroup = document.createElement('optgroup');
+    optgroup.label = groupName;
+    for (const c of cats) {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.name;
+      if (c.id === selectedId) opt.selected = true;
+      optgroup.appendChild(opt);
+    }
+    sel.appendChild(optgroup);
+  }
+}
+
+function openAddCategory(groupId) {
+  editingCatId    = null;
+  editingCatGroup = groupId;
+  document.getElementById('add-cat-title').textContent = 'Add Category';
+  document.getElementById('add-cat-submit').textContent = 'Add Category';
+  document.getElementById('delete-cat-btn').style.display = 'none';
+
+  // Reset form
+  document.getElementById('add-cat-name').value    = '';
+  document.getElementById('add-cat-due').value     = '';
+  document.getElementById('add-cat-amount').value  = '';
+  document.getElementById('add-cat-my-share').value = '';
+  setCatType('solo');
+  setSplitType('equal');
+  populateYNABSelect(null);
+  populateFriendSelect(null);
+
+  openOverlay('add-cat-overlay');
+  setTimeout(() => document.getElementById('add-cat-name').focus(), 50);
+}
+
+function openEditCategory(catId, groupId) {
+  const cat = getCategory(catId);
+  if (!cat) return;
+  editingCatId    = catId;
+  editingCatGroup = groupId;
+
+  document.getElementById('add-cat-title').textContent   = 'Edit Category';
+  document.getElementById('add-cat-submit').textContent  = 'Save Changes';
+  document.getElementById('delete-cat-btn').style.display = '';
+
+  document.getElementById('add-cat-name').value   = cat.name;
+  document.getElementById('add-cat-due').value    = cat.dueDay || '';
+  document.getElementById('add-cat-amount').value = cat.amount || '';
+  document.getElementById('add-cat-my-share').value = cat.myShare || '';
+
+  setCatType(cat.type || 'solo');
+  setSplitType(cat.splitType || 'equal');
+  populateYNABSelect(cat.ynabCategoryId);
+  populateFriendSelect(cat.swFriendId);
+
+  openOverlay('add-cat-overlay');
+  setTimeout(() => document.getElementById('add-cat-name').focus(), 50);
+}
+
+document.getElementById('add-cat-submit').addEventListener('click', () => {
+  const name   = document.getElementById('add-cat-name').value.trim();
+  const dueDay = parseInt(document.getElementById('add-cat-due').value, 10) || null;
+  const amount = parseFloat(document.getElementById('add-cat-amount').value) || 0;
+  const ynabSel = document.getElementById('add-cat-ynab');
+  const ynabCategoryId   = ynabSel.value || '';
+  const ynabCategoryName = ynabSel.options[ynabSel.selectedIndex]?.text || '';
+
+  if (!name)           { showToast('error', 'Please enter a category name.'); return; }
+  if (!ynabCategoryId) { showToast('error', 'Please select a YNAB category.'); return; }
+  if (amount <= 0)     { showToast('error', 'Please enter a valid amount.'); return; }
+
+  let swFriendId = null, swFriendName = null, splitType = 'equal', myShare = null;
+  if (currentCatType === 'shared') {
+    const swSel = document.getElementById('add-cat-sw-friend');
+    swFriendId   = swSel.value || null;
+    swFriendName = swSel.options[swSel.selectedIndex]?.text || null;
+    splitType    = currentSplitType;
+    if (splitType === 'fixed') {
+      myShare = parseFloat(document.getElementById('add-cat-my-share').value) || null;
+      if (myShare == null || myShare <= 0) {
+        showToast('error', 'Please enter your fixed share amount.'); return;
+      }
+    }
+  }
+
+  const group = getGroup(editingCatGroup);
+  if (!group) return;
+
+  if (editingCatId) {
+    // Edit existing
+    const cat = group.categories.find(c => c.id === editingCatId);
+    if (cat) {
+      cat.name             = name;
+      cat.dueDay           = dueDay;
+      cat.amount           = amount;
+      cat.ynabCategoryId   = ynabCategoryId;
+      cat.ynabCategoryName = ynabCategoryName;
+      cat.type             = currentCatType;
+      cat.swFriendId       = swFriendId;
+      cat.swFriendName     = swFriendName;
+      cat.splitType        = splitType;
+      cat.myShare          = myShare;
+    }
+  } else {
+    // New category
+    group.categories.push({
+      id:               uid(),
+      name,
+      ynabCategoryId,
+      ynabCategoryName,
+      dueDay,
+      amount,
+      type:             currentCatType,
+      swFriendId,
+      swFriendName,
+      splitType,
+      myShare,
+      checked:          false,
+      notes:            '',
+    });
+  }
+
+  saveTrackers();
+  syncTemplate();
+  closeOverlay('add-cat-overlay');
+  render();
+  showToast('success', editingCatId ? 'Category updated.' : `Category "${name}" added.`);
+});
+
+document.getElementById('delete-cat-btn').addEventListener('click', () => {
+  const cat = getCategory(editingCatId);
+  if (!cat) return;
+  if (!confirm(`Delete category "${cat.name}"?`)) return;
+  const group = getGroup(editingCatGroup);
+  if (group) {
+    group.categories = group.categories.filter(c => c.id !== editingCatId);
+  }
+  saveTrackers();
+  syncTemplate();
+  closeOverlay('add-cat-overlay');
+  render();
+  showToast('success', 'Category deleted.');
+});
+
+/* ═══════════════════════════════════════════════
+   NOTES MODAL
+═══════════════════════════════════════════════ */
+function openNotes(catId) {
+  const cat = getCategory(catId);
+  if (!cat) return;
+  notesCatId = catId;
+  document.getElementById('notes-cat-label').textContent = cat.name;
+  document.getElementById('notes-textarea').value = cat.notes || '';
+  openOverlay('notes-overlay');
+  setTimeout(() => document.getElementById('notes-textarea').focus(), 50);
+}
+
+document.getElementById('notes-save-btn').addEventListener('click', () => {
+  const cat = getCategory(notesCatId);
+  if (!cat) return;
+  cat.notes = document.getElementById('notes-textarea').value.trim();
+  saveTrackers();
+  closeOverlay('notes-overlay');
+  render();
+});
+
+document.getElementById('notes-cancel-btn').addEventListener('click', () => closeOverlay('notes-overlay'));
+
+/* ═══════════════════════════════════════════════
+   CONFIRM LOG MODAL
+═══════════════════════════════════════════════ */
+function openConfirmLog(catId, checking) {
+  const cat = getCategory(catId);
+  if (!cat) return;
+
+  confirmCatId    = catId;
+  confirmChecking = checking;
+
+  const myAmt     = myShareOf(cat);
+  const friendAmt = cat.type === 'shared' ? friendShareOf(cat) : null;
+
+  document.getElementById('confirm-title').textContent    = 'Log Expense';
+  document.getElementById('confirm-subtitle').textContent =
+    `Confirm logging "${cat.name}" for ${monthLabel(viewYear, viewMonth)}.`;
+
+  // Details
+  let detailsHtml = '';
+  detailsHtml += row('Category', escHtml(cat.ynabCategoryName || cat.name));
+  detailsHtml += row('Total Amount', `₱${fmt(cat.amount)}`);
+  detailsHtml += row('My Share', `₱${fmt(myAmt)}`);
+  if (cat.dueDay) detailsHtml += row('Date', fmtDueDate(cat.dueDay));
+  document.getElementById('confirm-details').innerHTML = detailsHtml;
+
+  // Account dropdown — populate from loaded accounts, pre-select last used
+  const lastAccountId = localStorage.getItem('ynab_account_id') || '';
+  const acctSel = document.getElementById('confirm-account-id');
+  acctSel.innerHTML = '<option value="">— Select Account —</option>';
+  for (const a of ynab.accounts) {
+    const opt = document.createElement('option');
+    opt.value = a.id;
+    opt.textContent = a.name;
+    if (a.id === lastAccountId) opt.selected = true;
+    acctSel.appendChild(opt);
+  }
+
+  // Splitwise section
+  const swSection = document.getElementById('confirm-sw-section');
+  const swCheck   = document.getElementById('confirm-sw-check');
+  const swDetails = document.getElementById('confirm-sw-details');
+  if (cat.type === 'shared' && cat.swFriendId && sw.proxyUrl) {
+    swSection.style.display = '';
+    swCheck.checked = true;
+    swDetails.innerHTML =
+      `Split with <strong>${escHtml(cat.swFriendName || 'friend')}</strong>: ` +
+      `You owe ₱${fmt(myAmt)}, they owe ₱${fmt(friendAmt)}.`;
+  } else {
+    swSection.style.display = 'none';
+  }
+
+  openOverlay('confirm-overlay');
+}
+
+function row(label, value) {
+  return `<div class="confirm-detail-row">
+    <span class="confirm-detail-label">${label}</span>
+    <span class="confirm-detail-value">${value}</span>
+  </div>`;
+}
+
+document.getElementById('confirm-log-btn').addEventListener('click', async () => {
+  const cat = getCategory(confirmCatId);
+  if (!cat) return;
+
+  const accountId = document.getElementById('confirm-account-id').value;
+  if (!accountId) {
+    showToast('error', 'Please select a YNAB account.');
+    document.getElementById('confirm-account-id').focus();
+    return;
+  }
+
+  const btn = document.getElementById('confirm-log-btn');
+  btn.disabled = true;
+  btn.textContent = 'Logging…';
+
+  // Persist last-used account for next time
+  localStorage.setItem('ynab_account_id', accountId);
+  ynab.accountId = accountId;
+
+  const notes = cat.notes || '';
+  const logSW = document.getElementById('confirm-sw-check').checked &&
+                cat.type === 'shared' && cat.swFriendId;
+
+  try {
+    await logYNABTransaction(cat, notes, accountId);
+    if (logSW) {
+      try {
+        await logSplitwiseExpense(cat, notes);
+      } catch (swErr) {
+        showToast('warning', 'YNAB logged, but Splitwise failed: ' + swErr.message);
+      }
+    }
+
+    cat.checked = true;
+    saveTrackers();
+    closeOverlay('confirm-overlay');
+    render();
+    showToast('success', `"${cat.name}" logged successfully.`);
+  } catch (e) {
+    showToast('error', 'Failed: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Log Expense';
+  }
+});
+
+document.getElementById('confirm-cancel-btn').addEventListener('click', () => closeOverlay('confirm-overlay'));
+
+/* ═══════════════════════════════════════════════
+   OVERLAY HELPERS
+═══════════════════════════════════════════════ */
+function openOverlay(id) {
+  document.getElementById(id).classList.add('open');
+}
+
+function closeOverlay(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// Close on backdrop click
+document.querySelectorAll('.overlay').forEach(ov => {
+  ov.addEventListener('click', (e) => {
+    if (e.target === ov) ov.classList.remove('open');
+  });
+});
+
+// Close on Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  document.querySelectorAll('.overlay.open').forEach(ov => ov.classList.remove('open'));
+});
+
+/* ═══════════════════════════════════════════════
+   WIRE UP BUTTONS
+═══════════════════════════════════════════════ */
+document.getElementById('prev-month-btn').addEventListener('click', goPrevMonth);
+document.getElementById('next-month-btn').addEventListener('click', goNextMonth);
+document.getElementById('create-tracker-btn').addEventListener('click', createTrackerForMonth);
+document.getElementById('add-group-btn').addEventListener('click', openAddGroup);
+document.getElementById('settings-btn').addEventListener('click', openSettings);
+document.getElementById('settings-close').addEventListener('click', closeSettings);
+document.getElementById('add-group-close').addEventListener('click', () => closeOverlay('add-group-overlay'));
+document.getElementById('add-group-cancel').addEventListener('click', () => closeOverlay('add-group-overlay'));
+document.getElementById('edit-group-close').addEventListener('click', () => closeOverlay('edit-group-overlay'));
+document.getElementById('edit-group-cancel').addEventListener('click', () => closeOverlay('edit-group-overlay'));
+document.getElementById('add-cat-close').addEventListener('click', () => closeOverlay('add-cat-overlay'));
+document.getElementById('add-cat-cancel').addEventListener('click', () => closeOverlay('add-cat-overlay'));
+document.getElementById('notes-close').addEventListener('click', () => closeOverlay('notes-overlay'));
+document.getElementById('confirm-close').addEventListener('click', () => closeOverlay('confirm-overlay'));
+document.getElementById('refresh-btn').addEventListener('click', () => init());
+
+// Enter key submits focused modal
+document.getElementById('add-group-name').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('add-group-submit').click();
+});
+document.getElementById('edit-group-name').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('edit-group-submit').click();
+});
+
+/* ═══════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════ */
+async function init() {
+  render(); // render immediately from localStorage cache
+
+  if (!ynab.token || !ynab.budgetId) {
+    showToast('warning', 'YNAB not connected. Open Settings to add your token and budget.');
+  }
+
+  // Load from GitHub (primary storage) and YNAB categories in parallel
+  const tasks = [];
+  if (ghConfigured()) {
+    tasks.push(loadFromGitHub());
+  } else {
+    document.getElementById('tracker-status-label').textContent =
+      'Configure GitHub sync in Settings to save across devices.';
+  }
+  if (ynab.token && ynab.budgetId) {
+    tasks.push(loadYNABCategories());
+  }
+  await Promise.all(tasks);
+
+  // Load Splitwise friends
+  if (sw.proxyUrl && sw.accounts.length > 0) {
+    try { await loadSWUser(); await loadSWFriends(); } catch { /* non-fatal */ }
+  }
+
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
