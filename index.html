@@ -354,6 +354,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    padding: 10px 0;
   }
 
   .split-row input[type="text"] { flex: 1; min-width: 0; }
@@ -485,10 +486,16 @@
     z-index: 100;
     background: var(--card);
     border-top: 1px solid var(--border);
-    padding: 12px 24px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Main row: Save button + toggle + YNAB status */
+  .bottom-bar-main {
     display: flex;
     align-items: center;
     gap: 12px;
+    padding: 12px 24px;
   }
 
   .bottom-bar-left { display: flex; align-items: center; gap: 10px; }
@@ -762,6 +769,42 @@
   }
 
   .preset-delete:hover { color: var(--error); }
+
+  /* ── Preset Suggestions (below Payee field) ── */
+  .preset-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .preset-suggestions:empty { display: none; }
+
+  .preset-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-sec);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    user-select: none;
+    -webkit-user-select: none;
+    white-space: nowrap;
+  }
+
+  .preset-chip:hover {
+    background: var(--accent-light);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .preset-chip-icon { font-size: 11px; opacity: 0.7; }
 
   /* ── Batch Table ── */
   .batch-toolbar {
@@ -1511,31 +1554,28 @@
     margin: 18px 0;
   }
 
-  /* ── Splitwise panel (below bottom bar toggle) ── */
+  /* ── Splitwise panel — second row inside the bottom bar ── */
   .sw-panel {
-    position: fixed;
-    bottom: 57px;
-    left: 0;
-    right: 0;
-    z-index: 90;
-    background: var(--card);
-    border-top: 1px solid var(--border);
-    padding: 10px 24px;
     display: none;
     align-items: center;
     gap: 12px;
     flex-wrap: wrap;
+    padding: 10px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--card);
   }
 
   .sw-panel.open { display: flex; }
 
   @media (max-width: 540px) {
+    .bottom-bar-main {
+      padding: 10px 16px;
+    }
     .sw-panel {
       flex-direction: column;
       align-items: flex-start;
       gap: 6px;
-      padding: 8px 16px;
-      bottom: 105px;
+      padding: 10px 16px;
     }
     .sw-payer-wrap {
       margin-left: 0 !important;
@@ -1877,8 +1917,8 @@
 
   /* The circular delete button */
   .split-swipe-delete-btn {
-    width: 52px;
-    height: 52px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     background: var(--error);
     color: #fff;
@@ -2033,6 +2073,7 @@
                    aria-describedby="s-payee-err" aria-autocomplete="list" aria-controls="s-payee-list">
             <div class="dropdown-list" id="s-payee-list" role="listbox"></div>
           </div>
+          <div class="preset-suggestions" id="preset-suggestions" aria-label="Saved presets"></div>
           <span class="field-error" id="s-payee-err">Payee is required.</span>
         </div>
 
@@ -2168,18 +2209,33 @@
 
 <!-- ══ BOTTOM BAR ══ -->
 <div class="bottom-bar" role="toolbar" aria-label="Actions">
-  <button class="btn btn-primary" onclick="saveToYNAB()" id="save-ynab-btn">Save Transactions</button>
-  <label class="toggle-wrap" title="Also log to Splitwise">
-    <span class="toggle">
-      <input type="checkbox" id="splitwise-toggle" aria-label="Also log to Splitwise" onchange="onSplitwiseToggle(this)">
-      <span class="toggle-slider"></span>
+  <div class="bottom-bar-main">
+    <button class="btn btn-primary" onclick="saveToYNAB()" id="save-ynab-btn">Save Transactions</button>
+    <label class="toggle-wrap" title="Also log to Splitwise">
+      <span class="toggle">
+        <input type="checkbox" id="splitwise-toggle" aria-label="Also log to Splitwise" onchange="onSplitwiseToggle(this)">
+        <span class="toggle-slider"></span>
+      </span>
+      <span>Also log to Splitwise</span>
+    </label>
+    <span class="ynab-status disconnected" id="ynab-status-badge" style="margin-left:auto;">
+      <span class="ynab-status-dot"></span>
+      <span id="ynab-status-text">Not connected</span>
     </span>
-    <span>Also log to Splitwise</span>
-  </label>
-  <span class="ynab-status disconnected" id="ynab-status-badge" style="margin-left:auto;">
-    <span class="ynab-status-dot"></span>
-    <span id="ynab-status-text">Not connected</span>
-  </span>
+  </div>
+
+  <!-- ══ SPLITWISE STATUS PANEL ══ -->
+  <div class="sw-panel" id="sw-panel" role="status" aria-label="Splitwise status">
+    <span class="sw-panel-label">Splitwise</span>
+    <span id="sw-panel-status" class="sw-status-badge error">Not configured</span>
+    <span id="sw-panel-user" style="font-size:12px;color:var(--text-sec);"></span>
+    <div class="sw-payer-wrap" style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+      <label style="font-size:12px;color:var(--text-sec);white-space:nowrap;">Paying account:</label>
+      <select id="sw-active-account-select" class="sw-payer-select" onchange="onSwActiveAccountChange(this.value)" aria-label="Active Splitwise account" style="min-width:120px;">
+        <option value="">— select —</option>
+      </select>
+    </div>
+  </div>
 </div>
 
 <!-- ══ TOAST AREA ══ -->
@@ -2348,19 +2404,6 @@
   </div>
 </div>
 
-<!-- ══ SPLITWISE STATUS PANEL (above bottom bar) ══ -->
-<div class="sw-panel" id="sw-panel" role="status" aria-label="Splitwise status">
-  <span class="sw-panel-label">Splitwise</span>
-  <span id="sw-panel-status" class="sw-status-badge error">Not configured</span>
-  <span id="sw-panel-user" style="font-size:12px;color:var(--text-sec);"></span>
-  <div class="sw-payer-wrap" style="margin-left:auto;display:flex;align-items:center;gap:8px;">
-    <label style="font-size:12px;color:var(--text-sec);white-space:nowrap;">Paying account:</label>
-    <select id="sw-active-account-select" class="sw-payer-select" onchange="onSwActiveAccountChange(this.value)" aria-label="Active Splitwise account" style="min-width:120px;">
-      <option value="">— select —</option>
-    </select>
-  </div>
-</div>
-
 </body>
 
 <script>
@@ -2411,7 +2454,7 @@ let currentMode = 'single';
 let splitRowId = 0;
 let batchTxId = 0;
 let batchSplitId = 0;
-// Presets: array of { name, splits: [{category, categoryId, note}] }
+// Presets: array of { name, payee, payeeId, account, accountId, splits: [{payee, payeeId, category, categoryId}] }
 // Migrate legacy format (array of strings) gracefully
 let presets = (() => {
   try {
@@ -2505,6 +2548,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Render presets
   renderPresets();
+  renderPresetSuggestions();
+
+  // Focus the amount field immediately — before any async API calls
+  const amountEl = document.getElementById('s-amount');
+  if (amountEl) amountEl.focus();
+
+  // Sync body padding to bottom bar height (bar may grow if sw-panel is open)
+  syncBottomBarPadding();
 
   // Auto-connect if token exists
   if (ynab.token) {
@@ -2535,10 +2586,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Apply dev tools visibility based on saved flag
   applyDevToolsVisibility();
-
-  // Auto-focus Total Amount field
-  const amountEl = document.getElementById('s-amount');
-  if (amountEl) amountEl.focus();
 });
 
 /* ═══════════════════════════════════════════════
@@ -3252,7 +3299,7 @@ function addSplitRow(clearExisting = false) {
   deleteAction.setAttribute('aria-label', 'Delete split row');
   deleteAction.innerHTML = `
     <button class="split-swipe-delete-btn" aria-label="Delete">
-      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <polyline points="3 6 5 6 21 6"/>
         <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
         <path d="M10 11v6"/>
@@ -4797,36 +4844,126 @@ function savePreset() {
   const inp = document.getElementById('preset-name-input');
   const name = inp.value.trim();
   if (!name) return;
-  if (!presets.includes(name)) {
-    presets.push(name);
-    localStorage.setItem('splitnab_presets', JSON.stringify(presets));
-    renderPresets();
-  }
+
+  // Gather Transaction Details
+  const payeeInput   = document.getElementById('s-payee');
+  const accountInput = document.getElementById('s-account');
+  const payee        = payeeInput.value.trim();
+  const payeeId      = payeeInput.dataset.id || '';
+  const account      = accountInput.value.trim();
+  const accountId    = accountInput.dataset.id || '';
+
+  // Gather split rows — payee + category only
+  const splits = [];
+  document.querySelectorAll('#split-rows .split-row').forEach(row => {
+    const rid         = row.dataset.id;
+    const spPayeeEl   = document.getElementById(`sp-payee-${rid}`);
+    const catEl       = document.getElementById(`sc-${rid}`);
+    splits.push({
+      payee:      spPayeeEl ? spPayeeEl.value.trim()       : '',
+      payeeId:    spPayeeEl ? (spPayeeEl.dataset.id || '') : '',
+      category:   catEl     ? catEl.value.trim()           : '',
+      categoryId: catEl     ? (catEl.dataset.id || '')     : '',
+    });
+  });
+
+  // Remove old preset with same name, then add new one
+  presets = presets.filter(p => p.name !== name);
+  presets.push({ name, payee, payeeId, account, accountId, splits });
+  localStorage.setItem('splitnab_presets', JSON.stringify(presets));
+
+  renderPresets();
+  renderPresetSuggestions();
+
   inp.value = '';
+  // Close panel
+  document.getElementById('preset-panel').classList.remove('open');
+  document.getElementById('preset-btn').setAttribute('aria-expanded', 'false');
   showToast('success', `Preset "${name}" saved.`);
 }
 
 function deletePreset(name) {
-  presets = presets.filter(p => p !== name);
+  presets = presets.filter(p => p.name !== name);
   localStorage.setItem('splitnab_presets', JSON.stringify(presets));
   renderPresets();
+  renderPresetSuggestions();
+}
+
+function applyPreset(preset) {
+  // Fill Transaction Details
+  const payeeInput   = document.getElementById('s-payee');
+  const accountInput = document.getElementById('s-account');
+
+  if (preset.payee) {
+    payeeInput.value      = preset.payee;
+    payeeInput.dataset.id = preset.payeeId || '';
+  }
+  if (preset.account) {
+    accountInput.value      = preset.account;
+    accountInput.dataset.id = preset.accountId || '';
+  }
+
+  // Rebuild split rows to match preset splits
+  if (Array.isArray(preset.splits) && preset.splits.length > 0) {
+    // Remove all existing split rows
+    const container = document.getElementById('split-rows');
+    container.innerHTML = '';
+    splitRowId = 0;
+
+    // Re-add one row per preset split
+    preset.splits.forEach(s => {
+      addSplitRow();
+      const newId     = splitRowId;          // addSplitRow increments splitRowId
+      const spPayeeEl = document.getElementById(`sp-payee-${newId}`);
+      const catEl     = document.getElementById(`sc-${newId}`);
+
+      if (spPayeeEl && s.payee) {
+        spPayeeEl.value      = s.payee;
+        spPayeeEl.dataset.id = s.payeeId || '';
+      }
+      if (catEl && s.category) {
+        catEl.value      = s.category;
+        catEl.dataset.id = s.categoryId || '';
+      }
+    });
+  }
+
+  updateRemaining();
+  showToast('success', `Preset "${preset.name}" applied.`);
 }
 
 function renderPresets() {
   const list = document.getElementById('preset-list');
   list.innerHTML = '';
   if (presets.length === 0) {
-    list.innerHTML = '<span class="text-muted">No presets saved.</span>';
+    list.innerHTML = '<span style="font-size:12px;color:var(--text-muted);">No presets saved.</span>';
     return;
   }
-  presets.forEach(name => {
+  presets.forEach(p => {
+    const name = p.name || p;   // graceful fallback if somehow old format crept in
     const item = document.createElement('div');
     item.className = 'preset-item';
     item.innerHTML = `
       <span>${escHtml(name)}</span>
-      <button class="preset-delete" onclick="deletePreset('${escHtml(name)}')" aria-label="Delete preset ${escHtml(name)}">×</button>
+      <button class="preset-delete" onclick="deletePreset('${escHtml(name).replace(/'/g,'\\\'')}')" aria-label="Delete preset ${escHtml(name)}">×</button>
     `;
     list.appendChild(item);
+  });
+}
+
+function renderPresetSuggestions() {
+  const container = document.getElementById('preset-suggestions');
+  if (!container) return;
+  container.innerHTML = '';
+  presets.forEach(p => {
+    const name = p.name || p;
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'preset-chip';
+    chip.setAttribute('aria-label', `Apply preset: ${name}`);
+    chip.innerHTML = `<span class="preset-chip-icon">⚡</span>${escHtml(name)}`;
+    chip.addEventListener('click', () => applyPreset(p));
+    container.appendChild(chip);
   });
 }
 
@@ -5293,6 +5430,14 @@ function onSplitwiseToggle(checkbox) {
     // Re-render to remove Splitwise selects from split rows
     refreshSplitwiseUI();
   }
+  syncBottomBarPadding();
+}
+
+function syncBottomBarPadding() {
+  requestAnimationFrame(() => {
+    const bar = document.querySelector('.bottom-bar');
+    if (bar) document.body.style.paddingBottom = bar.offsetHeight + 'px';
+  });
 }
 
 /* ═══════════════════════════════════════════════
