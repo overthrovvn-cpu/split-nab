@@ -7,6 +7,8 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f6ef7'/%3E%3Ctext x='16' y='22' font-family='-apple-system,BlinkMacSystemFont,sans-serif' font-size='14' font-weight='700' fill='white' text-anchor='middle'%3ESN%3C/text%3E%3C/svg%3E">
 <!-- PDF.js for in-browser PDF text extraction -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- Material Icons -->
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -67,6 +69,19 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .header-divider {
+    width: 1px;
+    height: 18px;
+    background: var(--border);
+    margin: 0 4px;
   }
 
   .app-name {
@@ -1761,8 +1776,8 @@
   .nav-link {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 6px 12px;
+    gap: 4px;
+    padding: 5px 11px;
     border-radius: var(--radius);
     font-size: 13px;
     font-weight: 500;
@@ -1770,8 +1785,16 @@
     background: transparent;
     border: 1px solid var(--border);
     text-decoration: none;
-    transition: background 0.15s, color 0.15s;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
     white-space: nowrap;
+    cursor: pointer;
+    font-family: var(--font);
+    line-height: 1;
+  }
+
+  .nav-link .material-icons {
+    font-size: 16px;
+    line-height: 1;
   }
 
   .nav-link:hover { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
@@ -1781,6 +1804,37 @@
     display: none;
     position: relative;
     margin-left: auto;
+  }
+
+  /* Mobile: title+chevron trigger replaces hamburger icon */
+  .mobile-nav-trigger {
+    display: none;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: var(--font);
+  }
+
+  .mobile-nav-trigger .app-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.3px;
+  }
+
+  .mobile-nav-chevron {
+    font-size: 13px;
+    color: var(--accent);
+    display: inline-block;
+    transition: transform 0.2s ease;
+    line-height: 1;
+  }
+
+  .mobile-nav-trigger[aria-expanded="true"] .mobile-nav-chevron {
+    transform: rotate(180deg);
   }
 
   .hamburger-btn {
@@ -1803,7 +1857,7 @@
     display: none;
     position: absolute;
     top: calc(100% + 8px);
-    right: 0;
+    left: 0;
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -1827,11 +1881,22 @@
     transition: background 0.15s;
   }
 
+  .hamburger-item .material-icons {
+    font-size: 18px;
+    color: var(--text-sec);
+  }
+
   .hamburger-item:hover { background: var(--accent-light); color: var(--accent); }
+  .hamburger-item:hover .material-icons { color: var(--accent); }
 
   @media (max-width: 640px) {
     .nav-link { display: none; }
+    .header-divider { display: none; }
     .hamburger-wrap { display: block; }
+    /* Hide the desktop app-name span; the trigger button shows it instead */
+    .header-left > .app-name { display: none; }
+    .mobile-nav-trigger { display: inline-flex; }
+    .header-left { position: relative; }
   }
 
   /* ── Expandable details section (Transaction Details) ── */
@@ -1998,14 +2063,34 @@
 
 <!-- ══ HEADER ══ -->
 <header>
-  <span class="app-name">Split-NAB</span>
-  <div style="display:flex;align-items:center;gap:10px;">
+  <div class="header-left">
+    <span class="app-name">Split-NAB</span>
+    <!-- Mobile: title + chevron trigger -->
+    <button class="mobile-nav-trigger" id="hamburger-btn" aria-label="Menu" aria-expanded="false" onclick="toggleHamburger()">
+      <span class="app-name">Split-NAB</span>
+      <span class="mobile-nav-chevron">&#8964;</span>
+    </button>
+    <div class="hamburger-menu" id="hamburger-menu">
+      <a href="installments.html" class="hamburger-item">
+        <span class="material-icons">table_chart</span>
+        Installments
+      </a>
+      <button class="hamburger-item" onclick="openSettings(); toggleHamburger()" style="width:100%;background:none;border:none;cursor:pointer;text-align:left;">
+        <span class="material-icons">settings</span>
+        Settings
+      </button>
+    </div>
+    <div class="header-divider"></div>
     <a href="installments.html" class="nav-link" aria-label="Go to Installments tracker">
-      📋 Installments
+      <span class="material-icons">table_chart</span>
+      Installments
     </a>
     <button class="nav-link" id="settings-btn" onclick="openSettings()" aria-label="Settings">
-      ⚙ Settings
+      <span class="material-icons">settings</span>
+      Settings
     </button>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
     <div class="mode-toggle" role="group" aria-label="View mode">
       <span class="mode-toggle-slider" id="mode-slider"></span>
       <button id="btn-single" class="active" aria-pressed="true" onclick="setMode('single')">Single Entry</button>
@@ -2031,16 +2116,7 @@
         });
       })();
     </script>
-    <!-- Hamburger menu (mobile only) -->
-    <div class="hamburger-wrap">
-      <button class="hamburger-btn" id="hamburger-btn" aria-label="Menu" aria-expanded="false" onclick="toggleHamburger()">
-        <span class="hamburger-icon">☰</span>
-      </button>
-      <div class="hamburger-menu" id="hamburger-menu">
-        <a href="installments.html" class="hamburger-item">📋 Installments</a>
-        <button class="hamburger-item" onclick="openSettings(); toggleHamburger()" style="width:100%;background:none;border:none;cursor:pointer;text-align:left;">⚙ Settings</button>
-      </div>
-    </div>
+    <!-- Hamburger menu removed — now attached to mobile-nav-trigger in header-left -->
   </div>
 </header>
 
@@ -2431,13 +2507,12 @@ function toggleHamburger() {
 
 // Close hamburger when clicking outside
 document.addEventListener('click', (e) => {
-  const wrap = document.querySelector('.hamburger-wrap');
-  if (wrap && !wrap.contains(e.target)) {
-    const menu = document.getElementById('hamburger-menu');
-    const btn  = document.getElementById('hamburger-btn');
-    if (menu && menu.classList.contains('open')) {
+  const trigger = document.getElementById('hamburger-btn');
+  const menu    = document.getElementById('hamburger-menu');
+  if (trigger && menu && !trigger.contains(e.target) && !menu.contains(e.target)) {
+    if (menu.classList.contains('open')) {
       menu.classList.remove('open');
-      btn.setAttribute('aria-expanded', 'false');
+      trigger.setAttribute('aria-expanded', 'false');
     }
   }
 });
