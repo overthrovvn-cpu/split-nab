@@ -345,7 +345,7 @@
     color: var(--error);
   }
 
-  .split-rows { display: flex; flex-direction: column; gap: 8px; }
+  .split-rows { display: flex; flex-direction: column; gap: 10px; }
 
   /* ── Desktop split row: all fields in one flex line ── */
   .split-row {
@@ -364,7 +364,7 @@
       flex-direction: column;
       align-items: flex-start;
       gap: 0;
-      padding: 12px;
+      padding: 16px;
       background: var(--bg);
       border: 1px solid var(--border);
       border-radius: var(--radius);
@@ -373,13 +373,11 @@
     /* Field labels inside split row — only visible on mobile */
     .split-field-label {
       display: block;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 4px;
-      margin-top: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-sec);
+      margin-bottom: 5px;
+      margin-top: 14px;
       text-align: left;
     }
 
@@ -405,14 +403,59 @@
     /* Hide the old amount-row delete button */
     .split-row .split-row-amount-row .btn-danger-ghost { display: none; }
 
-    /* Note takes full width */
-    .split-row .split-row-note { width: 100%; }
+    /* Note expand button — mobile only */
+    .split-note-toggle {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 12px;
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent);
+      cursor: pointer;
+      font-family: var(--font);
+    }
+
+    .split-note-toggle .note-chevron {
+      font-size: 10px;
+      transition: transform 0.2s ease;
+      display: inline-block;
+    }
+
+    .split-note-toggle.open .note-chevron {
+      transform: rotate(180deg);
+    }
+
+    /* Note field collapses on mobile */
+    .split-row-note {
+      width: 100%;
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transition: max-height 0.25s ease, opacity 0.2s ease;
+    }
+
+    .split-row-note.open {
+      max-height: 80px;
+      opacity: 1;
+    }
+
+    /* Label inside note — spacing matches other labels */
+    .split-row-note .split-field-label {
+      margin-top: 10px;
+    }
   }
 
   /* ── Desktop: unwrap the mobile helper divs so layout stays flat ── */
   @media (min-width: 641px) {
     /* Labels are hidden on desktop */
     .split-field-label { display: none; }
+
+    /* Note toggle button is hidden on desktop */
+    .split-note-toggle { display: none; }
 
     /* Unwrap amount-row div — its children join the parent flex directly */
     .split-row .split-row-amount-row {
@@ -445,12 +488,16 @@
     padding: 12px 24px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 12px;
   }
 
   .bottom-bar-left { display: flex; align-items: center; gap: 10px; }
   .bottom-bar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+  /* Hide YNAB status badge on mobile */
+  @media (max-width: 640px) {
+    #ynab-status-badge { display: none !important; }
+  }
 
   .btn-icon {
     background: transparent;
@@ -719,11 +766,58 @@
   /* ── Batch Table ── */
   .batch-toolbar {
     display: flex;
+    flex-direction: column;
+    margin-bottom: 18px;
+    gap: 8px;
+  }
+
+  /* Row 1: title+selection on left, primary actions on right */
+  .batch-toolbar-row1 {
+    display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 18px;
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+
+  .batch-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     flex-wrap: wrap;
-    gap: 10px;
+    min-width: 0;
+  }
+
+  .batch-toolbar-primary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  /* Row 2: secondary actions — always visible on desktop, below on mobile */
+  .batch-toolbar-row2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* On desktop, collapse both rows back into a single flex line */
+  @media (min-width: 641px) {
+    .batch-toolbar {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .batch-toolbar-row1 {
+      flex: 1;
+      justify-content: flex-start;
+    }
+    .batch-toolbar-row2 {
+      flex-shrink: 0;
+    }
   }
 
   .batch-title { font-size: 15px; font-weight: 600; }
@@ -1275,25 +1369,6 @@
 
   .batch-focus-mode table {
     min-width: unset;
-  }
-
-  .focus-mode-close {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 6px 12px;
-    cursor: pointer;
-    font-size: 13px;
-    color: var(--text-sec);
-    transition: background 0.15s;
-    font-family: var(--font);
-  }
-
-  .focus-mode-close:hover {
-    background: var(--border);
   }
 
   /* ── Split row minus badge on left ── */
@@ -1871,6 +1946,9 @@
     <a href="installments.html" class="nav-link" aria-label="Go to Installments tracker">
       📋 Installments
     </a>
+    <button class="nav-link" id="settings-btn" onclick="openSettings()" aria-label="Settings">
+      ⚙ Settings
+    </button>
     <div class="mode-toggle" role="group" aria-label="View mode">
       <span class="mode-toggle-slider" id="mode-slider"></span>
       <button id="btn-single" class="active" aria-pressed="true" onclick="setMode('single')">Single Entry</button>
@@ -1903,6 +1981,7 @@
       </button>
       <div class="hamburger-menu" id="hamburger-menu">
         <a href="installments.html" class="hamburger-item">📋 Installments</a>
+        <button class="hamburger-item" onclick="openSettings(); toggleHamburger()" style="width:100%;background:none;border:none;cursor:pointer;text-align:left;">⚙ Settings</button>
       </div>
     </div>
   </div>
@@ -2002,16 +2081,27 @@
   <section id="view-batch" class="view" aria-label="Batch mode">
     <div class="card">
       <div class="batch-toolbar">
-        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;">
-          <h2 class="batch-title">Batch Transactions</h2>
-          <span class="batch-selection-actions" id="batch-selection-actions">
-            <span class="selection-count" id="batch-selection-count">0 selected</span>
-            <button class="action-btn" onclick="batchSelectionSplit()" title="Split selected">✂ Split</button>
-            <button class="action-btn" onclick="batchSelectionBalance()" title="Balance selected">⚖ Balance</button>
-            <button class="action-btn danger" onclick="batchSelectionRemove()" title="Remove selected">✕ Remove</button>
-          </span>
+        <!-- Row 1: title + primary actions -->
+        <div class="batch-toolbar-row1">
+          <div class="batch-toolbar-left">
+            <h2 class="batch-title">Batch Transactions</h2>
+            <span class="batch-selection-actions" id="batch-selection-actions">
+              <span class="selection-count" id="batch-selection-count">0 selected</span>
+              <button class="action-btn" onclick="batchSelectionSplit()" title="Split selected">✂ Split</button>
+              <button class="action-btn" onclick="batchSelectionBalance()" title="Balance selected">⚖ Balance</button>
+              <button class="action-btn danger" onclick="batchSelectionRemove()" title="Remove selected">✕ Remove</button>
+            </span>
+          </div>
+          <div class="batch-toolbar-primary">
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('pdf-input').click()" id="pdf-import-btn">
+              ↑ Import PDF
+            </button>
+            <input type="file" id="pdf-input" accept=".pdf" style="display:none" aria-label="Import PDF statement">
+            <button class="btn btn-outline btn-sm" onclick="addBatchTransaction()">+ Add</button>
+          </div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;">
+        <!-- Row 2: secondary actions -->
+        <div class="batch-toolbar-row2">
           <button class="btn-maximize" id="batch-edit-btn" onclick="toggleBatchEditMode()" title="Edit mode">
             ✎ <span style="font-size:12px;">Edit</span>
           </button>
@@ -2022,15 +2112,10 @@
             ↑ Import CSV
           </button>
           <input type="file" id="csv-input" accept=".csv" style="display:none" aria-label="Import CSV file">
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('pdf-input').click()" id="pdf-import-btn">
-            ↑ Import BPI PDF
-          </button>
-          <input type="file" id="pdf-input" accept=".pdf" style="display:none" aria-label="Import BPI PDF statement">
           <button class="btn btn-ghost btn-sm" onclick="document.getElementById('pdf-debug-input').click()" id="pdf-debug-btn" title="Dumps extracted text to browser console for debugging">
             🔍 Debug PDF
           </button>
-          <input type="file" id="pdf-debug-input" accept=".pdf" style="display:none" aria-label="Debug BPI PDF extraction">
-          <button class="btn btn-outline btn-sm" onclick="addBatchTransaction()">+ Add Transaction</button>
+          <input type="file" id="pdf-debug-input" accept=".pdf" style="display:none" aria-label="Debug PDF extraction">
         </div>
       </div>
 
@@ -2066,23 +2151,18 @@
 
 <!-- ══ BOTTOM BAR ══ -->
 <div class="bottom-bar" role="toolbar" aria-label="Actions">
-  <div class="bottom-bar-left">
-    <button class="btn-icon" id="settings-btn" onclick="openSettings()" aria-label="Settings" title="Settings">⚙</button>
-    <span class="ynab-status disconnected" id="ynab-status-badge">
-      <span class="ynab-status-dot"></span>
-      <span id="ynab-status-text">Not connected</span>
+  <button class="btn btn-primary" onclick="saveToYNAB()" id="save-ynab-btn">Save Transactions</button>
+  <label class="toggle-wrap" title="Also log to Splitwise">
+    <span class="toggle">
+      <input type="checkbox" id="splitwise-toggle" aria-label="Also log to Splitwise" onchange="onSplitwiseToggle(this)">
+      <span class="toggle-slider"></span>
     </span>
-  </div>
-  <div class="bottom-bar-right">
-    <label class="toggle-wrap" title="Also log to Splitwise">
-      <span>Also log to Splitwise</span>
-      <span class="toggle">
-        <input type="checkbox" id="splitwise-toggle" aria-label="Also log to Splitwise" onchange="onSplitwiseToggle(this)">
-        <span class="toggle-slider"></span>
-      </span>
-    </label>
-    <button class="btn btn-primary" onclick="saveToYNAB()" id="save-ynab-btn">Save to YNAB</button>
-  </div>
+    <span>Also log to Splitwise</span>
+  </label>
+  <span class="ynab-status disconnected" id="ynab-status-badge" style="margin-left:auto;">
+    <span class="ynab-status-dot"></span>
+    <span id="ynab-status-text">Not connected</span>
+  </span>
 </div>
 
 <!-- ══ TOAST AREA ══ -->
@@ -3185,7 +3265,12 @@ function addSplitRow(clearExisting = false) {
              value="${defaultAmount}"
              aria-label="Amount" oninput="updateRemaining()">
     </div>
-    <div class="split-row-note">
+    <button type="button" class="split-note-toggle" id="sn-toggle-${id}"
+            onclick="toggleSplitNote(${id})" aria-expanded="false" aria-controls="sn-wrap-${id}">
+      <span>Add note</span>
+      <span class="note-chevron">▼</span>
+    </button>
+    <div class="split-row-note" id="sn-wrap-${id}">
       <span class="split-field-label">Note</span>
       <input type="text" id="sn-${id}" placeholder="Optional note" aria-label="Note">
     </div>
@@ -3431,6 +3516,21 @@ function deleteSplitRow(id) {
     if (amtInput) amtInput.value = document.getElementById('s-amount')?.value || '';
   }
   updateRemaining();
+}
+
+function toggleSplitNote(id) {
+  const toggle = document.getElementById(`sn-toggle-${id}`);
+  const wrap   = document.getElementById(`sn-wrap-${id}`);
+  if (!toggle || !wrap) return;
+  const isOpen = wrap.classList.toggle('open');
+  toggle.classList.toggle('open', isOpen);
+  toggle.setAttribute('aria-expanded', String(isOpen));
+  toggle.querySelector('span:first-child').textContent = isOpen ? 'Remove note' : 'Add note';
+  if (isOpen) {
+    // Focus the note input when expanded
+    const noteInput = document.getElementById(`sn-${id}`);
+    if (noteInput) setTimeout(() => noteInput.focus(), 50);
+  }
 }
 
 function updateDeleteButtons() {
@@ -4902,7 +5002,7 @@ async function saveToYNABSingle() {
     showToast('error', 'YNAB error: ' + err.message);
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Save to YNAB';
+    btn.textContent = 'Save Transactions';
   }
 }
 
@@ -5040,7 +5140,7 @@ async function saveToYNABBatch() {
   }
 
   btn.disabled = false;
-  btn.textContent = 'Save to YNAB';
+  btn.textContent = 'Save Transactions';
 
   if (failed === 0) {
     showToast('success', `${succeeded} transaction${succeeded !== 1 ? 's' : ''} saved to YNAB.`);
@@ -6013,7 +6113,7 @@ async function importBpiPdf(file) {
     showToast('error', 'Failed to parse PDF: ' + (err.message || err));
   } finally {
     btn.disabled = false;
-    btn.textContent = '\u2191 Import BPI PDF';
+    btn.textContent = '\u2191 Import PDF';
   }
 }
 
@@ -6431,22 +6531,15 @@ function toggleBatchFocusMode() {
   const card = document.querySelector('#view-batch .card');
   if (!card) return;
 
+  const btn = document.getElementById('batch-maximize-btn');
+
   if (batchFocusMode) {
     card.classList.add('batch-focus-mode');
-    // Add close button
-    let closeBtn = card.querySelector('.focus-mode-close');
-    if (!closeBtn) {
-      closeBtn = document.createElement('button');
-      closeBtn.className = 'focus-mode-close';
-      closeBtn.innerHTML = '✕ Exit Focus';
-      closeBtn.onclick = toggleBatchFocusMode;
-      card.querySelector('.batch-toolbar').appendChild(closeBtn);
-    }
+    if (btn) btn.innerHTML = '✕ <span style="font-size:12px;">Exit Focus</span>';
     document.body.style.overflow = 'hidden';
   } else {
     card.classList.remove('batch-focus-mode');
-    const closeBtn = card.querySelector('.focus-mode-close');
-    if (closeBtn) closeBtn.remove();
+    if (btn) btn.innerHTML = '⛶ <span style="font-size:12px;">Focus</span>';
     document.body.style.overflow = '';
   }
 }
