@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-06T17:51:39.917Z",
+  "updatedAt": "2026-06-06T17:52:12.728Z",
   "template": {
     "groups": [
       {
@@ -27,7 +27,23 @@
       {
         "id": "b2ndy8xamq2ngsz3",
         "name": "Apartment",
-        "categories": []
+        "categories": [
+          {
+            "id": "b34lzrlymq2nhiai",
+            "name": "Rent",
+            "ynabCategoryId": "312c4243-8769-40d9-b617-a7bb5b49b68f",
+            "ynabCategoryName": "Rent",
+            "dueDay": 1,
+            "amount": 15000,
+            "type": "solo",
+            "swFriendId": null,
+            "swFriendName": null,
+            "splitType": "equal",
+            "myShare": null,
+            "checked": false,
+            "notes": ""
+          }
+        ]
       }
     ]
   },
@@ -58,7 +74,23 @@
         {
           "id": "b2ndy8xamq2ngsz3",
           "name": "Apartment",
-          "categories": []
+          "categories": [
+            {
+              "id": "b34lzrlymq2nhiai",
+              "name": "Rent",
+              "ynabCategoryId": "312c4243-8769-40d9-b617-a7bb5b49b68f",
+              "ynabCategoryName": "Rent",
+              "dueDay": 1,
+              "amount": 15000,
+              "type": "solo",
+              "swFriendId": null,
+              "swFriendName": null,
+              "splitType": "equal",
+              "myShare": null,
+              "checked": false,
+              "notes": ""
+            }
+          ]
         }
       ]
     }
