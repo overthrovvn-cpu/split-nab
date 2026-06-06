@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-06T17:39:38.063Z",
+  "updatedAt": "2026-06-06T17:44:55.398Z",
   "template": {
     "groups": [
       {
@@ -14,9 +14,9 @@
             "ynabCategoryName": "Home Commitments",
             "dueDay": 6,
             "amount": 5100.29,
-            "type": "solo",
-            "swFriendId": null,
-            "swFriendName": null,
+            "type": "shared",
+            "swFriendId": "36287030",
+            "swFriendName": "Jordan (CC)",
             "splitType": "equal",
             "myShare": null,
             "checked": false,
@@ -40,9 +40,9 @@
               "ynabCategoryName": "Home Commitments",
               "dueDay": 6,
               "amount": 5100.29,
-              "type": "solo",
-              "swFriendId": null,
-              "swFriendName": null,
+              "type": "shared",
+              "swFriendId": "36287030",
+              "swFriendName": "Jordan (CC)",
               "splitType": "equal",
               "myShare": null,
               "checked": false,
