@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-06T17:52:12.728Z",
+  "updatedAt": "2026-06-06T17:52:35.467Z",
   "template": {
     "groups": [
       {
@@ -87,7 +87,7 @@
               "swFriendName": null,
               "splitType": "equal",
               "myShare": null,
-              "checked": false,
+              "checked": true,
               "notes": ""
             }
           ]
