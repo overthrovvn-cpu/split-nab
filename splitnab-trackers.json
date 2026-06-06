@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-06T17:44:55.398Z",
+  "updatedAt": "2026-06-06T17:51:39.917Z",
   "template": {
     "groups": [
       {
@@ -23,6 +23,11 @@
             "notes": ""
           }
         ]
+      },
+      {
+        "id": "b2ndy8xamq2ngsz3",
+        "name": "Apartment",
+        "categories": []
       }
     ]
   },
@@ -49,6 +54,11 @@
               "notes": "test note"
             }
           ]
+        },
+        {
+          "id": "b2ndy8xamq2ngsz3",
+          "name": "Apartment",
+          "categories": []
         }
       ]
     }
