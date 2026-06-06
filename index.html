@@ -94,8 +94,8 @@
     width: 0;
     border-radius: 999px;
     background: var(--accent);
-    transition: transform 0.35s cubic-bezier(0.4, 0.0, 0.2, 1),
-                width 0.35s cubic-bezier(0.4, 0.0, 0.2, 1);
+    transition: transform 0.2s cubic-bezier(0.4, 0.0, 0.2, 1),
+                width 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
     z-index: 0;
     pointer-events: none;
   }
@@ -111,7 +111,7 @@
     font-weight: 500;
     cursor: pointer;
     color: var(--text-sec);
-    transition: color 0.25s ease;
+    transition: color 0.15s ease;
   }
 
   .mode-toggle button.active {
@@ -135,20 +135,34 @@
   }
 
   /* ── Views ── */
+  .view-container {
+    position: relative;
+  }
+
   .view {
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.25s ease;
+    transition: opacity 0.18s ease;
     position: absolute;
-    width: calc(100% - 32px);
-    max-width: 1200px;
+    top: 0;
+    left: 0;
+    width: 100%;
   }
 
   .view.active {
     opacity: 1;
     pointer-events: all;
     position: relative;
-    width: 100%;
+  }
+
+  /* During a cross-fade the outgoing view briefly stays absolute while
+     the incoming view becomes relative (sets the height). We add a
+     .view-exiting class to keep the outgoing view in-place. */
+  .view.view-exiting {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
   }
 
   /* ── Two-column layout ── */
@@ -1705,6 +1719,66 @@
     .hamburger-wrap { display: block; }
   }
 
+  /* ── Expandable details section (Transaction Details) ── */
+  .details-expand-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 8px 12px;
+    margin-top: 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-sec);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    font-family: var(--font);
+  }
+
+  .details-expand-btn:hover {
+    background: var(--accent-light);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .details-expand-btn .expand-chevron {
+    display: inline-block;
+    font-size: 10px;
+    transition: transform 0.2s ease;
+  }
+
+  .details-expand-btn.expanded .expand-chevron {
+    transform: rotate(180deg);
+  }
+
+  .details-expandable {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.3s ease, opacity 0.25s ease;
+  }
+
+  .details-expandable.open {
+    max-height: 300px;
+    opacity: 1;
+  }
+
+  /* On desktop, always show the expandable fields */
+  @media (min-width: 768px) {
+    .details-expand-btn {
+      display: none;
+    }
+    .details-expandable {
+      max-height: none !important;
+      opacity: 1 !important;
+      overflow: visible;
+    }
+  }
+
   /* ── Swipe-to-delete (split rows — all viewports) ── */
 
   /* Outer wrapper clips the sliding row and holds the delete button behind it */
@@ -1802,6 +1876,26 @@
       <button id="btn-single" class="active" aria-pressed="true" onclick="setMode('single')">Single Entry</button>
       <button id="btn-batch" aria-pressed="false" onclick="setMode('batch')">Batch</button>
     </div>
+    <script>
+      // Run synchronously before first paint to avoid slider flicker
+      (function() {
+        requestAnimationFrame(function() {
+          var slider = document.getElementById('mode-slider');
+          var btn    = document.getElementById('btn-single');
+          if (!slider || !btn) return;
+          var toggle = btn.parentElement;
+          var tRect  = toggle.getBoundingClientRect();
+          var bRect  = btn.getBoundingClientRect();
+          slider.style.transition = 'none';
+          slider.style.width     = bRect.width + 'px';
+          slider.style.transform = 'translateX(' + (bRect.left - tRect.left - 3) + 'px)';
+          // Re-enable transitions after one more frame
+          requestAnimationFrame(function() {
+            slider.style.transition = '';
+          });
+        });
+      })();
+    </script>
     <!-- Hamburger menu (mobile only) -->
     <div class="hamburger-wrap">
       <button class="hamburger-btn" id="hamburger-btn" aria-label="Menu" aria-expanded="false" onclick="toggleHamburger()">
@@ -1816,6 +1910,7 @@
 
 <!-- ══ MAIN ══ -->
 <main class="container">
+  <div class="view-container">
 
   <!-- ── SINGLE ENTRY VIEW ── -->
   <section id="view-single" class="view active" aria-label="Single entry mode">
@@ -1855,25 +1950,23 @@
           <span class="field-error" id="s-account-err">Account is required.</span>
         </div>
 
-        <div class="field">
-          <label for="s-date">Date</label>
-          <input type="date" id="s-date" aria-describedby="s-date-err">
-          <span class="field-error" id="s-date-err">Date is required.</span>
-        </div>
+        <div class="details-expandable" id="details-expandable">
+          <div class="field" style="margin-top:14px;">
+            <label for="s-date">Date</label>
+            <input type="date" id="s-date" aria-describedby="s-date-err">
+            <span class="field-error" id="s-date-err">Date is required.</span>
+          </div>
 
-        <div class="field">
-          <label for="s-memo">Memo</label>
-          <input type="text" id="s-memo" placeholder="e.g. Team lunch">
-        </div>
-
-        <div class="field">
-          <label for="s-category">Category</label>
-          <div class="dropdown-wrap">
-            <input type="text" id="s-category" placeholder="Search category" autocomplete="off"
-                   aria-autocomplete="list" aria-controls="s-category-list">
-            <div class="dropdown-list" id="s-category-list" role="listbox"></div>
+          <div class="field">
+            <label for="s-memo">Memo</label>
+            <input type="text" id="s-memo" placeholder="e.g. Team lunch">
           </div>
         </div>
+
+        <button class="details-expand-btn" id="details-expand-btn" onclick="toggleDetailsExpand()" aria-expanded="false" aria-controls="details-expandable">
+          <span>More details</span>
+          <span class="expand-chevron">▼</span>
+        </button>
       </div>
 
       <!-- Right: Split Entries -->
@@ -1968,6 +2061,7 @@
     </div>
   </section>
 
+  </div><!-- /.view-container -->
 </main>
 
 <!-- ══ BOTTOM BAR ══ -->
@@ -2174,6 +2268,18 @@
 
 <script>
 /* ═══════════════════════════════════════════════
+   TRANSACTION DETAILS — EXPANDABLE SECTION
+═══════════════════════════════════════════════ */
+function toggleDetailsExpand() {
+  const panel = document.getElementById('details-expandable');
+  const btn   = document.getElementById('details-expand-btn');
+  const isOpen = panel.classList.toggle('open');
+  btn.classList.toggle('expanded', isOpen);
+  btn.setAttribute('aria-expanded', String(isOpen));
+  btn.querySelector('span:first-child').textContent = isOpen ? 'Less details' : 'More details';
+}
+
+/* ═══════════════════════════════════════════════
    HAMBURGER MENU
 ═══════════════════════════════════════════════ */
 function toggleHamburger() {
@@ -2333,16 +2439,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Apply dev tools visibility based on saved flag
   applyDevToolsVisibility();
 
-  // Position the mode toggle slider on initial load (no transition)
-  const slider = document.getElementById('mode-slider');
-  if (slider) {
-    slider.style.transition = 'none';
-    updateModeSlider();
-    // Double rAF ensures the browser paints the no-transition state before restoring
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => { slider.style.transition = ''; });
-    });
-  }
+  // Auto-focus Total Amount field
+  const amountEl = document.getElementById('s-amount');
+  if (amountEl) amountEl.focus();
 });
 
 /* ═══════════════════════════════════════════════
@@ -2706,12 +2805,6 @@ function applyPayeeDefaults(payeeName, { accountInputEl, splitCategoryInputs } =
           catInput.dataset.autoSet = 'true';
         }
       });
-      // Also auto-fill the standalone category field
-      const standaloneCategory = document.getElementById('s-category');
-      if (standaloneCategory && !standaloneCategory.value.trim()) {
-        standaloneCategory.value = topCat.name;
-        standaloneCategory.dataset.id = topCat.id;
-      }
     }
   }
 }
@@ -2902,9 +2995,13 @@ function setupSearchableInput(inputEl, listEl, getItems, onSelect, key = 'name')
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       idx = Math.max(idx - 1, 0);
-    } else if (e.key === 'Enter' && idx >= 0) {
+    } else if (e.key === 'Enter') {
       e.preventDefault();
-      items[idx].dispatchEvent(new MouseEvent('mousedown'));
+      // Select active item, or fall back to first item in list
+      const targetIdx = idx >= 0 ? idx : 0;
+      if (items[targetIdx]) {
+        items[targetIdx].dispatchEvent(new MouseEvent('mousedown'));
+      }
       return;
     } else if (e.key === 'Escape') {
       closeDropdown(listEl);
@@ -2936,30 +3033,55 @@ function setMode(mode) {
   const btnS   = document.getElementById('btn-single');
   const btnB   = document.getElementById('btn-batch');
 
+  const incoming = mode === 'single' ? single : batch;
+  const outgoing = mode === 'single' ? batch  : single;
+  const inBtn    = mode === 'single' ? btnS   : btnB;
+  const outBtn   = mode === 'single' ? btnB   : btnS;
+
+  // Update button states immediately
+  inBtn.classList.add('active');
+  outBtn.classList.remove('active');
+  inBtn.setAttribute('aria-pressed', 'true');
+  outBtn.setAttribute('aria-pressed', 'false');
+
   if (mode === 'single') {
-    single.classList.add('active');
-    batch.classList.remove('active');
-    btnS.classList.add('active');
-    btnB.classList.remove('active');
-    btnS.setAttribute('aria-pressed', 'true');
-    btnB.setAttribute('aria-pressed', 'false');
     document.getElementById('preset-btn').closest('.popover-wrap').style.display = '';
   } else {
-    batch.classList.add('active');
-    single.classList.remove('active');
-    btnB.classList.add('active');
-    btnS.classList.remove('active');
-    btnB.setAttribute('aria-pressed', 'true');
-    btnS.setAttribute('aria-pressed', 'false');
-    // Hide preset panel — only relevant for single entry mode
     document.getElementById('preset-btn').closest('.popover-wrap').style.display = 'none';
     document.getElementById('preset-panel').classList.remove('open');
     renderBatchTable();
     updateDuplicateBadges();
-    // Re-apply column widths after the table becomes visible
     applyColWidths(loadColWidths());
   }
-  updateModeSlider();
+
+  // If the outgoing view isn't currently visible, just snap to the new state
+  if (!outgoing.classList.contains('active')) {
+    incoming.classList.add('active');
+    updateModeSlider();
+    return;
+  }
+
+  // Cross-fade: pin the outgoing view absolutely so it doesn't affect layout
+  // while the incoming view slides into the normal flow and fades in.
+  const outH = outgoing.offsetHeight;
+  outgoing.classList.add('view-exiting');
+  outgoing.classList.remove('active');
+
+  incoming.classList.add('active');
+
+  // Kick off the transition on the next frame so the browser registers the
+  // opacity change properly (from 0 → 1 on incoming, 1 → 0 on outgoing)
+  requestAnimationFrame(() => {
+    updateModeSlider();
+    // Cleanup outgoing after transition
+    const cleanup = () => {
+      outgoing.classList.remove('view-exiting');
+      outgoing.removeEventListener('transitionend', cleanup);
+    };
+    outgoing.addEventListener('transitionend', cleanup, { once: true });
+    // Safety fallback in case transitionend doesn't fire (e.g. display:none)
+    setTimeout(() => outgoing.classList.remove('view-exiting'), 300);
+  });
 }
 
 function updateModeSlider() {
@@ -3003,29 +3125,6 @@ function initSingleEntryDropdowns() {
     accountInput, accountList,
     () => getSortedAccounts(),
     item => { accountInput.value = item.name; accountInput.dataset.id = item.id; },
-    'name'
-  );
-
-  // Category — sorted by usage for current payee, syncs with first split row
-  const categoryInput = document.getElementById('s-category');
-  const categoryList  = document.getElementById('s-category-list');
-  setupSearchableInput(
-    categoryInput, categoryList,
-    () => getSortedCategories(document.getElementById('s-payee')?.value?.trim() || ''),
-    item => {
-      categoryInput.value = item.name;
-      categoryInput.dataset.id = item.id;
-      // Sync to first split row's category
-      const firstRow = document.querySelector('#split-rows .split-row');
-      if (firstRow) {
-        const firstCatInput = document.getElementById(`sc-${firstRow.dataset.id}`);
-        if (firstCatInput) {
-          firstCatInput.value = item.name;
-          firstCatInput.dataset.id = item.id;
-          firstCatInput.dataset.autoSet = '';
-        }
-      }
-    },
     'name'
   );
 }
@@ -3121,15 +3220,6 @@ function addSplitRow(clearExisting = false) {
       catInput.dataset.id = item.id;
       catInput.dataset.autoSet = '';
       updateRemaining();
-      // Sync to standalone category field if this is the first split row
-      const firstRow = document.querySelector('#split-rows .split-row');
-      if (firstRow && firstRow.dataset.id === String(id)) {
-        const standaloneCategory = document.getElementById('s-category');
-        if (standaloneCategory) {
-          standaloneCategory.value = item.name;
-          standaloneCategory.dataset.id = item.id;
-        }
-      }
     },
     'name'
   );
@@ -4973,8 +5063,6 @@ function clearSingleEntry() {
   document.getElementById('s-account').value = '';
   document.getElementById('s-date').value   = todayStr();
   document.getElementById('s-memo').value   = '';
-  document.getElementById('s-category').value = '';
-  document.getElementById('s-category').dataset.id = '';
   // Clear split rows and reset to one empty row
   document.getElementById('split-rows').innerHTML = '';
   splitRowId = 0;
