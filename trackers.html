@@ -1283,12 +1283,15 @@ let viewMonth = new Date().getMonth(); // 0-based
 //   notes: "",
 // }
 
-// All budgets data (full GitHub file in memory)
+// All budgets data — in-memory only when YNAB mode is active.
+// In GitHub mode this is also persisted to localStorage as a cache.
 // Structure: { budgetId: { trackers: { "YYYY-MM": TrackerData }, template: TrackerData|null } }
 let allBudgetsData = {};
-try {
-  allBudgetsData = JSON.parse(localStorage.getItem(CACHE_KEY_BUDGETS) || '{}');
-} catch { allBudgetsData = {}; }
+// Only pre-load from localStorage when in GitHub mode
+if ((localStorage.getItem(CACHE_KEY_STORAGE) || 'github') === 'github') {
+  try { allBudgetsData = JSON.parse(localStorage.getItem(CACHE_KEY_BUDGETS) || '{}'); }
+  catch { allBudgetsData = {}; }
+}
 
 // Convenience getters — scoped to the active budget
 function budgetSlot() {
@@ -1406,8 +1409,9 @@ function ynabConfigured() {
   return !!(ynab.token && ynab.budgetId);
 }
 
-// ── Write cache (localStorage only) ─────────
+// ── Write cache (localStorage — GitHub mode only) ──
 function cacheWrite() {
+  if (storageMode === 'ynab') return; // YNAB mode: no localStorage for tracker data
   if (!ynab.budgetId) return;
   if (!allBudgetsData[ynab.budgetId]) allBudgetsData[ynab.budgetId] = {};
   const slot    = allBudgetsData[ynab.budgetId];
@@ -1552,10 +1556,17 @@ async function ynabEnsureGroup() {
 }
 
 // Load all tracker data stored in YNAB category notes.
+// Always does a fresh fetch — no localStorage involved.
 async function loadFromYNAB() {
   if (!ynabConfigured()) return;
   try {
     await ynabEnsureGroup();
+
+    // Reset in-memory data for this budget — YNAB is the sole source of truth
+    if (!allBudgetsData[ynab.budgetId]) allBudgetsData[ynab.budgetId] = { trackers: {}, template: null };
+    allBudgetsData[ynab.budgetId].trackers = {};
+    allBudgetsData[ynab.budgetId].template = null;
+
     for (const [key, entry] of Object.entries(ynabStore.categories)) {
       try {
         const res  = await ynabFetch(`/budgets/${ynab.budgetId}/categories/${entry.categoryId}`);
@@ -1563,17 +1574,18 @@ async function loadFromYNAB() {
         if (note.startsWith('{')) {
           const parsed = JSON.parse(note);
           if (parsed.tracker) {
-            if (!allBudgetsData[ynab.budgetId]) allBudgetsData[ynab.budgetId] = { trackers: {}, template: null };
             allBudgetsData[ynab.budgetId].trackers[key] = parsed.tracker;
-            if (parsed.template && !allBudgetsData[ynab.budgetId].template) {
-              allBudgetsData[ynab.budgetId].template = parsed.template;
-            }
+          }
+          if (parsed.template && !allBudgetsData[ynab.budgetId].template) {
+            allBudgetsData[ynab.budgetId].template = parsed.template;
           }
         }
       } catch(e) { /* skip unreadable notes */ }
     }
+
+    // Point live references to freshly loaded data
     switchBudgetScope();
-    cacheWrite();
+    // No localStorage write in YNAB mode
   } catch(e) {
     showToast('error', 'YNAB storage load failed: ' + e.message);
   }
@@ -1647,15 +1659,21 @@ function saveTrackers() {
   if (!allBudgetsData[ynab.budgetId]) allBudgetsData[ynab.budgetId] = {};
   allBudgetsData[ynab.budgetId].trackers = allTrackers;
   allBudgetsData[ynab.budgetId].template = trackerTemplate;
-  // Always instant localStorage write
-  try {
-    localStorage.setItem(CACHE_KEY_BUDGETS, JSON.stringify(allBudgetsData));
-  } catch(e) { console.warn('localStorage write failed:', e); }
-  // Push to selected cloud backend
+
   if (storageMode === 'ynab' && ynabConfigured()) {
+    // YNAB mode: push to YNAB only, no localStorage
     scheduleYNABSave(getCurrentKey());
   } else if (storageMode === 'github' && ghConfigured()) {
+    // GitHub mode: write localStorage cache first, then push to GitHub
+    try {
+      localStorage.setItem(CACHE_KEY_BUDGETS, JSON.stringify(allBudgetsData));
+    } catch(e) { console.warn('localStorage write failed:', e); }
     scheduleGitHubSave();
+  } else {
+    // No cloud backend configured: at least persist locally
+    try {
+      localStorage.setItem(CACHE_KEY_BUDGETS, JSON.stringify(allBudgetsData));
+    } catch(e) { console.warn('localStorage write failed:', e); }
   }
 }
 
@@ -1663,13 +1681,18 @@ function saveTemplate() {
   if (!trackerTemplate || !ynab.budgetId) return;
   if (!allBudgetsData[ynab.budgetId]) allBudgetsData[ynab.budgetId] = {};
   allBudgetsData[ynab.budgetId].template = trackerTemplate;
-  try {
-    localStorage.setItem(CACHE_KEY_BUDGETS, JSON.stringify(allBudgetsData));
-  } catch(e) { console.warn('localStorage write failed:', e); }
+
   if (storageMode === 'ynab' && ynabConfigured()) {
     scheduleYNABSave(getCurrentKey());
   } else if (storageMode === 'github' && ghConfigured()) {
+    try {
+      localStorage.setItem(CACHE_KEY_BUDGETS, JSON.stringify(allBudgetsData));
+    } catch(e) { console.warn('localStorage write failed:', e); }
     scheduleGitHubSave();
+  } else {
+    try {
+      localStorage.setItem(CACHE_KEY_BUDGETS, JSON.stringify(allBudgetsData));
+    } catch(e) { console.warn('localStorage write failed:', e); }
   }
 }
 
@@ -2414,6 +2437,12 @@ function openSettings() {
 function setStorageMode(mode, persist = true) {
   storageMode = mode;
   if (persist) localStorage.setItem(CACHE_KEY_STORAGE, mode);
+  // When switching to YNAB mode, clear any stale localStorage tracker cache
+  // so it doesn't bleed into the in-memory state on next init
+  if (mode === 'ynab') {
+    localStorage.removeItem(CACHE_KEY_BUDGETS);
+    localStorage.removeItem(CACHE_KEY_GH_SHA);
+  }
   // Update toggle buttons
   document.querySelectorAll('#storage-mode-toggle .share-type-option').forEach(b => {
     b.classList.toggle('active', b.dataset.mode === mode);
@@ -3101,9 +3130,19 @@ async function init() {
   ynab.token      = localStorage.getItem('ynab_token')       || '';
   storageMode     = localStorage.getItem(CACHE_KEY_STORAGE)  || 'github';
 
-  // Scope to the active budget before first render
+  // Scope to the active budget
   switchBudgetScope();
-  render(); // render immediately from localStorage cache
+
+  if (storageMode === 'ynab') {
+    // YNAB mode: show a loading state — data comes exclusively from YNAB
+    allTrackers     = {};
+    trackerTemplate = null;
+    document.getElementById('tracker-status-label').textContent = 'Loading from YNAB…';
+    render();
+  } else {
+    // GitHub mode: render immediately from localStorage cache for instant display
+    render();
+  }
 
   if (!ynab.token || !ynab.budgetId) {
     showToast('warning', 'YNAB not connected. Open Settings to add your token and budget.');
