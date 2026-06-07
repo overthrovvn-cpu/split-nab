@@ -1491,9 +1491,13 @@ async function flushToGitHub() {
 
 // ── saveTrackers / saveTemplate (called throughout the app) ─
 function saveTrackers() {
-  // Sync live reference back into budget slot
-  budgetSlot().trackers = allTrackers;
-  cacheWrite();
+  // Always re-point the slot to the current live tracker map before writing
+  const slot    = budgetSlot();
+  slot.trackers = allTrackers;
+  slot.template = trackerTemplate;
+  allBudgetsData[ynab.budgetId] = slot;
+  localStorage.setItem(CACHE_KEY_BUDGETS, JSON.stringify(allBudgetsData));
+  if (gh.sha) localStorage.setItem(CACHE_KEY_GH_SHA, gh.sha);
   scheduleGitHubSave();
 }
 
@@ -1829,14 +1833,20 @@ function friendShareOf(cat) {
 }
 
 // Compute surplus category's resolved amount for a group
-// = group.budgetAmount - sum of all non-surplus categories' amounts
+// = group.budgetAmount - sum of MY SHARE of all non-surplus categories
 function surplusAmountFor(group) {
   if (!group.budgetAmount) return 0;
-  let sumOthers = 0;
+  let sumMyShares = 0;
   for (const c of group.categories) {
-    if (!c.surplusMode) sumOthers += (c.amount || 0);
+    if (!c.surplusMode) {
+      // Use myShareOf logic inline (avoid circular dependency with effectiveAmount)
+      const share = c.type === 'solo'
+        ? (c.amount || 0)
+        : (c.splitType === 'fixed' && c.myShare != null ? c.myShare : (c.amount || 0) / 2);
+      sumMyShares += share;
+    }
   }
-  return Math.max(0, group.budgetAmount - sumOthers);
+  return Math.max(0, group.budgetAmount - sumMyShares);
 }
 
 // Get the effective amount for a category (handles surplus mode)
@@ -2391,16 +2401,21 @@ function recalcSurplusHint() {
   const group = getGroup(editingCatGroup);
   const hint  = document.getElementById('surplus-calc-hint');
   if (!group || !group.budgetAmount) {
-    hint.textContent = 'Set a Budget Amount for this group to enable auto-calculation.';
+    hint.textContent = 'Set a Budget Amount for this group (via Edit Group) to enable auto-calculation.';
     hint.style.color = 'var(--text-muted)';
     return;
   }
-  let sumOthers = 0;
+  let sumMyShares = 0;
   for (const c of group.categories) {
-    if (!c.surplusMode && c.id !== editingCatId) sumOthers += (c.amount || 0);
+    if (!c.surplusMode && c.id !== editingCatId) {
+      const share = c.type === 'solo'
+        ? (c.amount || 0)
+        : (c.splitType === 'fixed' && c.myShare != null ? c.myShare : (c.amount || 0) / 2);
+      sumMyShares += share;
+    }
   }
-  const surplus = Math.max(0, group.budgetAmount - sumOthers);
-  hint.textContent = `Budget ₱${fmt(group.budgetAmount)} − others ₱${fmt(sumOthers)} = ₱${fmt(surplus)}`;
+  const surplus = Math.max(0, group.budgetAmount - sumMyShares);
+  hint.textContent = `Budget ₱${fmt(group.budgetAmount)} − my shares ₱${fmt(sumMyShares)} = ₱${fmt(surplus)}`;
   hint.style.color = 'var(--accent)';
   document.getElementById('add-cat-surplus-input').value = surplus.toFixed(2);
 }
@@ -2550,6 +2565,7 @@ document.getElementById('add-cat-submit').addEventListener('click', () => {
     // Edit existing
     const cat = group.categories.find(c => c.id === editingCatId);
     if (cat) {
+      const wasPaidNoTx    = !!cat.paidNoTx;
       cat.name             = name;
       cat.dueDay           = dueDay;
       cat.amount           = amount;
@@ -2563,6 +2579,9 @@ document.getElementById('add-cat-submit').addEventListener('click', () => {
       cat.paidNoTx         = currentPaidNoTx;
       cat.surplusMode      = currentSurplusMode;
       cat.surplusAmount    = currentSurplusMode ? amount : null;
+      // Auto-check when paidNoTx is turned on; uncheck when turned off (if was checked via paidNoTx)
+      if (currentPaidNoTx && !wasPaidNoTx) cat.checked = true;
+      if (!currentPaidNoTx && wasPaidNoTx) cat.checked = false;
     }
   } else {
     // New category
@@ -2581,7 +2600,8 @@ document.getElementById('add-cat-submit').addEventListener('click', () => {
       paidNoTx:         currentPaidNoTx,
       surplusMode:      currentSurplusMode,
       surplusAmount:    currentSurplusMode ? amount : null,
-      checked:          false,
+      // Auto-check new categories that are paidNoTx
+      checked:          currentPaidNoTx,
       notes:            '',
     });
   }
