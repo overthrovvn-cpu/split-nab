@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Split-NAB</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f6ef7'/%3E%3Ctext x='16' y='22' font-family='-apple-system,BlinkMacSystemFont,sans-serif' font-size='14' font-weight='700' fill='white' text-anchor='middle'%3ESN%3C/text%3E%3C/svg%3E">
 <!-- PDF.js for in-browser PDF text extraction -->
@@ -18,29 +18,42 @@
   }
 
   :root {
-    --bg: #f7f7f8;
-    --card: #ffffff;
-    --border: #e5e7eb;
+    --bg: #eef1f8;
+    --card: rgba(255,255,255,0.72);
+    --card-solid: #ffffff;
+    --border: rgba(255,255,255,0.6);
+    --border-subtle: rgba(200,210,240,0.5);
     --text: #111827;
-    --text-sec: #6b7280;
+    --text-sec: #4b5563;
     --text-muted: #9ca3af;
     --accent: #4f6ef7;
     --accent-hover: #3b5bdb;
-    --accent-light: #eef2ff;
+    --accent-light: rgba(79,110,247,0.12);
     --error: #ef4444;
-    --error-light: #fef2f2;
+    --error-light: rgba(239,68,68,0.1);
     --success: #10b981;
-    --success-light: #ecfdf5;
-    --child-bg: #f9fafb;
+    --success-light: rgba(16,185,129,0.1);
+    --child-bg: rgba(249,250,251,0.6);
     --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    --radius-card: 12px;
-    --radius: 8px;
-    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 2px 12px rgba(0,0,0,0.08);
+    --radius-card: 16px;
+    --radius: 10px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.06), 0 8px 32px rgba(79,110,247,0.08);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+    --glass: rgba(255,255,255,0.62);
+    --glass-border: rgba(255,255,255,0.7);
+    --glass-shadow: 0 8px 32px rgba(79,110,247,0.10), 0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04);
+    --blur: blur(20px) saturate(1.8);
+    --sab: env(safe-area-inset-bottom, 0px);
   }
 
   body {
     font-family: var(--font);
-    background: var(--bg);
+    background:
+      radial-gradient(ellipse at 20% 10%, rgba(167,185,255,0.35) 0%, transparent 55%),
+      radial-gradient(ellipse at 80% 80%, rgba(139,211,255,0.28) 0%, transparent 55%),
+      radial-gradient(ellipse at 60% 30%, rgba(200,180,255,0.22) 0%, transparent 50%),
+      #eef1f8;
+    background-attachment: fixed;
     color: var(--text);
     font-size: 14px;
     min-height: 100vh;
@@ -63,8 +76,11 @@
     position: sticky;
     top: 0;
     z-index: 100;
-    background: var(--card);
-    border-bottom: 1px solid var(--border);
+    background: var(--glass);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    border-bottom: 1px solid var(--glass-border);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.8), 0 4px 16px rgba(79,110,247,0.07);
     padding: 12px 24px;
     display: flex;
     align-items: center;
@@ -94,8 +110,11 @@
   .mode-toggle {
     display: flex;
     position: relative;
-    background: var(--bg);
-    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.45);
+    backdrop-filter: blur(12px) saturate(1.5);
+    -webkit-backdrop-filter: blur(12px) saturate(1.5);
+    border: 1px solid rgba(255,255,255,0.65);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 2px 8px rgba(0,0,0,0.06);
     border-radius: 999px;
     padding: 3px;
     gap: 2px;
@@ -109,6 +128,7 @@
     width: 0;
     border-radius: 999px;
     background: var(--accent);
+    box-shadow: 0 2px 8px rgba(79,110,247,0.4), inset 0 1px 0 rgba(255,255,255,0.25);
     transition: transform 0.2s cubic-bezier(0.4, 0.0, 0.2, 1),
                 width 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
     z-index: 0;
@@ -142,10 +162,12 @@
 
   /* ── Card ── */
   .card {
-    background: var(--card);
-    border: 1px solid var(--border);
+    background: var(--glass);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    border: 1px solid var(--glass-border);
     border-radius: var(--radius-card);
-    box-shadow: var(--shadow);
+    box-shadow: var(--glass-shadow);
     padding: 24px;
   }
 
@@ -239,21 +261,24 @@
   input[type="password"] {
     width: 100%;
     padding: 10px 14px;
-    border: 1px solid var(--border);
+    border: 1px solid rgba(200,210,240,0.6);
     border-radius: var(--radius);
     font-size: 14px;
     font-family: var(--font);
     color: var(--text);
-    background: var(--card);
+    background: rgba(255,255,255,0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     outline: none;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
     -webkit-appearance: none;
     appearance: none;
   }
 
   input:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(79,110,247,0.12);
+    background: rgba(255,255,255,0.9);
+    box-shadow: 0 0 0 3px rgba(79,110,247,0.15), inset 0 1px 0 rgba(255,255,255,0.8);
   }
 
   input.has-prefix { padding-left: 26px; }
@@ -279,33 +304,53 @@
     font-weight: 500;
     cursor: pointer;
     border: none;
-    transition: background 0.15s, color 0.15s, opacity 0.15s;
+    transition: background 0.15s, color 0.15s, opacity 0.15s, box-shadow 0.15s, transform 0.1s;
     font-family: var(--font);
     white-space: nowrap;
   }
 
   .btn-primary {
-    background: var(--accent);
+    background: linear-gradient(135deg, #5b7cff 0%, var(--accent) 50%, #3b5bdb 100%);
     color: #fff;
+    box-shadow: 0 2px 12px rgba(79,110,247,0.4), inset 0 1px 0 rgba(255,255,255,0.25);
   }
 
-  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #6a8aff 0%, #5577ff 50%, #4a6beb 100%);
+    box-shadow: 0 4px 16px rgba(79,110,247,0.5), inset 0 1px 0 rgba(255,255,255,0.3);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:active { transform: translateY(0); }
 
   .btn-outline {
-    background: transparent;
+    background: rgba(79,110,247,0.08);
     color: var(--accent);
-    border: 1px solid var(--accent);
+    border: 1px solid rgba(79,110,247,0.35);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
 
-  .btn-outline:hover { background: var(--accent-light); }
+  .btn-outline:hover {
+    background: rgba(79,110,247,0.15);
+    border-color: var(--accent);
+    box-shadow: 0 2px 8px rgba(79,110,247,0.2);
+  }
 
   .btn-ghost {
-    background: transparent;
+    background: rgba(255,255,255,0.5);
     color: var(--text-sec);
-    border: 1px solid var(--border);
+    border: 1px solid rgba(200,210,240,0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
 
-  .btn-ghost:hover { background: var(--bg); }
+  .btn-ghost:hover {
+    background: rgba(255,255,255,0.85);
+    border-color: rgba(150,170,220,0.7);
+    color: var(--text);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
 
   .btn-danger-ghost {
     background: transparent;
@@ -320,6 +365,7 @@
   .btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+    transform: none !important;
   }
 
   .btn-sm {
@@ -499,8 +545,11 @@
     left: 0;
     right: 0;
     z-index: 100;
-    background: var(--card);
-    border-top: 1px solid var(--border);
+    background: var(--glass);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    border-top: 1px solid var(--glass-border);
+    box-shadow: 0 -4px 24px rgba(79,110,247,0.08), 0 -1px 0 rgba(255,255,255,0.7);
     display: flex;
     flex-direction: column;
   }
@@ -521,18 +570,169 @@
     #ynab-status-badge { display: none !important; }
   }
 
+  /* ── Mobile Save Button (header, upper right) ── */
+  .mobile-save-btn {
+    display: none;
+  }
+
+  @media (max-width: 640px) {
+    .mobile-save-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 16px;
+      background: linear-gradient(135deg, #5b7cff 0%, var(--accent) 60%, #3b5bdb 100%);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 600;
+      font-family: var(--font);
+      cursor: pointer;
+      box-shadow: 0 2px 12px rgba(79,110,247,0.4), inset 0 1px 0 rgba(255,255,255,0.25);
+      transition: box-shadow 0.15s, transform 0.1s;
+    }
+    .mobile-save-btn:hover {
+      box-shadow: 0 4px 16px rgba(79,110,247,0.5);
+      transform: translateY(-1px);
+    }
+    .mobile-save-btn:active { transform: translateY(0); }
+
+    /* Hide desktop bottom bar on mobile */
+    .bottom-bar {
+      display: none !important;
+    }
+  }
+
+  /* ── Floating Mode Pill (mobile only, iOS liquid glass style) ── */
+  .floating-mode-pill {
+    display: none;
+  }
+
+  @media (max-width: 640px) {
+    .floating-mode-pill {
+      display: flex;
+      position: fixed;
+      bottom: max(28px, env(safe-area-inset-bottom, 28px));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 200;
+      align-items: center;
+      gap: 3px;
+      padding: 5px;
+      border-radius: 999px;
+      /* iOS Liquid Glass look */
+      background: rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(20px) saturate(1.8);
+      -webkit-backdrop-filter: blur(20px) saturate(1.8);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.18),
+        0 2px 8px rgba(0, 0, 0, 0.10),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.06);
+    }
+
+    .floating-pill-slider {
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      height: calc(100% - 10px);
+      width: 0;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 2px 8px rgba(79, 110, 247, 0.45);
+      transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+                  width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .floating-mode-pill button {
+      position: relative;
+      z-index: 1;
+      border: none;
+      background: transparent;
+      padding: 10px 24px;
+      border-radius: 999px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: var(--font);
+      cursor: pointer;
+      color: rgba(0, 0, 0, 0.5);
+      transition: color 0.15s ease;
+      min-width: 80px;
+      text-align: center;
+    }
+
+    .floating-mode-pill button.active {
+      color: #fff;
+    }
+  }
+
+  /* ── In-page Splitwise section (mobile, inside each view) ── */
+  .sw-inline-section {
+    display: none;
+  }
+
+  @media (max-width: 640px) {
+    .sw-inline-section {
+      display: block;
+      margin-top: 16px;
+      padding: 16px;
+      background: var(--glass);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-card);
+      box-shadow: var(--glass-shadow);
+    }
+
+    .sw-inline-toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sw-inline-toggle-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      flex: 1;
+    }
+
+    .sw-inline-panel {
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transition: max-height 0.3s ease, opacity 0.25s ease, margin-top 0.25s ease;
+      margin-top: 0;
+    }
+
+    .sw-inline-panel.open {
+      max-height: 200px;
+      opacity: 1;
+      margin-top: 14px;
+    }
+  }
+
   .btn-icon {
-    background: transparent;
-    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.5);
+    border: 1px solid rgba(200,210,240,0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border-radius: var(--radius);
     padding: 8px 10px;
     cursor: pointer;
     font-size: 16px;
     color: var(--text-sec);
-    transition: background 0.15s;
+    transition: background 0.15s, box-shadow 0.15s;
   }
 
-  .btn-icon:hover { background: var(--bg); }
+  .btn-icon:hover {
+    background: rgba(255,255,255,0.85);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
 
   /* ── Toggle switch ── */
   .toggle-wrap {
@@ -598,7 +798,10 @@
     border-radius: var(--radius);
     border-left: 3px solid;
     font-size: 13px;
-    box-shadow: var(--shadow);
+    background: var(--glass);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    box-shadow: var(--glass-shadow);
     animation: slideIn 0.25s ease;
   }
 
@@ -608,19 +811,19 @@
   }
 
   .toast.success {
-    background: var(--success-light);
+    background: rgba(236,253,245,0.85);
     border-color: var(--success);
     color: #065f46;
   }
 
   .toast.error {
-    background: var(--error-light);
+    background: rgba(254,242,242,0.85);
     border-color: var(--error);
     color: #991b1b;
   }
 
   .toast.warning {
-    background: #fffbeb;
+    background: rgba(255,251,235,0.85);
     border-color: #f59e0b;
     color: #92400e;
   }
@@ -644,7 +847,9 @@
   .overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.45);
+    background: rgba(15, 20, 50, 0.35);
+    backdrop-filter: blur(6px) saturate(1.2);
+    -webkit-backdrop-filter: blur(6px) saturate(1.2);
     z-index: 300;
     display: flex;
     align-items: flex-start;
@@ -663,9 +868,16 @@
   }
 
   .modal {
-    background: var(--card);
-    border-radius: var(--radius-card);
-    box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+    background: rgba(255,255,255,0.78);
+    backdrop-filter: blur(32px) saturate(2);
+    -webkit-backdrop-filter: blur(32px) saturate(2);
+    border: 1px solid rgba(255,255,255,0.85);
+    border-radius: 20px;
+    box-shadow:
+      0 24px 64px rgba(0,0,0,0.18),
+      0 4px 16px rgba(79,110,247,0.1),
+      inset 0 1px 0 rgba(255,255,255,1),
+      inset 0 -1px 0 rgba(0,0,0,0.04);
     padding: 28px;
     width: 100%;
     max-width: 440px;
@@ -683,17 +895,21 @@
   .modal-title { font-size: 17px; font-weight: 700; }
 
   .modal-close {
-    background: none;
-    border: none;
+    background: rgba(0,0,0,0.05);
+    border: 1px solid rgba(0,0,0,0.06);
     font-size: 20px;
     cursor: pointer;
     color: var(--text-muted);
     line-height: 1;
-    padding: 2px 6px;
-    border-radius: 6px;
+    padding: 2px 8px;
+    border-radius: 8px;
+    transition: background 0.15s, color 0.15s;
   }
 
-  .modal-close:hover { background: var(--bg); color: var(--text); }
+  .modal-close:hover {
+    background: rgba(0,0,0,0.1);
+    color: var(--text);
+  }
 
   .modal-section-title {
     font-size: 12px;
@@ -702,6 +918,12 @@
     letter-spacing: 0.06em;
     color: var(--text-muted);
     margin-bottom: 14px;
+  }
+
+  .modal-divider {
+    border: none;
+    border-top: 1px solid rgba(0,0,0,0.07);
+    margin: 18px 0;
   }
 
   .password-wrap {
@@ -733,10 +955,15 @@
     position: absolute;
     top: calc(100% + 10px);
     right: 0;
-    background: var(--card);
-    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.82);
+    backdrop-filter: blur(24px) saturate(1.8);
+    -webkit-backdrop-filter: blur(24px) saturate(1.8);
+    border: 1px solid rgba(255,255,255,0.85);
     border-radius: var(--radius-card);
-    box-shadow: var(--shadow);
+    box-shadow:
+      0 16px 40px rgba(0,0,0,0.14),
+      0 2px 8px rgba(79,110,247,0.08),
+      inset 0 1px 0 rgba(255,255,255,0.9);
     padding: 16px;
     width: 240px;
     z-index: 150;
@@ -755,7 +982,7 @@
 
   .popover-divider {
     border: none;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid rgba(0,0,0,0.07);
     margin: 10px 0;
   }
 
@@ -766,12 +993,13 @@
     align-items: center;
     justify-content: space-between;
     padding: 6px 8px;
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 13px;
     color: var(--text);
+    transition: background 0.15s;
   }
 
-  .preset-item:hover { background: var(--bg); }
+  .preset-item:hover { background: rgba(79,110,247,0.08); }
 
   .preset-delete {
     background: none;
@@ -781,6 +1009,7 @@
     font-size: 14px;
     padding: 0 2px;
     line-height: 1;
+    transition: color 0.15s;
   }
 
   .preset-delete:hover { color: var(--error); }
@@ -801,22 +1030,24 @@
     gap: 5px;
     padding: 4px 10px;
     border-radius: 999px;
-    border: 1px solid var(--border);
-    background: var(--card);
+    border: 1px solid rgba(79,110,247,0.25);
+    background: rgba(79,110,247,0.07);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     font-size: 12px;
     font-weight: 500;
-    color: var(--text-sec);
+    color: var(--accent);
     cursor: pointer;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
     user-select: none;
     -webkit-user-select: none;
     white-space: nowrap;
   }
 
   .preset-chip:hover {
-    background: var(--accent-light);
+    background: rgba(79,110,247,0.15);
     border-color: var(--accent);
-    color: var(--accent);
+    box-shadow: 0 2px 8px rgba(79,110,247,0.2);
   }
 
   .preset-chip-icon { font-size: 11px; opacity: 0.7; }
@@ -1465,14 +1696,16 @@
 
   /* ── Maximize button ── */
   .btn-maximize {
-    background: transparent;
-    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.5);
+    border: 1px solid rgba(200,210,240,0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border-radius: var(--radius);
-    padding: 4px 8px;
+    padding: 4px 10px;
     cursor: pointer;
     font-size: 14px;
     color: var(--text-sec);
-    transition: background 0.15s, color 0.15s;
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s;
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -1480,8 +1713,9 @@
   }
 
   .btn-maximize:hover {
-    background: var(--accent-light);
+    background: rgba(79,110,247,0.12);
     color: var(--accent);
+    box-shadow: 0 2px 8px rgba(79,110,247,0.15);
   }
 
   /* ── Utility ── */
@@ -1497,10 +1731,15 @@
     top: calc(100% + 4px);
     left: 0;
     right: 0;
-    background: var(--card);
-    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.88);
+    backdrop-filter: blur(20px) saturate(1.8);
+    -webkit-backdrop-filter: blur(20px) saturate(1.8);
+    border: 1px solid rgba(255,255,255,0.85);
     border-radius: var(--radius);
-    box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+    box-shadow:
+      0 8px 24px rgba(0,0,0,0.12),
+      0 2px 8px rgba(79,110,247,0.07),
+      inset 0 1px 0 rgba(255,255,255,0.9);
     z-index: 500;
     max-height: 200px;
     overflow-y: auto;
@@ -1517,10 +1756,14 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    transition: background 0.12s;
   }
 
   .dropdown-item:hover,
-  .dropdown-item.active { background: var(--accent-light); color: var(--accent); }
+  .dropdown-item.active {
+    background: rgba(79,110,247,0.1);
+    color: var(--accent);
+  }
 
   .dropdown-empty {
     padding: 8px 12px;
@@ -1562,12 +1805,7 @@
   /* Status badge in modal header — hidden on desktop, shown on mobile */
   .modal-status-badge { display: none; }
 
-  /* ── Settings section divider ── */
-  .modal-divider {
-    border: none;
-    border-top: 1px solid var(--border);
-    margin: 18px 0;
-  }
+  /* ── Settings section divider — see .modal-divider above ── */
 
   /* ── Splitwise panel — second row inside the bottom bar ── */
   .sw-panel {
@@ -1582,14 +1820,15 @@
 
   .sw-panel.open { display: flex; }
 
+  @media (max-width: 640px) {
+    /* On mobile, the sw-panel inside bottom-bar is hidden — we use sw-inline-section instead */
+    .sw-panel {
+      display: none !important;
+    }
+  }
+
   @media (max-width: 540px) {
     .bottom-bar-main {
-      padding: 10px 16px;
-    }
-    .sw-panel {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 6px;
       padding: 10px 16px;
     }
     .sw-payer-wrap {
@@ -1897,6 +2136,16 @@
     .header-left > .app-name { display: none; }
     .mobile-nav-trigger { display: inline-flex; }
     .header-left { position: relative; }
+    /* Hide the mode toggle from header on mobile — it lives in the floating pill instead */
+    .header-mode-toggle-wrap { display: none !important; }
+  }
+
+  /* Ensure the wrapper shows on desktop */
+  @media (min-width: 641px) {
+    .header-mode-toggle-wrap {
+      display: flex;
+      align-items: center;
+    }
   }
 
   /* ── Expandable details section (Transaction Details) ── */
@@ -2099,10 +2348,16 @@
     </button>
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
+    <!-- Mobile Save button (upper right, mobile only) -->
+    <button class="mobile-save-btn" onclick="saveToYNAB()" id="save-ynab-btn-mobile" aria-label="Save transactions">
+      Save
+    </button>
+    <div class="header-mode-toggle-wrap">
     <div class="mode-toggle" role="group" aria-label="View mode">
       <span class="mode-toggle-slider" id="mode-slider"></span>
       <button id="btn-single" class="active" aria-pressed="true" onclick="setMode('single')">Single Entry</button>
       <button id="btn-batch" aria-pressed="false" onclick="setMode('batch')">Batch</button>
+    </div>
     </div>
     <script>
       // Run synchronously before first paint to avoid slider flicker
@@ -2217,6 +2472,27 @@
       </div>
 
     </div>
+
+    <!-- ── Mobile: Splitwise inline section (single view) ── -->
+    <div class="sw-inline-section" id="sw-inline-single">
+      <div class="sw-inline-toggle-row">
+        <span class="sw-inline-toggle-label">Also log to Splitwise</span>
+        <label class="toggle">
+          <input type="checkbox" id="splitwise-toggle-mobile" aria-label="Also log to Splitwise" onchange="onSplitwiseToggleMobile(this)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="sw-inline-panel" id="sw-inline-panel-single">
+        <span class="sw-panel-label" style="font-size:12px;font-weight:600;color:var(--text-sec);">Splitwise</span>
+        <span id="sw-panel-status-inline-single" class="sw-status-badge error" style="font-size:12px;padding:3px 8px;border-radius:999px;font-weight:500;background:var(--error-light);color:var(--error);margin-left:8px;">Not configured</span>
+        <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <label style="font-size:12px;color:var(--text-sec);white-space:nowrap;">Paying account:</label>
+          <select id="sw-active-account-select-inline" class="sw-payer-select" onchange="onSwActiveAccountChange(this.value)" aria-label="Active Splitwise account" style="min-width:120px;padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;font-family:var(--font);color:var(--text);background:var(--card);outline:none;cursor:pointer;">
+            <option value="">— select —</option>
+          </select>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- ── BATCH VIEW ── -->
@@ -2286,10 +2562,38 @@
 
       <div id="batch-summary"></div>
     </div>
+
+    <!-- ── Mobile: Splitwise inline section (batch view) ── -->
+    <div class="sw-inline-section" id="sw-inline-batch">
+      <div class="sw-inline-toggle-row">
+        <span class="sw-inline-toggle-label">Also log to Splitwise</span>
+        <label class="toggle">
+          <input type="checkbox" id="splitwise-toggle-batch" aria-label="Also log to Splitwise" onchange="onSplitwiseToggleBatch(this)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="sw-inline-panel" id="sw-inline-panel-batch">
+        <span class="sw-panel-label" style="font-size:12px;font-weight:600;color:var(--text-sec);">Splitwise</span>
+        <span id="sw-panel-status-inline-batch" class="sw-status-badge error" style="font-size:12px;padding:3px 8px;border-radius:999px;font-weight:500;background:var(--error-light);color:var(--error);margin-left:8px;">Not configured</span>
+        <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <label style="font-size:12px;color:var(--text-sec);white-space:nowrap;">Paying account:</label>
+          <select id="sw-active-account-select-inline-batch" class="sw-payer-select" onchange="onSwActiveAccountChange(this.value)" aria-label="Active Splitwise account (batch)" style="min-width:120px;padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;font-family:var(--font);color:var(--text);background:var(--card);outline:none;cursor:pointer;">
+            <option value="">— select —</option>
+          </select>
+        </div>
+      </div>
+    </div>
   </section>
 
   </div><!-- /.view-container -->
 </main>
+
+<!-- ══ FLOATING MODE PILL (mobile only) ══ -->
+<div class="floating-mode-pill" role="group" aria-label="View mode" id="floating-pill">
+  <span class="floating-pill-slider" id="floating-pill-slider"></span>
+  <button id="pill-btn-single" class="active" aria-pressed="true" onclick="setMode('single')">Single</button>
+  <button id="pill-btn-batch" aria-pressed="false" onclick="setMode('batch')">Batch</button>
+</div>
 
 <!-- ══ BOTTOM BAR ══ -->
 <div class="bottom-bar" role="toolbar" aria-label="Actions">
@@ -2639,6 +2943,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Sync body padding to bottom bar height (bar may grow if sw-panel is open)
   syncBottomBarPadding();
+
+  // Initialize floating pill slider position (mobile)
+  requestAnimationFrame(() => updateFloatingPill());
 
   // Auto-connect if token exists
   if (ynab.token) {
@@ -3369,14 +3676,42 @@ function setMode(mode) {
 }
 
 function updateModeSlider() {
+  // Desktop header slider
   const slider = document.getElementById('mode-slider');
   const activeBtn = document.querySelector('.mode-toggle button.active');
-  if (!slider || !activeBtn) return;
-  const toggle = activeBtn.parentElement;
-  const toggleRect = toggle.getBoundingClientRect();
-  const btnRect = activeBtn.getBoundingClientRect();
-  slider.style.width = btnRect.width + 'px';
-  slider.style.transform = `translateX(${btnRect.left - toggleRect.left - 3}px)`;
+  if (slider && activeBtn) {
+    const toggle = activeBtn.parentElement;
+    const toggleRect = toggle.getBoundingClientRect();
+    const btnRect = activeBtn.getBoundingClientRect();
+    slider.style.width = btnRect.width + 'px';
+    slider.style.transform = `translateX(${btnRect.left - toggleRect.left - 3}px)`;
+  }
+
+  // Floating pill slider (mobile)
+  updateFloatingPill();
+}
+
+function updateFloatingPill() {
+  const pill       = document.getElementById('floating-pill');
+  const pillSlider = document.getElementById('floating-pill-slider');
+  const pillS      = document.getElementById('pill-btn-single');
+  const pillB      = document.getElementById('pill-btn-batch');
+  if (!pill || !pillSlider || !pillS || !pillB) return;
+
+  // Sync pill button states with current mode
+  if (currentMode === 'single') {
+    pillS.classList.add('active');    pillS.setAttribute('aria-pressed', 'true');
+    pillB.classList.remove('active'); pillB.setAttribute('aria-pressed', 'false');
+  } else {
+    pillB.classList.add('active');    pillB.setAttribute('aria-pressed', 'true');
+    pillS.classList.remove('active'); pillS.setAttribute('aria-pressed', 'false');
+  }
+
+  const activeBtn = currentMode === 'single' ? pillS : pillB;
+  const pillRect  = pill.getBoundingClientRect();
+  const btnRect   = activeBtn.getBoundingClientRect();
+  pillSlider.style.width     = btnRect.width + 'px';
+  pillSlider.style.transform = `translateX(${btnRect.left - pillRect.left - 5}px)`;
 }
 
 /* ═══════════════════════════════════════════════
@@ -5346,12 +5681,11 @@ async function saveToYNABSingle() {
     subtransactions.push(subTx);
   }
 
-  const btn = document.getElementById('save-ynab-btn');
-  btn.disabled = true;
-  btn.textContent = 'Saving…';
+  const btn      = document.getElementById('save-ynab-btn');
+  const btnMobile = document.getElementById('save-ynab-btn-mobile');
+  [btn, btnMobile].forEach(b => { if (!b) return; b.disabled = true; b.textContent = 'Saving…'; });
 
   try {
-    const isSingleSplit = subtransactions.length === 1;
     const payload = {
       transaction: {
         account_id:  accountObj.id,
@@ -5386,8 +5720,7 @@ async function saveToYNABSingle() {
   } catch (err) {
     showToast('error', 'YNAB error: ' + err.message);
   } finally {
-    btn.disabled = false;
-    btn.textContent = 'Save Transactions';
+    [btn, btnMobile].forEach(b => { if (!b) return; b.disabled = false; b.textContent = 'Save'; });
   }
 }
 
@@ -5445,9 +5778,9 @@ async function saveToYNABBatch() {
   }
 
   // ── All valid — now save ──
-  const btn = document.getElementById('save-ynab-btn');
-  btn.disabled = true;
-  btn.textContent = 'Saving…';
+  const btn       = document.getElementById('save-ynab-btn');
+  const btnMobile = document.getElementById('save-ynab-btn-mobile');
+  [btn, btnMobile].forEach(b => { if (!b) return; b.disabled = true; b.textContent = 'Saving…'; });
 
   let succeeded = 0;
   let failed = 0;
@@ -5524,8 +5857,7 @@ async function saveToYNABBatch() {
     }
   }
 
-  btn.disabled = false;
-  btn.textContent = 'Save Transactions';
+  [btn, btnMobile].forEach(b => { if (!b) return; b.disabled = false; b.textContent = 'Save'; });
 
   if (failed === 0) {
     showToast('success', `${succeeded} transaction${succeeded !== 1 ? 's' : ''} saved to YNAB.`);
@@ -5557,26 +5889,49 @@ function clearSingleEntry() {
 
 function onSplitwiseToggle(checkbox) {
   sw.enabled = checkbox.checked;
+  // Sync all splitwise toggles
+  ['splitwise-toggle', 'splitwise-toggle-mobile', 'splitwise-toggle-batch'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el !== checkbox) el.checked = sw.enabled;
+  });
   const panel = document.getElementById('sw-panel');
   const twoCol = document.querySelector('#view-single .two-col');
+  // Mobile inline panels
+  const inlinePanelSingle = document.getElementById('sw-inline-panel-single');
+  const inlinePanelBatch  = document.getElementById('sw-inline-panel-batch');
   if (sw.enabled) {
-    panel.classList.add('open');
+    if (panel) panel.classList.add('open');
     if (twoCol) twoCol.classList.add('splitwise-expanded');
+    if (inlinePanelSingle) inlinePanelSingle.classList.add('open');
+    if (inlinePanelBatch)  inlinePanelBatch.classList.add('open');
     // Load data for all accounts that haven't been loaded yet
     loadAllSwAccounts();
   } else {
-    panel.classList.remove('open');
+    if (panel) panel.classList.remove('open');
     if (twoCol) twoCol.classList.remove('splitwise-expanded');
+    if (inlinePanelSingle) inlinePanelSingle.classList.remove('open');
+    if (inlinePanelBatch)  inlinePanelBatch.classList.remove('open');
     // Re-render to remove Splitwise selects from split rows
     refreshSplitwiseUI();
   }
   syncBottomBarPadding();
 }
 
+// Mobile-only wrappers — they simply delegate to the main toggle handler
+function onSplitwiseToggleMobile(checkbox) { onSplitwiseToggle(checkbox); }
+function onSplitwiseToggleBatch(checkbox)  { onSplitwiseToggle(checkbox); }
+
 function syncBottomBarPadding() {
   requestAnimationFrame(() => {
-    const bar = document.querySelector('.bottom-bar');
-    if (bar) document.body.style.paddingBottom = bar.offsetHeight + 'px';
+    const isMobile = window.innerWidth <= 640;
+    if (isMobile) {
+      // On mobile, pad enough for the floating pill + safe area inset
+      const safeBottom = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sab') || '0') || 0;
+      document.body.style.paddingBottom = (110 + safeBottom) + 'px';
+    } else {
+      const bar = document.querySelector('.bottom-bar');
+      if (bar) document.body.style.paddingBottom = bar.offsetHeight + 'px';
+    }
   });
 }
 
@@ -5665,26 +6020,47 @@ async function loadAllSwAccounts() {
 }
 
 function updateSwPanelStatus(msg, isError) {
-  const el = document.getElementById('sw-panel-status');
-  if (!el) return;
-  el.textContent = msg;
-  el.className = 'sw-status-badge' + (isError ? ' error' : '');
+  const ids = [
+    'sw-panel-status',
+    'sw-panel-status-inline-single',
+    'sw-panel-status-inline-batch',
+  ];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'sw-status-badge' + (isError ? ' error' : '');
+    // Keep inline badges styled consistently
+    if (id !== 'sw-panel-status') {
+      el.style.cssText = 'font-size:12px;padding:3px 8px;border-radius:999px;font-weight:500;margin-left:8px;'
+        + (isError
+          ? 'background:var(--error-light);color:var(--error);'
+          : 'background:var(--success-light);color:var(--success);');
+    }
+  });
 }
 
 /**
  * Populate the "Paying account" dropdown in the Splitwise panel.
  */
 function renderSwActiveAccountSelect() {
-  const sel = document.getElementById('sw-active-account-select');
-  if (!sel) return;
-  sel.innerHTML = '';
-  sw.accounts.forEach((acct, i) => {
-    const opt = document.createElement('option');
-    opt.value = i;
-    const userName = acct.user ? [acct.user.first_name, acct.user.last_name].filter(Boolean).join(' ') : '';
-    opt.textContent = acct.label + (userName ? ' (' + userName + ')' : '') + (acct.error ? ' ⚠' : '');
-    if (i === sw.activeAccountIndex) opt.selected = true;
-    sel.appendChild(opt);
+  const selIds = [
+    'sw-active-account-select',
+    'sw-active-account-select-inline',
+    'sw-active-account-select-inline-batch',
+  ];
+  selIds.forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.innerHTML = '';
+    sw.accounts.forEach((acct, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      const userName = acct.user ? [acct.user.first_name, acct.user.last_name].filter(Boolean).join(' ') : '';
+      opt.textContent = acct.label + (userName ? ' (' + userName + ')' : '') + (acct.error ? ' ⚠' : '');
+      if (i === sw.activeAccountIndex) opt.selected = true;
+      sel.appendChild(opt);
+    });
   });
 }
 
@@ -6978,6 +7354,12 @@ document.addEventListener('keydown', e => {
       document.getElementById('preset-btn').setAttribute('aria-expanded', 'false');
     }
   }
+});
+
+// Keep floating pill slider and body padding in sync when orientation/size changes
+window.addEventListener('resize', () => {
+  syncBottomBarPadding();
+  updateFloatingPill();
 });
 </script>
 </html>
