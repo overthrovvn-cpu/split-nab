@@ -989,9 +989,8 @@ const YNAB_API           = 'https://api.ynab.com/v1';
 const GITHUB_API         = 'https://api.github.com';
 const GITHUB_FILENAME    = 'splitnab-trackers.json';
 // localStorage cache keys
-const CACHE_KEY_TRACKERS = 'splitnab_trackers';
-const CACHE_KEY_TEMPLATE = 'splitnab_tracker_tpl';
-const CACHE_KEY_GH_SHA   = 'splitnab_gh_sha'; // current file SHA from GitHub
+const CACHE_KEY_BUDGETS  = 'splitnab_budgets';   // { budgetId: { trackers, template } }
+const CACHE_KEY_GH_SHA   = 'splitnab_gh_sha';    // current file SHA from GitHub
 
 /* ═══════════════════════════════════════════════
    STATE
@@ -1051,15 +1050,35 @@ let viewMonth = new Date().getMonth(); // 0-based
 //   notes: "",
 // }
 
-let allTrackers = {};
+// All budgets data (full GitHub file in memory)
+// Structure: { budgetId: { trackers: { "YYYY-MM": TrackerData }, template: TrackerData|null } }
+let allBudgetsData = {};
 try {
-  allTrackers = JSON.parse(localStorage.getItem(CACHE_KEY_TRACKERS) || '{}');
-} catch { allTrackers = {}; }
+  allBudgetsData = JSON.parse(localStorage.getItem(CACHE_KEY_BUDGETS) || '{}');
+} catch { allBudgetsData = {}; }
 
+// Convenience getters — scoped to the active budget
+function budgetSlot() {
+  const id = ynab.budgetId;
+  if (!id) return { trackers: {}, template: null };
+  if (!allBudgetsData[id]) allBudgetsData[id] = { trackers: {}, template: null };
+  return allBudgetsData[id];
+}
+
+// allTrackers and trackerTemplate are live references into the active budget slot
+// They are re-pointed whenever the budget changes (see switchBudgetScope)
+let allTrackers     = {};
 let trackerTemplate = null;
-try {
-  trackerTemplate = JSON.parse(localStorage.getItem(CACHE_KEY_TEMPLATE) || 'null');
-} catch { trackerTemplate = null; }
+
+function switchBudgetScope() {
+  const slot       = budgetSlot();
+  allTrackers     = slot.trackers     || {};
+  trackerTemplate = slot.template     || null;
+  slot.trackers   = allTrackers;
+  slot.template   = trackerTemplate;
+}
+
+switchBudgetScope();
 
 // GitHub config — persisted in localStorage
 const gh = {
@@ -1144,18 +1163,24 @@ function ghConfigured() {
 
 // ── Write cache ──────────────────────────────
 function cacheWrite() {
-  localStorage.setItem(CACHE_KEY_TRACKERS, JSON.stringify(allTrackers));
-  localStorage.setItem(CACHE_KEY_TEMPLATE, JSON.stringify(trackerTemplate));
+  // Keep the in-memory slot in sync before persisting
+  const slot    = budgetSlot();
+  slot.trackers = allTrackers;
+  slot.template = trackerTemplate;
+  localStorage.setItem(CACHE_KEY_BUDGETS, JSON.stringify(allBudgetsData));
   if (gh.sha) localStorage.setItem(CACHE_KEY_GH_SHA, gh.sha);
 }
 
 // ── Build the full data object to persist ────
 function buildPayload() {
+  // Sync current budget into the map before saving
+  const slot    = budgetSlot();
+  slot.trackers = allTrackers;
+  slot.template = trackerTemplate ? deepCloneStructure(trackerTemplate) : null;
   return {
-    version: 1,
+    version: 2,
     updatedAt: new Date().toISOString(),
-    template: trackerTemplate ? deepCloneStructure(trackerTemplate) : null,
-    trackers: allTrackers,
+    budgets: allBudgetsData,
   };
 }
 
@@ -1189,16 +1214,27 @@ async function loadFromGitHub() {
     localStorage.setItem(CACHE_KEY_GH_SHA, gh.sha);
 
     const content = JSON.parse(atob(data.content.replace(/\n/g, '')));
-    if (content.trackers)  allTrackers     = content.trackers;
-    if (content.template)  trackerTemplate = content.template;
+
+    if (content.version >= 2 && content.budgets) {
+      // v2: budget-scoped structure
+      allBudgetsData = content.budgets;
+    } else if (content.trackers || content.template) {
+      // v1 legacy: migrate into current budget slot
+      const slot = budgetSlot();
+      if (content.trackers) slot.trackers = content.trackers;
+      if (content.template) slot.template = content.template;
+    }
+
+    // Re-point live references to the active budget
+    switchBudgetScope();
     cacheWrite();
   } catch (e) {
-    if (e.message && e.message.includes('404')) {
-      // File doesn't exist yet — will be created on first save
+    // 404 = file doesn't exist yet, will be created on first save — not an error
+    if (e.message && (e.message.includes('404') || e.message.includes('Not Found'))) {
       gh.sha = null;
-    } else {
-      showToast('error', 'GitHub load failed: ' + e.message);
+      return;
     }
+    showToast('error', 'GitHub load failed: ' + e.message);
   }
 }
 
@@ -1241,13 +1277,17 @@ async function flushToGitHub() {
 
 // ── saveTrackers / saveTemplate (called throughout the app) ─
 function saveTrackers() {
-  localStorage.setItem(CACHE_KEY_TRACKERS, JSON.stringify(allTrackers));
+  // Sync live reference back into budget slot
+  budgetSlot().trackers = allTrackers;
+  cacheWrite();
   scheduleGitHubSave();
 }
 
 function saveTemplate() {
   if (!trackerTemplate) return;
-  localStorage.setItem(CACHE_KEY_TEMPLATE, JSON.stringify(trackerTemplate));
+  // Sync live reference back into budget slot
+  budgetSlot().template = trackerTemplate;
+  cacheWrite();
   scheduleGitHubSave();
 }
 
@@ -1512,6 +1552,7 @@ function friendShareOf(cat) {
 function syncTemplate() {
   if (!currentTracker) return;
   trackerTemplate = deepCloneStructure(currentTracker);
+  budgetSlot().template = trackerTemplate;
   saveTemplate();
 }
 
@@ -1805,17 +1846,18 @@ document.getElementById('settings-done-btn').addEventListener('click', () => {
   if (ghRepo)   { localStorage.setItem('gh_repo', ghRepo);          gh.repo       = ghRepo; }
   localStorage.setItem('gh_branch', ghBranch); gh.branch = ghBranch;
 
+  // Re-scope to potentially new budget before reinit
+  switchBudgetScope();
   closeSettings();
   init();
 });
 
 document.getElementById('clear-cache-btn').addEventListener('click', () => {
-  localStorage.removeItem(CACHE_KEY_TRACKERS);
-  localStorage.removeItem(CACHE_KEY_TEMPLATE);
+  localStorage.removeItem(CACHE_KEY_BUDGETS);
   localStorage.removeItem(CACHE_KEY_GH_SHA);
-  allTrackers     = {};
-  trackerTemplate = null;
+  allBudgetsData  = {};
   gh.sha          = null;
+  switchBudgetScope();
   closeSettings();
   showToast('success', 'Local cache cleared. Reloading from GitHub…');
   init();
@@ -2263,6 +2305,8 @@ document.getElementById('edit-group-name').addEventListener('keydown', (e) => {
    INIT
 ═══════════════════════════════════════════════ */
 async function init() {
+  // Scope to the active budget before first render
+  switchBudgetScope();
   render(); // render immediately from localStorage cache
 
   if (!ynab.token || !ynab.budgetId) {
