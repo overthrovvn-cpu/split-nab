@@ -755,12 +755,10 @@
           Get it at <a href="https://app.ynab.com/settings/developer" target="_blank" style="color:var(--accent);">app.ynab.com/settings/developer</a>
         </span>
       </div>
-      <div>
-        <label class="form-label" style="display:block;margin-bottom:4px;">Budget ID</label>
-        <input type="text" id="set-budget-id" class="form-input" placeholder="e.g. a1b2c3d4-…" autocomplete="off">
-        <span class="form-hint" style="margin-top:4px;display:block;">
-          Found in your YNAB URL: app.ynab.com/budgets/<strong>BUDGET-ID</strong>/…
-        </span>
+      <div style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);">
+        <span style="font-size:12px;font-weight:500;color:var(--text-sec);">Active Budget</span>
+        <div style="font-size:13px;color:var(--text);margin-top:3px;" id="settings-budget-label">—</div>
+        <span class="form-hint" style="margin-top:3px;display:block;">Set from the main Split-NAB page.</span>
       </div>
     </div>
 
@@ -948,19 +946,40 @@
       <h2 class="modal-title" id="confirm-title">Log Expense</h2>
       <button class="modal-close" id="confirm-close" aria-label="Close">×</button>
     </div>
-    <p style="font-size:13px;color:var(--text-sec);margin-bottom:18px;" id="confirm-subtitle"></p>
+    <p style="font-size:13px;color:var(--text-sec);margin-bottom:14px;" id="confirm-subtitle"></p>
 
-    <div id="confirm-details"></div>
+    <div id="confirm-details" style="margin-bottom:14px;"></div>
 
-    <div style="margin-top:14px;">
-      <hr class="modal-divider" style="margin:0 0 14px;">
-      <div class="form-field" style="margin-bottom:0;">
-        <label class="form-label" for="confirm-account-id">YNAB Account</label>
-        <select id="confirm-account-id" class="form-select">
-          <option value="">— Select Account —</option>
-        </select>
-        <span class="form-hint" style="margin-top:4px;display:block;">Transaction will be logged to this account.</span>
-      </div>
+    <hr class="modal-divider" style="margin:0 0 14px;">
+
+    <!-- YNAB Transaction Fields -->
+    <div class="form-field">
+      <label class="form-label" for="confirm-account-id">Account <span style="color:var(--error);">*</span></label>
+      <select id="confirm-account-id" class="form-select">
+        <option value="">— Select Account —</option>
+      </select>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" for="confirm-date">Date <span style="color:var(--error);">*</span></label>
+      <input type="date" id="confirm-date" class="form-input">
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" for="confirm-payee">Payee <span style="color:var(--error);">*</span></label>
+      <input type="text" id="confirm-payee" class="form-input" placeholder="e.g. Landlord" autocomplete="off" style="-webkit-user-select:text;user-select:text;">
+      <span class="form-hint">Matches an existing YNAB payee or creates a new one.</span>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" for="confirm-amount">Amount (₱) <span style="color:var(--error);">*</span></label>
+      <input type="number" id="confirm-amount" class="form-input" min="0.01" step="0.01" inputmode="decimal" style="-webkit-user-select:text;user-select:text;">
+      <span class="form-hint">Defaults to your share. Override if needed.</span>
+    </div>
+
+    <div class="form-field" style="margin-bottom:0;">
+      <label class="form-label" for="confirm-memo">Memo</label>
+      <input type="text" id="confirm-memo" class="form-input" placeholder="Optional note" autocomplete="off" style="-webkit-user-select:text;user-select:text;">
     </div>
 
     <div id="confirm-sw-section" style="display:none;margin-top:14px;">
@@ -998,9 +1017,10 @@ const CACHE_KEY_GH_SHA   = 'splitnab_gh_sha';    // current file SHA from GitHub
 const ynab = {
   token:      localStorage.getItem('ynab_token')      || '',
   budgetId:   localStorage.getItem('ynab_budget_id')  || '',
-  accountId:  localStorage.getItem('ynab_account_id') || '', // last-used, pre-fills the confirm modal
-  categories: [], // { id, name, group }
-  accounts:   [], // { id, name } loaded at runtime
+  budgetName: localStorage.getItem('ynab_budget_name')|| '',
+  accountId:  localStorage.getItem('ynab_account_id') || '',
+  categories: [],
+  accounts:   [],
   connected:  false,
 };
 
@@ -1374,28 +1394,28 @@ async function loadYNABCategories() {
   }
 }
 
-async function logYNABTransaction(cat, notes, accountId) {
-  if (!cat.ynabCategoryId) throw new Error('No YNAB category linked.');
-  if (!accountId)          throw new Error('No YNAB account selected.');
-
-  const amount = cat.type === 'shared' && cat.splitType === 'fixed' && cat.myShare != null
-    ? cat.myShare
-    : (cat.type === 'shared' && cat.splitType === 'equal')
-      ? cat.amount / 2
-      : cat.amount;
+async function logYNABTransaction(cat, fields) {
+  // fields: { accountId, date, payee, amount, memo }
+  if (!cat.ynabCategoryId)  throw new Error('No YNAB category linked.');
+  if (!fields.accountId)    throw new Error('No YNAB account selected.');
+  if (!fields.date)         throw new Error('Date is required.');
+  if (!fields.payee)        throw new Error('Payee is required.');
+  if (!fields.amount || fields.amount <= 0) throw new Error('Amount must be greater than zero.');
 
   const payload = {
     transaction: {
-      account_id:  accountId,
-      date:        dueDateStr(cat.dueDay) || todayStr(),
-      amount:      -Math.round(amount * 1000),
+      account_id:  fields.accountId,
+      date:        fields.date,
+      amount:      -Math.round(fields.amount * 1000),  // milliunits, outflow
+      payee_name:  fields.payee,
       category_id: cat.ynabCategoryId,
-      memo:        notes || cat.name,
+      memo:        fields.memo || undefined,
       cleared:     'uncleared',
       approved:    false,
     },
   };
 
+  console.log('[YNAB TX] Payload:', JSON.stringify(payload));
   await ynabFetch(`/budgets/${ynab.budgetId}/transactions`, {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -1813,12 +1833,16 @@ function createTrackerForMonth() {
 ═══════════════════════════════════════════════ */
 function openSettings() {
   document.getElementById('set-token').value     = ynab.token;
-  document.getElementById('set-budget-id').value = ynab.budgetId;
   document.getElementById('set-sw-proxy').value  = sw.proxyUrl;
   document.getElementById('set-gh-token').value  = gh.token;
   document.getElementById('set-gh-owner').value  = gh.owner;
   document.getElementById('set-gh-repo').value   = gh.repo;
   document.getElementById('set-gh-branch').value = gh.branch || 'main';
+  // Show the active budget name/ID as read-only info
+  const budgetLabel = document.getElementById('settings-budget-label');
+  budgetLabel.textContent = ynab.budgetId
+    ? (ynab.budgetName ? `${ynab.budgetName} (${ynab.budgetId.slice(0,8)}…)` : ynab.budgetId)
+    : 'Not set — configure in Split-NAB';
   openOverlay('settings-overlay');
 }
 
@@ -1831,22 +1855,19 @@ function toggleEye() {
 
 document.getElementById('settings-done-btn').addEventListener('click', () => {
   const token    = document.getElementById('set-token').value.trim();
-  const budgetId = document.getElementById('set-budget-id').value.trim();
   const proxy    = document.getElementById('set-sw-proxy').value.trim();
   const ghToken  = document.getElementById('set-gh-token').value.trim();
   const ghOwner  = document.getElementById('set-gh-owner').value.trim();
   const ghRepo   = document.getElementById('set-gh-repo').value.trim();
   const ghBranch = document.getElementById('set-gh-branch').value.trim() || 'main';
 
-  if (token)    { localStorage.setItem('ynab_token', token);        ynab.token    = token; }
-  if (budgetId) { localStorage.setItem('ynab_budget_id', budgetId); ynab.budgetId = budgetId; }
-  if (proxy)    { localStorage.setItem('sw_proxy_url', proxy);      sw.proxyUrl   = proxy; }
-  if (ghToken)  { localStorage.setItem('gh_token', ghToken);        gh.token      = ghToken; }
-  if (ghOwner)  { localStorage.setItem('gh_owner', ghOwner);        gh.owner      = ghOwner; }
-  if (ghRepo)   { localStorage.setItem('gh_repo', ghRepo);          gh.repo       = ghRepo; }
+  if (token)   { localStorage.setItem('ynab_token', token);   ynab.token   = token; }
+  if (proxy)   { localStorage.setItem('sw_proxy_url', proxy); sw.proxyUrl  = proxy; }
+  if (ghToken) { localStorage.setItem('gh_token', ghToken);   gh.token     = ghToken; }
+  if (ghOwner) { localStorage.setItem('gh_owner', ghOwner);   gh.owner     = ghOwner; }
+  if (ghRepo)  { localStorage.setItem('gh_repo', ghRepo);     gh.repo      = ghRepo; }
   localStorage.setItem('gh_branch', ghBranch); gh.branch = ghBranch;
 
-  // Re-scope to potentially new budget before reinit
   switchBudgetScope();
   closeSettings();
   init();
@@ -2156,17 +2177,16 @@ function openConfirmLog(catId, checking) {
 
   document.getElementById('confirm-title').textContent    = 'Log Expense';
   document.getElementById('confirm-subtitle').textContent =
-    `Confirm logging "${cat.name}" for ${monthLabel(viewYear, viewMonth)}.`;
+    `Logging "${cat.name}" for ${monthLabel(viewYear, viewMonth)}.`;
 
-  // Details
+  // Summary details
   let detailsHtml = '';
-  detailsHtml += row('Category', escHtml(cat.ynabCategoryName || cat.name));
-  detailsHtml += row('Total Amount', `₱${fmt(cat.amount)}`);
-  detailsHtml += row('My Share', `₱${fmt(myAmt)}`);
-  if (cat.dueDay) detailsHtml += row('Date', fmtDueDate(cat.dueDay));
+  detailsHtml += row('YNAB Category', escHtml(cat.ynabCategoryName || cat.name));
+  detailsHtml += row('Total Amount',  `₱${fmt(cat.amount)}`);
+  if (cat.type === 'shared') detailsHtml += row('Split', cat.splitType === 'equal' ? '50/50' : 'Fixed');
   document.getElementById('confirm-details').innerHTML = detailsHtml;
 
-  // Account dropdown — populate from loaded accounts, pre-select last used
+  // Account dropdown
   const lastAccountId = localStorage.getItem('ynab_account_id') || '';
   const acctSel = document.getElementById('confirm-account-id');
   acctSel.innerHTML = '<option value="">— Select Account —</option>';
@@ -2177,6 +2197,18 @@ function openConfirmLog(catId, checking) {
     if (a.id === lastAccountId) opt.selected = true;
     acctSel.appendChild(opt);
   }
+
+  // Date — default to due date for this month or today
+  document.getElementById('confirm-date').value = dueDateStr(cat.dueDay) || todayStr();
+
+  // Payee — default to category name
+  document.getElementById('confirm-payee').value = cat.name;
+
+  // Amount — default to my share
+  document.getElementById('confirm-amount').value = myAmt.toFixed(2);
+
+  // Memo — default to existing notes if any
+  document.getElementById('confirm-memo').value = cat.notes || '';
 
   // Splitwise section
   const swSection = document.getElementById('confirm-sw-section');
@@ -2207,9 +2239,30 @@ document.getElementById('confirm-log-btn').addEventListener('click', async () =>
   if (!cat) return;
 
   const accountId = document.getElementById('confirm-account-id').value;
+  const date      = document.getElementById('confirm-date').value;
+  const payee     = document.getElementById('confirm-payee').value.trim();
+  const amount    = parseFloat(document.getElementById('confirm-amount').value);
+  const memo      = document.getElementById('confirm-memo').value.trim();
+
+  // Validate all required fields before calling the API
   if (!accountId) {
     showToast('error', 'Please select a YNAB account.');
     document.getElementById('confirm-account-id').focus();
+    return;
+  }
+  if (!date) {
+    showToast('error', 'Please enter a date.');
+    document.getElementById('confirm-date').focus();
+    return;
+  }
+  if (!payee) {
+    showToast('error', 'Please enter a payee.');
+    document.getElementById('confirm-payee').focus();
+    return;
+  }
+  if (!amount || amount <= 0) {
+    showToast('error', 'Please enter a valid amount.');
+    document.getElementById('confirm-amount').focus();
     return;
   }
 
@@ -2217,25 +2270,25 @@ document.getElementById('confirm-log-btn').addEventListener('click', async () =>
   btn.disabled = true;
   btn.textContent = 'Logging…';
 
-  // Persist last-used account for next time
+  // Persist last-used account
   localStorage.setItem('ynab_account_id', accountId);
   ynab.accountId = accountId;
 
-  const notes = cat.notes || '';
   const logSW = document.getElementById('confirm-sw-check').checked &&
                 cat.type === 'shared' && cat.swFriendId;
 
   try {
-    await logYNABTransaction(cat, notes, accountId);
+    await logYNABTransaction(cat, { accountId, date, payee, amount, memo });
     if (logSW) {
       try {
-        await logSplitwiseExpense(cat, notes);
+        await logSplitwiseExpense(cat, memo || cat.name);
       } catch (swErr) {
         showToast('warning', 'YNAB logged, but Splitwise failed: ' + swErr.message);
       }
     }
 
     cat.checked = true;
+    cat.notes   = memo || cat.notes;
     saveTrackers();
     closeOverlay('confirm-overlay');
     render();
@@ -2305,6 +2358,11 @@ document.getElementById('edit-group-name').addEventListener('keydown', (e) => {
    INIT
 ═══════════════════════════════════════════════ */
 async function init() {
+  // Always re-read budget ID from localStorage in case it changed in index.html
+  ynab.budgetId   = localStorage.getItem('ynab_budget_id')   || '';
+  ynab.budgetName = localStorage.getItem('ynab_budget_name') || '';
+  ynab.token      = localStorage.getItem('ynab_token')       || '';
+
   // Scope to the active budget before first render
   switchBudgetScope();
   render(); // render immediately from localStorage cache
