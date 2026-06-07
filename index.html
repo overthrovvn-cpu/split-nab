@@ -532,6 +532,87 @@
     .split-row .split-row-note { display: contents; }
   }
 
+  /* ── Hero Amount Field ── */
+  .amount-hero-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 18px 12px 14px;
+    margin-bottom: 18px;
+    position: relative;
+    width: 100%;
+    /* no background, no border, no shadow — just the number floating */
+  }
+
+  .amount-hero-input-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    width: 100%;
+    gap: 2px;
+  }
+
+  /* Spacer mirrors the symbol width so the number stays perfectly centred */
+  .amount-hero-spacer {
+    font-size: 22px;
+    font-weight: 700;
+    opacity: 0;
+    pointer-events: none;
+    flex-shrink: 0;
+    /* same content as .amount-hero-symbol so width matches */
+  }
+
+  .amount-hero-symbol {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+    opacity: 0.6;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  #s-amount {
+    border: none !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    padding: 0 !important;
+    text-align: center;
+    font-size: 48px !important;
+    font-weight: 800 !important;
+    color: var(--accent) !important;
+    letter-spacing: -2px;
+    /* width driven by sizeAmountInput() — initial guess for placeholder "0.00" */
+    width: 3.5ch;
+    min-width: 2ch;
+    caret-color: var(--accent);
+    -moz-appearance: textfield;
+  }
+
+  #s-amount::-webkit-outer-spin-button,
+  #s-amount::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  #s-amount::placeholder {
+    color: rgba(79,110,247,0.28);
+  }
+
+  /* Error state — just colour shift, no box */
+  .amount-hero-wrap.has-error .amount-hero-symbol,
+  .amount-hero-wrap.has-error #s-amount {
+    color: var(--error) !important;
+  }
+
+  .amount-hero-wrap .field-error {
+    text-align: center;
+    font-size: 12px;
+  }
+
   /* ── Card section title ── */
   .card-title {
     font-size: 15px;
@@ -1017,7 +1098,7 @@
 
   .preset-delete:hover { color: var(--error); }
 
-  /* ── Preset Suggestions (below Payee field) ── */
+  /* ── Preset Suggestions (below Amount field) ── */
   .preset-suggestions {
     display: flex;
     flex-wrap: wrap;
@@ -2473,15 +2554,18 @@
       <div class="card">
         <h2 class="card-title">Transaction Details</h2>
 
-        <div class="field">
-          <label for="s-amount">Total Amount</label>
-          <div class="input-wrap">
-            <span class="input-prefix">$</span>
-            <input type="number" id="s-amount" class="has-prefix" placeholder="0.00" min="0" step="0.01" inputmode="decimal"
-                   oninput="onTotalAmountInput()" aria-describedby="s-amount-err">
+        <div class="amount-hero-wrap" id="s-amount-wrap">
+          <div class="amount-hero-input-row">
+            <span class="amount-hero-symbol">₱</span>
+            <input type="number" id="s-amount" placeholder="0.00" min="0" step="0.01" inputmode="decimal"
+                   autofocus oninput="onTotalAmountInput()" aria-label="Total Amount" aria-describedby="s-amount-err">
+            <span class="amount-hero-spacer" aria-hidden="true">₱</span>
           </div>
           <span class="field-error" id="s-amount-err">Please enter a valid amount.</span>
         </div>
+
+        <!-- Saved presets — shown below amount -->
+        <div class="preset-suggestions" id="preset-suggestions" aria-label="Saved presets" style="justify-content:center;margin-bottom:14px;"></div>
 
         <div class="field">
           <label for="s-payee">Payee</label>
@@ -2490,7 +2574,6 @@
                    aria-describedby="s-payee-err" aria-autocomplete="list" aria-controls="s-payee-list">
             <div class="dropdown-list" id="s-payee-list" role="listbox"></div>
           </div>
-          <div class="preset-suggestions" id="preset-suggestions" aria-label="Saved presets"></div>
           <span class="field-error" id="s-payee-err">Payee is required.</span>
         </div>
 
@@ -3018,6 +3101,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Focus the amount field immediately — before any async API calls
   const amountEl = document.getElementById('s-amount');
   if (amountEl) amountEl.focus();
+
+  // Size the hero amount input to its placeholder width on first paint
+  sizeAmountInput();
 
   // Sync body padding to bottom bar height (bar may grow if sw-panel is open)
   syncBottomBarPadding();
@@ -4297,7 +4383,22 @@ function updateSplitPayeeVisibility() {
   }
 }
 
+function sizeAmountInput() {
+  const el = document.getElementById('s-amount');
+  if (!el) return;
+  // Measure the actual rendered text width with a canvas so the ₱ hugs the digits
+  const text = el.value || el.placeholder || '0.00';
+  const style = window.getComputedStyle(el);
+  const canvas = sizeAmountInput._canvas || (sizeAmountInput._canvas = document.createElement('canvas'));
+  const ctx = canvas.getContext('2d');
+  ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+  const measured = ctx.measureText(text).width;
+  // Add a small buffer for the caret (6px) and letter-spacing overhang
+  el.style.width = Math.ceil(measured + 8) + 'px';
+}
+
 function onTotalAmountInput() {
+  sizeAmountInput();
   // If there's exactly one split row, keep its amount in sync with the total
   const rows = document.querySelectorAll('#split-rows .split-row');
   if (rows.length === 1) {
@@ -5951,6 +6052,14 @@ async function saveToYNABBatch() {
 function showFieldError(id) {
   const el = document.getElementById(id);
   if (el) el.classList.add('visible');
+  // For the hero amount field, also ring the wrapper
+  if (id === 's-amount-err') {
+    const wrap = document.getElementById('s-amount-wrap');
+    if (wrap) {
+      wrap.classList.add('has-error');
+      setTimeout(() => wrap.classList.remove('has-error'), 3000);
+    }
+  }
   setTimeout(() => el && el.classList.remove('visible'), 3000);
 }
 
@@ -5965,6 +6074,7 @@ function clearSingleEntry() {
   splitRowId = 0;
   addSplitRow();
   updateRemaining();
+  sizeAmountInput();
 }
 
 function onSplitwiseToggle(checkbox) {
