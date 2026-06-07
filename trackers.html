@@ -1329,7 +1329,7 @@ let storageMode = localStorage.getItem(CACHE_KEY_STORAGE) || 'github';
 // YNAB Notes storage state — populated during load
 const ynabStore = {
   groupId:    null,   // _Splitnab category group ID
-  // Map of monthKey -> { categoryId, hidden }
+  // Map of monthKey -> { categoryId }
   categories: {},
 };
 
@@ -1537,7 +1537,7 @@ async function ynabEnsureGroup() {
     ynabStore.groupId = group.id;
     for (const c of (group.categories || [])) {
       if (!c.deleted && /^\d{4}-\d{2}$/.test(c.name)) {
-        ynabStore.categories[c.name] = { categoryId: c.id, hidden: c.hidden };
+        ynabStore.categories[c.name] = { categoryId: c.id };
       }
     }
     return group.id;
@@ -1606,43 +1606,29 @@ async function saveMonthToYNAB(key) {
   const tracker  = allTrackers[key] || null;
   const template = trackerTemplate  || null;
   const note     = JSON.stringify({ tracker, template });
-  let entry      = ynabStore.categories[key];
+  const entry    = ynabStore.categories[key];
 
   if (!entry) {
-    // Create a new hidden category named YYYY-MM under _Splitnab
+    // Create a new category named YYYY-MM under _Splitnab.
+    // Only name, category_group_id, and note are valid on create.
     const res = await ynabFetch(`/budgets/${ynab.budgetId}/categories`, {
       method: 'POST',
       body: JSON.stringify({
         category: {
           category_group_id: ynabStore.groupId,
           name: key,
-          budgeted: 0,
           note,
         },
       }),
     });
     const catId = res.data.category.id;
-    ynabStore.categories[key] = { categoryId: catId, hidden: false };
-    // Hide it so it doesn't clutter YNAB's budget view
-    await ynabFetch(`/budgets/${ynab.budgetId}/categories/${catId}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ category: { hidden: true } }),
-    });
-    ynabStore.categories[key].hidden = true;
+    ynabStore.categories[key] = { categoryId: catId };
   } else {
-    // Update the existing category's note
+    // Update the existing category's note only
     await ynabFetch(`/budgets/${ynab.budgetId}/categories/${entry.categoryId}`, {
       method: 'PATCH',
       body: JSON.stringify({ category: { note } }),
     });
-    // Re-hide if somehow un-hidden
-    if (!entry.hidden) {
-      await ynabFetch(`/budgets/${ynab.budgetId}/categories/${entry.categoryId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ category: { hidden: true } }),
-      });
-      ynabStore.categories[key].hidden = true;
-    }
   }
 }
 
