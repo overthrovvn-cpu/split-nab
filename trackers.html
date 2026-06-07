@@ -3225,22 +3225,24 @@ async function init() {
     showToast('warning', 'YNAB not connected. Open Settings to add your token and budget.');
   }
 
-  // Always load YNAB categories (needed for transaction logging + YNAB storage)
-  const tasks = [];
-  if (ynab.token && ynab.budgetId) {
-    tasks.push(loadYNABCategories());
-  }
-  await Promise.all(tasks);
+  // Run YNAB categories load and tracker data load in parallel — neither depends on the other.
+  // render() is called after both finish so the table and dropdowns are ready together.
+  const parallelTasks = [];
 
-  // Load tracker data from the selected storage backend
+  if (ynab.token && ynab.budgetId) {
+    parallelTasks.push(loadYNABCategories());
+  }
+
   if (storageMode === 'ynab' && ynabConfigured()) {
-    await loadFromYNAB();
+    parallelTasks.push(loadFromYNAB());
   } else if (storageMode === 'github' && ghConfigured()) {
-    await loadFromGitHub();
+    parallelTasks.push(loadFromGitHub());
   } else if (storageMode === 'github' && !ghConfigured()) {
     document.getElementById('tracker-status-label').textContent =
       'Configure GitHub sync in Settings to save across devices.';
   }
+
+  await Promise.all(parallelTasks);
 
   // Load Splitwise friends
   if (sw.proxyUrl && sw.accounts.length > 0) {
