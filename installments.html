@@ -899,15 +899,65 @@ function addMonths(dateStr, n) {
 /* ═══════════════════════════════════════════════
    YNAB API
 ═══════════════════════════════════════════════ */
-async function ynabFetch(endpoint) {
+/* ── YNAB Session Cache ───────────────────── */
+const YNAB_CACHE_TTL = 5 * 60 * 1000;
+const YNAB_TX_TTL    = 2 * 60 * 1000;
+
+function _ynabCacheKey(endpoint) {
+  return `ynab_cache_${ynab.budgetId}_${endpoint.replace(/[^a-z0-9_\-/]/gi, '_')}`;
+}
+function _ynabCacheGet(endpoint) {
+  try {
+    const raw = sessionStorage.getItem(_ynabCacheKey(endpoint));
+    if (!raw) return null;
+    const { ts, data } = JSON.parse(raw);
+    const ttl = endpoint.includes('/transactions') ? YNAB_TX_TTL : YNAB_CACHE_TTL;
+    if (Date.now() - ts > ttl) { sessionStorage.removeItem(_ynabCacheKey(endpoint)); return null; }
+    return data;
+  } catch { return null; }
+}
+function _ynabCacheSet(endpoint, data) {
+  try { sessionStorage.setItem(_ynabCacheKey(endpoint), JSON.stringify({ ts: Date.now(), data })); }
+  catch { /* quota exceeded */ }
+}
+function _ynabCacheInvalidate(pattern) {
+  const prefix = `ynab_cache_${ynab.budgetId}_`;
+  for (let i = sessionStorage.length - 1; i >= 0; i--) {
+    const k = sessionStorage.key(i);
+    if (k && k.startsWith(prefix) && k.includes(pattern)) sessionStorage.removeItem(k);
+  }
+}
+function clearYNABCache() {
+  const prefix = `ynab_cache_${ynab.budgetId}_`;
+  for (let i = sessionStorage.length - 1; i >= 0; i--) {
+    const k = sessionStorage.key(i);
+    if (k && k.startsWith(prefix)) sessionStorage.removeItem(k);
+  }
+}
+
+async function ynabFetch(endpoint, options = {}) {
+  const method = (options.method || 'GET').toUpperCase();
+  const isRead = method === 'GET';
+  if (isRead) {
+    const cached = _ynabCacheGet(endpoint);
+    if (cached) return cached;
+  }
   const res = await fetch(YNAB_API + endpoint, {
-    headers: { 'Authorization': 'Bearer ' + ynab.token, 'Content-Type': 'application/json' },
+    ...options,
+    headers: { 'Authorization': 'Bearer ' + ynab.token, 'Content-Type': 'application/json', ...(options.headers || {}) },
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err?.error?.detail || `HTTP ${res.status}`);
   }
-  return res.json();
+  const data = await res.json();
+  if (isRead) {
+    _ynabCacheSet(endpoint, data);
+  } else {
+    _ynabCacheInvalidate('/categories');
+    _ynabCacheInvalidate('/transactions');
+  }
+  return data;
 }
 
 /* ═══════════════════════════════════════════════
@@ -1748,7 +1798,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('settings-overlay').addEventListener('click', e => {
     if (e.target === document.getElementById('settings-overlay')) closeSettings();
   });
-  document.getElementById('refresh-btn').addEventListener('click', loadData);
+  document.getElementById('refresh-btn').addEventListener('click', () => { clearYNABCache(); loadData(); });
 
   // Add Installment buttons
   document.getElementById('add-btn').addEventListener('click', openAddModal);
