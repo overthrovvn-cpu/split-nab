@@ -1605,8 +1605,16 @@ async function saveMonthToYNAB(key) {
   if (!ynabStore.groupId) await ynabEnsureGroup();
   const tracker  = allTrackers[key] || null;
   const template = trackerTemplate  || null;
-  const note     = JSON.stringify({ tracker, template });
-  const entry    = ynabStore.categories[key];
+
+  // If tracker was deleted and no category exists, nothing to do
+  if (!tracker && !ynabStore.categories[key]) return;
+
+  // If tracker was deleted but category exists, the DELETE path in
+  // deleteCurrentMonthTracker handles it — skip the note update
+  if (!tracker && ynabStore.categories[key]) return;
+
+  const note  = JSON.stringify({ tracker, template });
+  const entry = ynabStore.categories[key];
 
   if (!entry) {
     // Create a new category named YYYY-MM under _Splitnab.
@@ -2347,6 +2355,19 @@ function deleteCurrentMonthTracker() {
   if (!allTrackers[key]) return;
   if (!confirm(`Delete the tracker for ${label}? This cannot be undone.`)) return;
   delete allTrackers[key];
+  // For YNAB storage: delete the category, don't just null the note
+  if (storageMode === 'ynab' && ynabConfigured()) {
+    const entry = ynabStore.categories[key];
+    if (entry) {
+      ynabFetch(`/budgets/${ynab.budgetId}/categories/${entry.categoryId}`, {
+        method: 'DELETE',
+      }).then(() => {
+        delete ynabStore.categories[key];
+      }).catch(e => {
+        showToast('error', `YNAB delete failed: ${e.message}`);
+      });
+    }
+  }
   saveTrackers();
   render();
   showToast('success', `Tracker for ${label} deleted.`);
