@@ -923,6 +923,22 @@
 
     <hr class="modal-divider">
 
+    <p class="modal-section-title">Storage Backend</p>
+    <div style="margin-bottom:4px;">
+      <div class="share-type-toggle" id="storage-mode-toggle" style="margin-bottom:8px;">
+        <button class="share-type-option" data-mode="github" onclick="setStorageMode('github')">GitHub</button>
+        <button class="share-type-option" data-mode="ynab"   onclick="setStorageMode('ynab')">YNAB Notes</button>
+      </div>
+      <div id="storage-github-hint" class="form-hint">
+        Tracker data is saved as <strong>splitnab-trackers.json</strong> in your GitHub repo. Requires GitHub config below.
+      </div>
+      <div id="storage-ynab-hint" class="form-hint" style="display:none;">
+        Tracker data is stored in hidden YNAB category notes under the <strong>_Splitnab</strong> group. Faster saves (~400ms) but requires YNAB connection. No GitHub config needed.
+      </div>
+    </div>
+
+    <hr class="modal-divider">
+
     <p class="modal-section-title">Splitwise</p>
     <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:4px;">
       <div>
@@ -934,8 +950,8 @@
 
     <hr class="modal-divider">
 
-    <p class="modal-section-title">GitHub Sync</p>
-    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:4px;">
+    <p class="modal-section-title" id="gh-section-title">GitHub Sync</p>
+    <div id="gh-section" style="display:flex;flex-direction:column;gap:10px;margin-bottom:4px;">
       <div>
         <label class="form-label" style="display:block;margin-bottom:4px;">Personal Access Token</label>
         <input type="password" id="set-gh-token" class="form-input" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
@@ -1200,9 +1216,12 @@
 const YNAB_API           = 'https://api.ynab.com/v1';
 const GITHUB_API         = 'https://api.github.com';
 const GITHUB_FILENAME    = 'splitnab-trackers.json';
+const YNAB_GROUP_NAME    = '_Splitnab';          // category group used as YNAB storage
+const YNAB_META_CAT      = '_meta';              // category that stores the template + budgets map
 // localStorage cache keys
 const CACHE_KEY_BUDGETS  = 'splitnab_budgets';   // { budgetId: { trackers, template } }
 const CACHE_KEY_GH_SHA   = 'splitnab_gh_sha';    // current file SHA from GitHub
+const CACHE_KEY_STORAGE  = 'splitnab_storage';   // 'github' | 'ynab'
 
 /* ═══════════════════════════════════════════════
    STATE
@@ -1304,6 +1323,16 @@ const gh = {
   sha:    localStorage.getItem(CACHE_KEY_GH_SHA) || null,
 };
 
+// Storage mode: 'github' | 'ynab'
+let storageMode = localStorage.getItem(CACHE_KEY_STORAGE) || 'github';
+
+// YNAB Notes storage state — populated during load
+const ynabStore = {
+  groupId:    null,   // _Splitnab category group ID
+  // Map of monthKey -> { categoryId, hidden }
+  categories: {},
+};
+
 // Current tracker being viewed (TrackerData or null)
 let currentTracker = null;
 
@@ -1364,33 +1393,35 @@ function escHtml(s) {
 }
 
 /* ═══════════════════════════════════════════════
-   STORAGE  —  GitHub repository file as backend
-   All tracker data is stored in a single JSON file
-   (splitnab-trackers.json) in your GitHub repo.
-   localStorage is used as a read-through cache for
-   instant rendering and offline access.
+   STORAGE  —  GitHub or YNAB Notes as backend.
+   localStorage is always used as a read-through
+   cache for instant rendering and offline access.
 ═══════════════════════════════════════════════ */
 
 function ghConfigured() {
   return !!(gh.token && gh.owner && gh.repo);
 }
 
-// ── Write cache ──────────────────────────────
+function ynabConfigured() {
+  return !!(ynab.token && ynab.budgetId);
+}
+
+// ── Write cache (localStorage only) ─────────
 function cacheWrite() {
-  // Keep the in-memory slot in sync before persisting
-  const slot    = budgetSlot();
+  if (!ynab.budgetId) return;
+  if (!allBudgetsData[ynab.budgetId]) allBudgetsData[ynab.budgetId] = {};
+  const slot    = allBudgetsData[ynab.budgetId];
   slot.trackers = allTrackers;
   slot.template = trackerTemplate;
-  localStorage.setItem(CACHE_KEY_BUDGETS, JSON.stringify(allBudgetsData));
+  try {
+    localStorage.setItem(CACHE_KEY_BUDGETS, JSON.stringify(allBudgetsData));
+  } catch(e) { console.warn('localStorage write failed:', e); }
   if (gh.sha) localStorage.setItem(CACHE_KEY_GH_SHA, gh.sha);
 }
 
-// ── Build the full data object to persist ────
+// ── Build the full payload object ────────────
 function buildPayload() {
-  // Sync current budget into the map before saving
-  const slot    = budgetSlot();
-  slot.trackers = allTrackers;
-  slot.template = trackerTemplate ? deepCloneStructure(trackerTemplate) : null;
+  cacheWrite();
   return {
     version: 2,
     updatedAt: new Date().toISOString(),
@@ -1398,7 +1429,7 @@ function buildPayload() {
   };
 }
 
-// ── GitHub API fetch wrapper ─────────────────
+/* ─── GitHub backend ──────────────────────── */
 async function ghFetch(endpoint, options = {}) {
   const res = await fetch(GITHUB_API + endpoint, {
     ...options,
@@ -1417,7 +1448,6 @@ async function ghFetch(endpoint, options = {}) {
   return res.json();
 }
 
-// ── Load from GitHub ─────────────────────────
 async function loadFromGitHub() {
   if (!ghConfigured()) return;
   try {
@@ -1426,38 +1456,28 @@ async function loadFromGitHub() {
     );
     gh.sha = data.sha;
     localStorage.setItem(CACHE_KEY_GH_SHA, gh.sha);
-
     const content = JSON.parse(atob(data.content.replace(/\n/g, '')));
-
     if (content.version >= 2 && content.budgets) {
-      // v2: budget-scoped structure
       allBudgetsData = content.budgets;
     } else if (content.trackers || content.template) {
-      // v1 legacy: migrate into current budget slot
       const slot = budgetSlot();
       if (content.trackers) slot.trackers = content.trackers;
       if (content.template) slot.template = content.template;
     }
-
-    // Re-point live references to the active budget
     switchBudgetScope();
     cacheWrite();
   } catch (e) {
-    // 404 = file doesn't exist yet, will be created on first save — not an error
     if (e.message && (e.message.includes('404') || e.message.includes('Not Found'))) {
-      gh.sha = null;
-      return;
+      gh.sha = null; return;
     }
     showToast('error', 'GitHub load failed: ' + e.message);
   }
 }
 
-// ── Save to GitHub ───────────────────────────
 let _ghSavePending = false;
 let _ghSaveTimer   = null;
 
 function scheduleGitHubSave() {
-  // Debounce: coalesce rapid saves into one write after 800ms
   clearTimeout(_ghSaveTimer);
   _ghSaveTimer = setTimeout(flushToGitHub, 800);
 }
@@ -1470,10 +1490,7 @@ async function fetchLatestSha() {
     gh.sha = data.sha;
     localStorage.setItem(CACHE_KEY_GH_SHA, gh.sha);
   } catch (e) {
-    // 404 means file doesn't exist yet — that's fine, sha stays null
-    if (!e.message.includes('404') && !e.message.includes('Not Found')) {
-      throw e;
-    }
+    if (!e.message.includes('404') && !e.message.includes('Not Found')) throw e;
     gh.sha = null;
   }
 }
@@ -1481,16 +1498,13 @@ async function fetchLatestSha() {
 async function flushToGitHub() {
   if (!ghConfigured()) return;
   if (_ghSavePending) {
-    // A save is already in-flight; reschedule to run after it finishes
     clearTimeout(_ghSaveTimer);
     _ghSaveTimer = setTimeout(flushToGitHub, 1000);
     return;
   }
   _ghSavePending = true;
   try {
-    // Always fetch the latest SHA right before writing to prevent stale-SHA conflicts
     await fetchLatestSha();
-
     const payload = buildPayload();
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
     const body    = {
@@ -1499,7 +1513,6 @@ async function flushToGitHub() {
       branch: gh.branch,
     };
     if (gh.sha) body.sha = gh.sha;
-
     const res = await ghFetch(
       `/repos/${gh.owner}/${gh.repo}/contents/${GITHUB_FILENAME}`,
       { method: 'PUT', body: JSON.stringify(body) }
@@ -1513,35 +1526,157 @@ async function flushToGitHub() {
   }
 }
 
-// ── saveTrackers / saveTemplate (called throughout the app) ─
+/* ─── YNAB Notes backend ──────────────────── */
+
+// Ensure _Splitnab category group exists; populate ynabStore.categories map.
+async function ynabEnsureGroup() {
+  const res    = await ynabFetch(`/budgets/${ynab.budgetId}/categories`);
+  const groups = res.data.category_groups || [];
+  let group    = groups.find(g => !g.deleted && g.name === YNAB_GROUP_NAME);
+  if (group) {
+    ynabStore.groupId = group.id;
+    for (const c of (group.categories || [])) {
+      if (!c.deleted && /^\d{4}-\d{2}$/.test(c.name)) {
+        ynabStore.categories[c.name] = { categoryId: c.id, hidden: c.hidden };
+      }
+    }
+    return group.id;
+  }
+  // Create the group if it doesn't exist
+  const created = await ynabFetch(`/budgets/${ynab.budgetId}/category_groups`, {
+    method: 'POST',
+    body: JSON.stringify({ category_group: { name: YNAB_GROUP_NAME } }),
+  });
+  ynabStore.groupId = created.data.category_group.id;
+  return ynabStore.groupId;
+}
+
+// Load all tracker data stored in YNAB category notes.
+async function loadFromYNAB() {
+  if (!ynabConfigured()) return;
+  try {
+    await ynabEnsureGroup();
+    for (const [key, entry] of Object.entries(ynabStore.categories)) {
+      try {
+        const res  = await ynabFetch(`/budgets/${ynab.budgetId}/categories/${entry.categoryId}`);
+        const note = res.data.category.note || '';
+        if (note.startsWith('{')) {
+          const parsed = JSON.parse(note);
+          if (parsed.tracker) {
+            if (!allBudgetsData[ynab.budgetId]) allBudgetsData[ynab.budgetId] = { trackers: {}, template: null };
+            allBudgetsData[ynab.budgetId].trackers[key] = parsed.tracker;
+            if (parsed.template && !allBudgetsData[ynab.budgetId].template) {
+              allBudgetsData[ynab.budgetId].template = parsed.template;
+            }
+          }
+        }
+      } catch(e) { /* skip unreadable notes */ }
+    }
+    switchBudgetScope();
+    cacheWrite();
+  } catch(e) {
+    showToast('error', 'YNAB storage load failed: ' + e.message);
+  }
+}
+
+const _ynabSaveQueue = new Set();
+let   _ynabSaveTimer = null;
+
+function scheduleYNABSave(key) {
+  _ynabSaveQueue.add(key);
+  clearTimeout(_ynabSaveTimer);
+  _ynabSaveTimer = setTimeout(flushToYNAB, 400);
+}
+
+async function flushToYNAB() {
+  if (!ynabConfigured() || !ynabStore.groupId) {
+    if (ynabConfigured()) await ynabEnsureGroup().catch(() => {});
+    if (!ynabStore.groupId) return;
+  }
+  const keys = Array.from(_ynabSaveQueue);
+  _ynabSaveQueue.clear();
+  for (const key of keys) {
+    try { await saveMonthToYNAB(key); }
+    catch(e) { showToast('error', `YNAB save failed (${key}): ` + e.message); }
+  }
+}
+
+async function saveMonthToYNAB(key) {
+  if (!ynabStore.groupId) await ynabEnsureGroup();
+  const tracker  = allTrackers[key] || null;
+  const template = trackerTemplate  || null;
+  const note     = JSON.stringify({ tracker, template });
+  let entry      = ynabStore.categories[key];
+
+  if (!entry) {
+    // Create a new hidden category named YYYY-MM under _Splitnab
+    const res = await ynabFetch(`/budgets/${ynab.budgetId}/categories`, {
+      method: 'POST',
+      body: JSON.stringify({
+        category: {
+          category_group_id: ynabStore.groupId,
+          name: key,
+          budgeted: 0,
+          note,
+        },
+      }),
+    });
+    const catId = res.data.category.id;
+    ynabStore.categories[key] = { categoryId: catId, hidden: false };
+    // Hide it so it doesn't clutter YNAB's budget view
+    await ynabFetch(`/budgets/${ynab.budgetId}/categories/${catId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ category: { hidden: true } }),
+    });
+    ynabStore.categories[key].hidden = true;
+  } else {
+    // Update the existing category's note
+    await ynabFetch(`/budgets/${ynab.budgetId}/categories/${entry.categoryId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ category: { note } }),
+    });
+    // Re-hide if somehow un-hidden
+    if (!entry.hidden) {
+      await ynabFetch(`/budgets/${ynab.budgetId}/categories/${entry.categoryId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ category: { hidden: true } }),
+      });
+      ynabStore.categories[key].hidden = true;
+    }
+  }
+}
+
+/* ─── Unified save / load entry points ───── */
+
 function saveTrackers() {
-  // Always re-point the slot to the current live tracker map before writing
   if (!ynab.budgetId) return;
   if (!allBudgetsData[ynab.budgetId]) allBudgetsData[ynab.budgetId] = {};
-  const slot    = allBudgetsData[ynab.budgetId];
-  slot.trackers = allTrackers;
-  slot.template = trackerTemplate;
-  // Instant localStorage write
+  allBudgetsData[ynab.budgetId].trackers = allTrackers;
+  allBudgetsData[ynab.budgetId].template = trackerTemplate;
+  // Always instant localStorage write
   try {
     localStorage.setItem(CACHE_KEY_BUDGETS, JSON.stringify(allBudgetsData));
-  } catch (e) {
-    console.warn('localStorage write failed:', e);
+  } catch(e) { console.warn('localStorage write failed:', e); }
+  // Push to selected cloud backend
+  if (storageMode === 'ynab' && ynabConfigured()) {
+    scheduleYNABSave(getCurrentKey());
+  } else if (storageMode === 'github' && ghConfigured()) {
+    scheduleGitHubSave();
   }
-  // Debounced GitHub push
-  scheduleGitHubSave();
 }
 
 function saveTemplate() {
-  if (!trackerTemplate) return;
-  if (!ynab.budgetId) return;
+  if (!trackerTemplate || !ynab.budgetId) return;
   if (!allBudgetsData[ynab.budgetId]) allBudgetsData[ynab.budgetId] = {};
   allBudgetsData[ynab.budgetId].template = trackerTemplate;
   try {
     localStorage.setItem(CACHE_KEY_BUDGETS, JSON.stringify(allBudgetsData));
-  } catch (e) {
-    console.warn('localStorage write failed:', e);
+  } catch(e) { console.warn('localStorage write failed:', e); }
+  if (storageMode === 'ynab' && ynabConfigured()) {
+    scheduleYNABSave(getCurrentKey());
+  } else if (storageMode === 'github' && ghConfigured()) {
+    scheduleGitHubSave();
   }
-  scheduleGitHubSave();
 }
 
 // Deep clone a tracker, stripping per-month state
@@ -2259,12 +2394,27 @@ function openSettings() {
   document.getElementById('set-gh-owner').value  = gh.owner;
   document.getElementById('set-gh-repo').value   = gh.repo;
   document.getElementById('set-gh-branch').value = gh.branch || 'main';
-  // Show the active budget name/ID as read-only info
   const budgetLabel = document.getElementById('settings-budget-label');
   budgetLabel.textContent = ynab.budgetId
     ? (ynab.budgetName ? `${ynab.budgetName} (${ynab.budgetId.slice(0,8)}…)` : ynab.budgetId)
     : 'Not set — configure in Split-NAB';
+  // Reflect current storage mode in the toggle
+  setStorageMode(storageMode, false);
   openOverlay('settings-overlay');
+}
+
+function setStorageMode(mode, persist = true) {
+  storageMode = mode;
+  if (persist) localStorage.setItem(CACHE_KEY_STORAGE, mode);
+  // Update toggle buttons
+  document.querySelectorAll('#storage-mode-toggle .share-type-option').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  // Show/hide hints and GitHub section
+  document.getElementById('storage-github-hint').style.display = mode === 'github' ? '' : 'none';
+  document.getElementById('storage-ynab-hint').style.display   = mode === 'ynab'   ? '' : 'none';
+  document.getElementById('gh-section-title').style.opacity    = mode === 'ynab'   ? '0.45' : '';
+  document.getElementById('gh-section').style.opacity          = mode === 'ynab'   ? '0.45' : '';
 }
 
 function closeSettings() { closeOverlay('settings-overlay'); }
@@ -2288,6 +2438,7 @@ document.getElementById('settings-done-btn').addEventListener('click', () => {
   if (ghOwner) { localStorage.setItem('gh_owner', ghOwner);   gh.owner     = ghOwner; }
   if (ghRepo)  { localStorage.setItem('gh_repo', ghRepo);     gh.repo      = ghRepo; }
   localStorage.setItem('gh_branch', ghBranch); gh.branch = ghBranch;
+  // storageMode is already persisted by setStorageMode() when toggle is clicked
 
   switchBudgetScope();
   closeSettings();
@@ -2940,6 +3091,7 @@ async function init() {
   ynab.budgetId   = localStorage.getItem('ynab_budget_id')   || '';
   ynab.budgetName = localStorage.getItem('ynab_budget_name') || '';
   ynab.token      = localStorage.getItem('ynab_token')       || '';
+  storageMode     = localStorage.getItem(CACHE_KEY_STORAGE)  || 'github';
 
   // Scope to the active budget before first render
   switchBudgetScope();
@@ -2949,18 +3101,22 @@ async function init() {
     showToast('warning', 'YNAB not connected. Open Settings to add your token and budget.');
   }
 
-  // Load from GitHub (primary storage) and YNAB categories in parallel
+  // Always load YNAB categories (needed for transaction logging + YNAB storage)
   const tasks = [];
-  if (ghConfigured()) {
-    tasks.push(loadFromGitHub());
-  } else {
-    document.getElementById('tracker-status-label').textContent =
-      'Configure GitHub sync in Settings to save across devices.';
-  }
   if (ynab.token && ynab.budgetId) {
     tasks.push(loadYNABCategories());
   }
   await Promise.all(tasks);
+
+  // Load tracker data from the selected storage backend
+  if (storageMode === 'ynab' && ynabConfigured()) {
+    await loadFromYNAB();
+  } else if (storageMode === 'github' && ghConfigured()) {
+    await loadFromGitHub();
+  } else if (storageMode === 'github' && !ghConfigured()) {
+    document.getElementById('tracker-status-label').textContent =
+      'Configure GitHub sync in Settings to save across devices.';
+  }
 
   // Load Splitwise friends
   if (sw.proxyUrl && sw.accounts.length > 0) {
