@@ -1462,28 +1462,43 @@ function scheduleGitHubSave() {
   _ghSaveTimer = setTimeout(flushToGitHub, 800);
 }
 
+async function fetchLatestSha() {
+  try {
+    const data = await ghFetch(
+      `/repos/${gh.owner}/${gh.repo}/contents/${GITHUB_FILENAME}?ref=${gh.branch}`
+    );
+    gh.sha = data.sha;
+    localStorage.setItem(CACHE_KEY_GH_SHA, gh.sha);
+  } catch (e) {
+    // 404 means file doesn't exist yet — that's fine, sha stays null
+    if (!e.message.includes('404') && !e.message.includes('Not Found')) {
+      throw e;
+    }
+    gh.sha = null;
+  }
+}
+
 async function flushToGitHub() {
   if (!ghConfigured()) return;
-  // If a save is already in-flight, wait for it then retry
   if (_ghSavePending) {
+    // A save is already in-flight; reschedule to run after it finishes
     clearTimeout(_ghSaveTimer);
-    _ghSaveTimer = setTimeout(flushToGitHub, 800);
+    _ghSaveTimer = setTimeout(flushToGitHub, 1000);
     return;
   }
   _ghSavePending = true;
   try {
-    // Always re-read SHA from localStorage in case another tab updated it
-    const storedSha = localStorage.getItem(CACHE_KEY_GH_SHA);
-    if (storedSha && storedSha !== gh.sha) gh.sha = storedSha;
+    // Always fetch the latest SHA right before writing to prevent stale-SHA conflicts
+    await fetchLatestSha();
 
-    const payload  = buildPayload();
-    const content  = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
-    const body     = {
+    const payload = buildPayload();
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+    const body    = {
       message: `Update tracker data – ${new Date().toISOString().slice(0,10)}`,
       content,
       branch: gh.branch,
     };
-    if (gh.sha) body.sha = gh.sha; // required for updates; omit for first create
+    if (gh.sha) body.sha = gh.sha;
 
     const res = await ghFetch(
       `/repos/${gh.owner}/${gh.repo}/contents/${GITHUB_FILENAME}`,
@@ -1492,24 +1507,7 @@ async function flushToGitHub() {
     gh.sha = res.content?.sha || gh.sha;
     localStorage.setItem(CACHE_KEY_GH_SHA, gh.sha);
   } catch (e) {
-    // 409 conflict = SHA is stale; re-fetch the latest SHA and retry once
-    if (e.message && (e.message.includes('409') || e.message.includes('conflict') || e.message.includes('sha'))) {
-      try {
-        const latest = await ghFetch(
-          `/repos/${gh.owner}/${gh.repo}/contents/${GITHUB_FILENAME}?ref=${gh.branch}`
-        );
-        gh.sha = latest.sha;
-        localStorage.setItem(CACHE_KEY_GH_SHA, gh.sha);
-        // Retry immediately with fresh SHA
-        _ghSavePending = false;
-        await flushToGitHub();
-        return;
-      } catch (retryErr) {
-        showToast('error', 'GitHub save failed: ' + retryErr.message);
-      }
-    } else {
-      showToast('error', 'GitHub save failed: ' + e.message);
-    }
+    showToast('error', 'GitHub save failed: ' + e.message);
   } finally {
     _ghSavePending = false;
   }
