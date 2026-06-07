@@ -1021,6 +1021,7 @@ const ynab = {
   accountId:  localStorage.getItem('ynab_account_id') || '',
   categories: [],
   accounts:   [],
+  payees:     [],
   connected:  false,
 };
 
@@ -1367,25 +1368,30 @@ async function ynabFetch(endpoint, options = {}) {
 async function loadYNABCategories() {
   if (!ynab.token || !ynab.budgetId) return;
   try {
-    const [catData, acctData] = await Promise.all([
+    const [catData, acctData, payeeData] = await Promise.all([
       ynabFetch(`/budgets/${ynab.budgetId}/categories`),
       ynabFetch(`/budgets/${ynab.budgetId}/accounts`),
+      ynabFetch(`/budgets/${ynab.budgetId}/payees`),
     ]);
 
-    // Categories
+    // Categories — all including hidden for reimbursements lookup
     const groups = catData.data.category_groups || [];
     ynab.categories = [];
     for (const g of groups) {
-      if (g.deleted || g.hidden) continue;
+      if (g.deleted) continue;
       for (const c of (g.categories || [])) {
-        if (c.deleted || c.hidden) continue;
-        ynab.categories.push({ id: c.id, name: c.name, group: g.name });
+        if (c.deleted) continue;
+        ynab.categories.push({ id: c.id, name: c.name, group: g.name, hidden: c.hidden });
       }
     }
 
     // Accounts
     ynab.accounts = (acctData.data.accounts || [])
       .filter(a => !a.closed && !a.deleted);
+
+    // Payees
+    ynab.payees = (payeeData.data.payees || [])
+      .filter(p => !p.deleted);
 
     ynab.connected = true;
   } catch (e) {
@@ -1396,24 +1402,74 @@ async function loadYNABCategories() {
 
 async function logYNABTransaction(cat, fields) {
   // fields: { accountId, date, payee, amount, memo }
+  // fields.amount = the amount the user confirmed (my share for shared, full for solo)
   if (!cat.ynabCategoryId)  throw new Error('No YNAB category linked.');
   if (!fields.accountId)    throw new Error('No YNAB account selected.');
   if (!fields.date)         throw new Error('Date is required.');
   if (!fields.payee)        throw new Error('Payee is required.');
   if (!fields.amount || fields.amount <= 0) throw new Error('Amount must be greater than zero.');
 
-  const payload = {
-    transaction: {
-      account_id:  fields.accountId,
-      date:        fields.date,
-      amount:      -Math.round(fields.amount * 1000),  // milliunits, outflow
-      payee_name:  fields.payee,
+  let payload;
+
+  if (cat.type === 'shared') {
+    // fields.amount = my share (already computed by caller)
+    const myAmt     = fields.amount;
+    const friendAmt = Math.round((cat.amount - myAmt) * 100) / 100;
+
+    // Subtransaction amounts must sum exactly to parent — use milliunits arithmetic
+    const myMilli     = -Math.round(myAmt     * 1000);
+    const friendMilli = -Math.round(friendAmt * 1000);
+    const totalMilli  = myMilli + friendMilli; // exact sum — no rounding drift
+
+    // Find Reimbursements category and Splitwise payee
+    const reimburse = ynab.categories.find(c =>
+      c.name.toLowerCase().includes('reimbursement')
+    );
+    const swPayee = ynab.payees?.find(p =>
+      p.name.toLowerCase() === 'splitwise'
+    );
+
+    const sub1 = {
+      amount:      myMilli,
       category_id: cat.ynabCategoryId,
       memo:        fields.memo || undefined,
-      cleared:     'uncleared',
-      approved:    false,
-    },
-  };
+    };
+
+    const sub2 = {
+      amount: friendMilli,
+      memo:   `Owed by ${cat.swFriendName || 'friend'} via Splitwise`,
+    };
+    if (reimburse) sub2.category_id = reimburse.id;
+    if (swPayee)   sub2.payee_id    = swPayee.id;
+    else           sub2.payee_name  = 'Splitwise';
+
+    payload = {
+      transaction: {
+        account_id:      fields.accountId,
+        date:            fields.date,
+        amount:          totalMilli,
+        payee_name:      fields.payee,
+        memo:            fields.memo || undefined,
+        cleared:         'uncleared',
+        approved:        false,
+        subtransactions: [sub1, sub2],
+      },
+    };
+  } else {
+    // Solo — flat transaction
+    payload = {
+      transaction: {
+        account_id:  fields.accountId,
+        date:        fields.date,
+        amount:      -Math.round(fields.amount * 1000),
+        payee_name:  fields.payee,
+        category_id: cat.ynabCategoryId,
+        memo:        fields.memo || undefined,
+        cleared:     'uncleared',
+        approved:    false,
+      },
+    };
+  }
 
   console.log('[YNAB TX] Payload:', JSON.stringify(payload));
   await ynabFetch(`/budgets/${ynab.budgetId}/transactions`, {
@@ -1440,11 +1496,12 @@ async function splitwiseFetch(endpoint, options = {}, accountIndex) {
       ...(options.headers || {}),
     },
   });
+  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error || `Splitwise HTTP ${res.status}`);
+    console.error('[SW Error]', res.status, endpoint, JSON.stringify(data));
+    throw new Error(data?.error || data?.errors?.[0] || `Splitwise HTTP ${res.status}`);
   }
-  return res.json();
+  return data;
 }
 
 async function loadSWFriends() {
@@ -1468,40 +1525,47 @@ async function loadSWFriends() {
   }
 }
 
-async function logSplitwiseExpense(cat, notes) {
+async function logSplitwiseExpense(cat, notes, myAmt) {
   if (!cat.swFriendId) throw new Error('No Splitwise friend linked.');
   const account = swActiveAccount();
   if (!account)       throw new Error('No active Splitwise account.');
   if (!account.user)  throw new Error('Splitwise account not loaded. Try refreshing the page.');
 
-  const meId  = String(account.user.id);
-  const total = cat.amount;
-  let myShare, friendShare;
-  if (cat.splitType === 'fixed' && cat.myShare != null) {
-    myShare     = cat.myShare;
-    friendShare = total - myShare;
-  } else {
-    myShare     = total / 2;
-    friendShare = total / 2;
-  }
+  const meId      = String(account.user.id);
+  // Use the passed-in myAmt if provided, otherwise derive from cat config
+  const myShare   = myAmt != null ? myAmt : myShareOf(cat);
+  const total     = cat.amount;
+  const friendShare = Math.round((total - myShare) * 100) / 100;
+
+  console.log('[SW] Creating expense — total:', total, 'myShare:', myShare, 'friendShare:', friendShare, 'meId:', meId, 'friendId:', cat.swFriendId);
 
   const params = new URLSearchParams();
-  params.append('description',         notes || cat.name);
-  params.append('cost',                total.toFixed(2));
-  params.append('currency_code',       'PHP');
-  params.append('split_equally',       'false');
-  params.append('users__0__user_id',   meId);
+  params.append('description',          notes || cat.name);
+  params.append('cost',                 total.toFixed(2));
+  params.append('currency_code',        'PHP');
+  params.append('split_equally',        'false');
+  params.append('users__0__user_id',    meId);
   params.append('users__0__paid_share', total.toFixed(2));
   params.append('users__0__owed_share', myShare.toFixed(2));
   params.append('users__1__user_id',    String(cat.swFriendId));
   params.append('users__1__paid_share', '0.00');
   params.append('users__1__owed_share', friendShare.toFixed(2));
 
-  await splitwiseFetch('/create_expense', {
+  console.log('[SW] Request body:', params.toString());
+
+  const result = await splitwiseFetch('/create_expense', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: params.toString(),
   });
+
+  // Splitwise returns { errors: {} } on validation failure even with 200
+  if (result.errors && Object.keys(result.errors).length > 0) {
+    throw new Error('Splitwise: ' + JSON.stringify(result.errors));
+  }
+
+  console.log('[SW] Expense created:', result.expenses?.[0]?.id);
+  return result;
 }
 
 /* ═══════════════════════════════════════════════
@@ -2207,8 +2271,18 @@ function openConfirmLog(catId, checking) {
   // Payee — default to category name
   document.getElementById('confirm-payee').value = cat.name;
 
-  // Amount — default to my share
-  document.getElementById('confirm-amount').value = myAmt.toFixed(2);
+  // Amount — always the full cat.amount (split is derived internally)
+  document.getElementById('confirm-amount').value = cat.amount.toFixed(2);
+
+  // Update amount hint to show split breakdown for shared categories
+  const amtHint = document.querySelector('[for="confirm-amount"] ~ .form-hint, #confirm-amount ~ .form-hint');
+  if (amtHint) {
+    if (cat.type === 'shared') {
+      amtHint.textContent = `Your share: ₱${fmt(myAmt)} · ${cat.swFriendName || 'Friend'}: ₱${fmt(friendAmt)}. YNAB split logged automatically.`;
+    } else {
+      amtHint.textContent = 'Override if different from the configured amount.';
+    }
+  }
 
   // Memo — default to existing notes if any
   document.getElementById('confirm-memo').value = cat.notes || '';
@@ -2280,11 +2354,22 @@ document.getElementById('confirm-log-btn').addEventListener('click', async () =>
   const logSW = document.getElementById('confirm-sw-check').checked &&
                 cat.type === 'shared' && cat.swFriendId;
 
+  // For shared categories: fields.amount = full total, myShare derived from cat config
+  // For solo: fields.amount = full amount
+  const txFields = {
+    accountId,
+    date,
+    payee,
+    amount: cat.type === 'shared' ? myShareOf(cat) : amount,
+    fullAmount: amount,  // kept for reference
+    memo,
+  };
+
   try {
-    await logYNABTransaction(cat, { accountId, date, payee, amount, memo });
+    await logYNABTransaction(cat, txFields);
     if (logSW) {
       try {
-        await logSplitwiseExpense(cat, memo || cat.name);
+        await logSplitwiseExpense(cat, memo || cat.name, txFields.amount);
         showToast('success', `"${cat.name}" logged to YNAB and Splitwise.`);
       } catch (swErr) {
         showToast('warning', 'YNAB logged. Splitwise failed: ' + swErr.message);
