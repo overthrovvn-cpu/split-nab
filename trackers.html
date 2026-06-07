@@ -1045,9 +1045,9 @@
 
     <!-- Surplus mode amount entry -->
     <div class="form-field" id="surplus-amount-field" style="display:none;">
-      <label class="form-label" for="add-cat-surplus-input">Surplus Amount (₱)</label>
-      <input type="number" id="add-cat-surplus-input" class="form-input" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
-      <span class="form-hint" id="surplus-calc-hint" style="color:var(--accent);font-weight:500;"></span>
+      <label class="form-label" for="add-cat-surplus-input">My Budget Amount (₱)</label>
+      <input type="number" id="add-cat-surplus-input" class="form-input" placeholder="e.g. 20000" min="0" step="0.01" inputmode="decimal">
+      <span class="form-hint" id="surplus-calc-hint" style="font-weight:500;">Enter your total budget — the surplus will be calculated after subtracting other Me amounts.</span>
     </div>
 
     <div class="form-field">
@@ -1457,16 +1457,25 @@ let _ghSavePending = false;
 let _ghSaveTimer   = null;
 
 function scheduleGitHubSave() {
-  // Debounce: coalesce rapid saves into one write after 1.5s
+  // Debounce: coalesce rapid saves into one write after 800ms
   clearTimeout(_ghSaveTimer);
-  _ghSaveTimer = setTimeout(flushToGitHub, 1500);
+  _ghSaveTimer = setTimeout(flushToGitHub, 800);
 }
 
 async function flushToGitHub() {
   if (!ghConfigured()) return;
-  if (_ghSavePending) { scheduleGitHubSave(); return; }
+  // If a save is already in-flight, wait for it then retry
+  if (_ghSavePending) {
+    clearTimeout(_ghSaveTimer);
+    _ghSaveTimer = setTimeout(flushToGitHub, 800);
+    return;
+  }
   _ghSavePending = true;
   try {
+    // Always re-read SHA from localStorage in case another tab updated it
+    const storedSha = localStorage.getItem(CACHE_KEY_GH_SHA);
+    if (storedSha && storedSha !== gh.sha) gh.sha = storedSha;
+
     const payload  = buildPayload();
     const content  = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
     const body     = {
@@ -1483,7 +1492,24 @@ async function flushToGitHub() {
     gh.sha = res.content?.sha || gh.sha;
     localStorage.setItem(CACHE_KEY_GH_SHA, gh.sha);
   } catch (e) {
-    showToast('error', 'GitHub save failed: ' + e.message);
+    // 409 conflict = SHA is stale; re-fetch the latest SHA and retry once
+    if (e.message && (e.message.includes('409') || e.message.includes('conflict') || e.message.includes('sha'))) {
+      try {
+        const latest = await ghFetch(
+          `/repos/${gh.owner}/${gh.repo}/contents/${GITHUB_FILENAME}?ref=${gh.branch}`
+        );
+        gh.sha = latest.sha;
+        localStorage.setItem(CACHE_KEY_GH_SHA, gh.sha);
+        // Retry immediately with fresh SHA
+        _ghSavePending = false;
+        await flushToGitHub();
+        return;
+      } catch (retryErr) {
+        showToast('error', 'GitHub save failed: ' + retryErr.message);
+      }
+    } else {
+      showToast('error', 'GitHub save failed: ' + e.message);
+    }
   } finally {
     _ghSavePending = false;
   }
@@ -1492,20 +1518,31 @@ async function flushToGitHub() {
 // ── saveTrackers / saveTemplate (called throughout the app) ─
 function saveTrackers() {
   // Always re-point the slot to the current live tracker map before writing
-  const slot    = budgetSlot();
+  if (!ynab.budgetId) return;
+  if (!allBudgetsData[ynab.budgetId]) allBudgetsData[ynab.budgetId] = {};
+  const slot    = allBudgetsData[ynab.budgetId];
   slot.trackers = allTrackers;
   slot.template = trackerTemplate;
-  allBudgetsData[ynab.budgetId] = slot;
-  localStorage.setItem(CACHE_KEY_BUDGETS, JSON.stringify(allBudgetsData));
-  if (gh.sha) localStorage.setItem(CACHE_KEY_GH_SHA, gh.sha);
+  // Instant localStorage write
+  try {
+    localStorage.setItem(CACHE_KEY_BUDGETS, JSON.stringify(allBudgetsData));
+  } catch (e) {
+    console.warn('localStorage write failed:', e);
+  }
+  // Debounced GitHub push
   scheduleGitHubSave();
 }
 
 function saveTemplate() {
   if (!trackerTemplate) return;
-  // Sync live reference back into budget slot
-  budgetSlot().template = trackerTemplate;
-  cacheWrite();
+  if (!ynab.budgetId) return;
+  if (!allBudgetsData[ynab.budgetId]) allBudgetsData[ynab.budgetId] = {};
+  allBudgetsData[ynab.budgetId].template = trackerTemplate;
+  try {
+    localStorage.setItem(CACHE_KEY_BUDGETS, JSON.stringify(allBudgetsData));
+  } catch (e) {
+    console.warn('localStorage write failed:', e);
+  }
   scheduleGitHubSave();
 }
 
@@ -1832,27 +1869,36 @@ function friendShareOf(cat) {
   return total - mine;
 }
 
-// Compute surplus category's resolved amount for a group
-// = group.budgetAmount - sum of MY SHARE of all non-surplus categories
-function surplusAmountFor(group) {
-  if (!group.budgetAmount) return 0;
+// Compute surplus category's resolved "Me" amount for a group.
+// Formula: cat.surplusAmount (entered budget) − sum of Me column of all non-surplus categories in the group.
+// This is the amount the surplus category contributes to the "Me" column.
+function surplusAmountFor(cat, group) {
+  const budget = cat.surplusAmount || 0;
+  if (!budget) return 0;
   let sumMyShares = 0;
   for (const c of group.categories) {
-    if (!c.surplusMode) {
-      // Use myShareOf logic inline (avoid circular dependency with effectiveAmount)
-      const share = c.type === 'solo'
-        ? (c.amount || 0)
-        : (c.splitType === 'fixed' && c.myShare != null ? c.myShare : (c.amount || 0) / 2);
-      sumMyShares += share;
-    }
+    if (c.surplusMode || c.id === cat.id) continue;
+    // Inline myShareOf to avoid circular reference
+    const share = c.type === 'solo'
+      ? (c.amount || 0)
+      : (c.splitType === 'fixed' && c.myShare != null ? c.myShare : (c.amount || 0) / 2);
+    sumMyShares += share;
   }
-  return Math.max(0, group.budgetAmount - sumMyShares);
+  return Math.max(0, budget - sumMyShares);
 }
 
-// Get the effective amount for a category (handles surplus mode)
+// Get the effective "bill" amount for a category (the Amount column).
+// For surplus mode: since it represents a personal-budget remainder, the amount = the surplus Me value.
+// For normal: use the configured amount.
 function effectiveAmount(cat, group) {
-  if (cat.surplusMode) return surplusAmountFor(group);
+  if (cat.surplusMode) return surplusAmountFor(cat, group);
   return cat.amount || 0;
+}
+
+// Get the "Me" share for a category — used in the Me column and totals.
+function myShareForDisplay(cat, group) {
+  if (cat.surplusMode) return surplusAmountFor(cat, group);
+  return myShareOf(cat);
 }
 
 /* ═══════════════════════════════════════════════
@@ -1863,8 +1909,8 @@ function effectiveAmount(cat, group) {
 function syncTemplate() {
   if (!currentTracker) return;
   trackerTemplate = deepCloneStructure(currentTracker);
-  budgetSlot().template = trackerTemplate;
-  saveTemplate();
+  // saveTrackers already syncs template into the slot
+  saveTrackers();
 }
 
 /* ═══════════════════════════════════════════════
@@ -1974,7 +2020,7 @@ function renderTable(friends) {
       const dueLabel   = cat.dueDay ? fmtDueDate(cat.dueDay) : null;
       const isTracking = !cat.surplusMode && (cat.amount === 0 || cat.amount == null);
       const effAmt     = isTracking ? 0 : effectiveAmount(cat, group);
-      const catMyShare = isTracking ? 0 : (cat.type === 'solo' ? effAmt : (cat.splitType === 'fixed' && cat.myShare != null ? cat.myShare : effAmt / 2));
+      const catMyShare = isTracking ? 0 : myShareForDisplay(cat, group);
       const friendAmt  = (!isTracking && cat.type === 'shared') ? (effAmt - catMyShare) : null;
 
       // Accumulate totals (exclude tracking-only)
@@ -2084,7 +2130,7 @@ function bindTableEvents() {
       if (!cat.checked) {
         const group = currentTracker.groups.find(g => g.categories.some(c => c.id === catId));
         const effAmt = effectiveAmount(cat, group);
-        const isTracking = !cat.surplusMode && (effAmt === 0 || effAmt == null);
+        const isTracking = !cat.surplusMode && (!effAmt || effAmt === 0);
         // Tracking-only or paidNoTx: just mark done, no confirm modal
         if (isTracking || cat.paidNoTx) {
           cat.checked = true;
@@ -2395,29 +2441,34 @@ function updateSurplusUI() {
     surplusWrap.style.display = 'none';
   }
 }
-
 function recalcSurplusHint() {
   if (!currentSurplusMode || !editingCatGroup) return;
-  const group = getGroup(editingCatGroup);
-  const hint  = document.getElementById('surplus-calc-hint');
-  if (!group || !group.budgetAmount) {
-    hint.textContent = 'Set a Budget Amount for this group (via Edit Group) to enable auto-calculation.';
+  const group  = getGroup(editingCatGroup);
+  const hint   = document.getElementById('surplus-calc-hint');
+  const inputEl = document.getElementById('add-cat-surplus-input');
+  const budget = parseFloat(inputEl.value) || 0;
+
+  if (!group || !budget) {
+    hint.textContent = budget
+      ? 'Set other category amounts first to see the remainder.'
+      : 'Enter your budget amount above to calculate the surplus.';
     hint.style.color = 'var(--text-muted)';
     return;
   }
+
+  // Sum the Me column of all non-surplus categories in this group (excluding the one being edited)
   let sumMyShares = 0;
   for (const c of group.categories) {
-    if (!c.surplusMode && c.id !== editingCatId) {
-      const share = c.type === 'solo'
-        ? (c.amount || 0)
-        : (c.splitType === 'fixed' && c.myShare != null ? c.myShare : (c.amount || 0) / 2);
-      sumMyShares += share;
-    }
+    if (c.surplusMode || c.id === editingCatId) continue;
+    const share = c.type === 'solo'
+      ? (c.amount || 0)
+      : (c.splitType === 'fixed' && c.myShare != null ? c.myShare : (c.amount || 0) / 2);
+    sumMyShares += share;
   }
-  const surplus = Math.max(0, group.budgetAmount - sumMyShares);
-  hint.textContent = `Budget ₱${fmt(group.budgetAmount)} − my shares ₱${fmt(sumMyShares)} = ₱${fmt(surplus)}`;
-  hint.style.color = 'var(--accent)';
-  document.getElementById('add-cat-surplus-input').value = surplus.toFixed(2);
+
+  const surplus = Math.max(0, budget - sumMyShares);
+  hint.textContent = `₱${fmt(budget)} − me-shares ₱${fmt(sumMyShares)} = ₱${fmt(surplus)} surplus`;
+  hint.style.color = surplus > 0 ? 'var(--accent)' : 'var(--error)';
 }
 
 function populateFriendSelect(selectedId) {
@@ -2500,6 +2551,7 @@ function openEditCategory(catId, groupId) {
   document.getElementById('add-cat-due').value    = cat.dueDay || '';
   document.getElementById('add-cat-amount').value = cat.amount || '';
   document.getElementById('add-cat-my-share').value = cat.myShare || '';
+  // For surplus mode, load the stored budget ceiling (surplusAmount), not the computed value
   document.getElementById('add-cat-surplus-input').value = cat.surplusAmount || '';
 
   setCatType(cat.type || 'solo');
@@ -2532,8 +2584,9 @@ document.getElementById('add-cat-submit').addEventListener('click', () => {
   // Amount: zero is allowed for tracking-only; surplus mode uses its own input
   let amount = 0;
   if (currentSurplusMode) {
-    // surplus amount is computed dynamically; store the current computed value
+    // Store the entered budget ceiling — the actual surplus is computed dynamically at render time
     amount = parseFloat(document.getElementById('add-cat-surplus-input').value) || 0;
+    if (amount <= 0) { showToast('error', 'Please enter a budget amount for surplus mode.'); return; }
   } else {
     amount = parseFloat(document.getElementById('add-cat-amount').value) || 0;
   }
@@ -2656,14 +2709,16 @@ document.getElementById('notes-cancel-btn').addEventListener('click', () => clos
    CONFIRM LOG MODAL
 ═══════════════════════════════════════════════ */
 function openConfirmLog(catId, checking) {
-  const cat = getCategory(catId);
+  const cat   = getCategory(catId);
   if (!cat) return;
+  const group = currentTracker.groups.find(g => g.categories.some(c => c.id === catId));
 
   confirmCatId    = catId;
   confirmChecking = checking;
 
-  const myAmt     = myShareOf(cat);
-  const friendAmt = cat.type === 'shared' ? friendShareOf(cat) : null;
+  const myAmt    = myShareForDisplay(cat, group);
+  const effAmt   = effectiveAmount(cat, group);
+  const friendAmt = cat.type === 'shared' ? (effAmt - myAmt) : null;
 
   document.getElementById('confirm-title').textContent    = 'Log Expense';
   document.getElementById('confirm-subtitle').textContent =
@@ -2672,7 +2727,7 @@ function openConfirmLog(catId, checking) {
   // Summary details
   let detailsHtml = '';
   detailsHtml += row('YNAB Category', escHtml(cat.ynabCategoryName || cat.name));
-  detailsHtml += row('Total Amount',  `₱${fmt(cat.amount)}`);
+  detailsHtml += row('Total Amount',  `₱${fmt(effAmt)}`);
   if (cat.type === 'shared') detailsHtml += row('Split', cat.splitType === 'equal' ? '50/50' : 'Fixed');
   document.getElementById('confirm-details').innerHTML = detailsHtml;
 
@@ -2694,11 +2749,11 @@ function openConfirmLog(catId, checking) {
   // Payee — default to category name
   document.getElementById('confirm-payee').value = cat.name;
 
-  // Amount — always the full cat.amount (split is derived internally)
-  document.getElementById('confirm-amount').value = cat.amount.toFixed(2);
+  // Amount — use effective amount (handles surplus mode)
+  document.getElementById('confirm-amount').value = effAmt.toFixed(2);
 
   // Update amount hint to show split breakdown for shared categories
-  const amtHint = document.querySelector('[for="confirm-amount"] ~ .form-hint, #confirm-amount ~ .form-hint');
+  const amtHint = document.querySelector('#confirm-amount ~ .form-hint');
   if (amtHint) {
     if (cat.type === 'shared') {
       amtHint.textContent = `Your share: ₱${fmt(myAmt)} · ${cat.swFriendName || 'Friend'}: ₱${fmt(friendAmt)}. YNAB split logged automatically.`;
@@ -2777,14 +2832,17 @@ document.getElementById('confirm-log-btn').addEventListener('click', async () =>
   const logSW = document.getElementById('confirm-sw-check').checked &&
                 cat.type === 'shared' && cat.swFriendId;
 
+  // Resolve the group so myShareForDisplay works for surplus categories
+  const catGroup = currentTracker.groups.find(g => g.categories.some(c => c.id === confirmCatId));
+
   // For shared categories: fields.amount = full total, myShare derived from cat config
   // For solo: fields.amount = full amount
   const txFields = {
     accountId,
     date,
     payee,
-    amount: cat.type === 'shared' ? myShareOf(cat) : amount,
-    fullAmount: amount,  // kept for reference
+    amount: cat.type === 'shared' ? myShareForDisplay(cat, catGroup) : amount,
+    fullAmount: amount,
     memo,
   };
 
@@ -2871,9 +2929,9 @@ document.getElementById('edit-group-name').addEventListener('keydown', (e) => {
 document.getElementById('edit-group-budget').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') document.getElementById('edit-group-submit').click();
 });
-// Live surplus recalculation when surplus input changes
+// Live surplus recalculation: re-runs whenever the surplus input amount changes
 document.getElementById('add-cat-surplus-input').addEventListener('input', () => {
-  if (currentSurplusMode) recalcSurplusHint();
+  recalcSurplusHint();
 });
 
 /* ═══════════════════════════════════════════════
