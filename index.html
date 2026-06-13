@@ -175,6 +175,10 @@
   /* ── Views ── */
   .view-container {
     position: relative;
+  }
+
+  /* Applied via JS only during active swipe to prevent clipping dropdowns normally */
+  .view-container.swiping {
     overflow: hidden;
   }
 
@@ -7638,54 +7642,248 @@ window.addEventListener('resize', () => {
 });
 
 /* ═══════════════════════════════════════════════
-   SWIPE GESTURE — switch between Single/Batch on mobile
+   SWIPE GESTURE — real-time card-slide between Single/Batch on mobile
 ═══════════════════════════════════════════════ */
 (function initSwipeGesture() {
   const container = document.querySelector('.view-container');
   if (!container) return;
 
+  const mobileQuery = window.matchMedia('(max-width: 640px)');
   let startX = 0;
   let startY = 0;
-  let tracking = false;
+  let currentX = 0;
+  let dragging = false;
+  let directionLocked = false; // true once we know it's horizontal
+  let isVertical = false;      // true if user is scrolling vertically
+
+  const THRESHOLD = 0.25;      // 25% of container width to commit
+  const VELOCITY_THRESHOLD = 0.3; // px/ms — fast flick commits regardless
+  let startTime = 0;
+
+  function getViews() {
+    return {
+      single: document.getElementById('view-single'),
+      batch: document.getElementById('view-batch'),
+    };
+  }
+
+  function setTransitionsEnabled(enabled) {
+    const { single, batch } = getViews();
+    const val = enabled
+      ? 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease'
+      : 'none';
+    single.style.transition = val;
+    batch.style.transition = val;
+  }
+
+  function positionViews(dx) {
+    const { single, batch } = getViews();
+    const w = container.offsetWidth;
+
+    if (currentMode === 'single') {
+      // Single is active (at 0), batch is off-screen to the right (+100%)
+      const progress = Math.max(-w, Math.min(0, dx));
+      single.style.transform = `translateX(${progress}px)`;
+      single.style.opacity = String(1 - Math.abs(progress) / w * 0.3);
+      batch.style.position = 'absolute';
+      batch.style.top = '0';
+      batch.style.left = '0';
+      batch.style.width = '100%';
+      batch.style.opacity = String(0.7 + Math.abs(progress) / w * 0.3);
+      batch.style.transform = `translateX(${w + progress}px)`;
+      batch.style.pointerEvents = 'none';
+    } else {
+      // Batch is active (at 0), single is off-screen to the left (-100%)
+      const progress = Math.min(w, Math.max(0, dx));
+      batch.style.transform = `translateX(${progress}px)`;
+      batch.style.opacity = String(1 - Math.abs(progress) / w * 0.3);
+      single.style.position = 'absolute';
+      single.style.top = '0';
+      single.style.left = '0';
+      single.style.width = '100%';
+      single.style.opacity = String(0.7 + Math.abs(progress) / w * 0.3);
+      single.style.transform = `translateX(${-w + progress}px)`;
+      single.style.pointerEvents = 'none';
+    }
+  }
+
+  function resetViewStyles() {
+    const { single, batch } = getViews();
+    [single, batch].forEach(v => {
+      v.style.transform = '';
+      v.style.opacity = '';
+      v.style.position = '';
+      v.style.top = '';
+      v.style.left = '';
+      v.style.width = '';
+      v.style.pointerEvents = '';
+      v.style.transition = '';
+    });
+  }
+
+  function snapBack() {
+    setTransitionsEnabled(true);
+    const { single, batch } = getViews();
+    const w = container.offsetWidth;
+
+    if (currentMode === 'single') {
+      single.style.transform = 'translateX(0)';
+      single.style.opacity = '1';
+      batch.style.transform = `translateX(${w}px)`;
+      batch.style.opacity = '0.7';
+    } else {
+      batch.style.transform = 'translateX(0)';
+      batch.style.opacity = '1';
+      single.style.transform = `translateX(${-w}px)`;
+      single.style.opacity = '0.7';
+    }
+
+    setTimeout(() => { resetViewStyles(); container.classList.remove('swiping'); }, 360);
+  }
+
+  function commitSwipe(newMode) {
+    setTransitionsEnabled(true);
+    const { single, batch } = getViews();
+    const w = container.offsetWidth;
+
+    if (newMode === 'batch') {
+      single.style.transform = `translateX(${-w}px)`;
+      single.style.opacity = '0.7';
+      batch.style.transform = 'translateX(0)';
+      batch.style.opacity = '1';
+    } else {
+      batch.style.transform = `translateX(${w}px)`;
+      batch.style.opacity = '0.7';
+      single.style.transform = 'translateX(0)';
+      single.style.opacity = '1';
+    }
+
+    setTimeout(() => {
+      resetViewStyles();
+      container.classList.remove('swiping');
+      // Apply the mode change through the normal function but skip animation
+      // since we already animated it
+      const prev = currentMode;
+      currentMode = newMode;
+      const incoming = newMode === 'single' ? single : batch;
+      const outgoing = newMode === 'single' ? batch : single;
+
+      incoming.classList.add('active');
+      outgoing.classList.remove('active');
+
+      // Update all button states
+      const btnS = document.getElementById('btn-single');
+      const btnB = document.getElementById('btn-batch');
+      const inBtn = newMode === 'single' ? btnS : btnB;
+      const outBtn = newMode === 'single' ? btnB : btnS;
+      inBtn.classList.add('active');
+      outBtn.classList.remove('active');
+      inBtn.setAttribute('aria-pressed', 'true');
+      outBtn.setAttribute('aria-pressed', 'false');
+
+      if (newMode === 'single') {
+        document.getElementById('preset-btn').closest('.popover-wrap').style.display = '';
+      } else {
+        document.getElementById('preset-btn').closest('.popover-wrap').style.display = 'none';
+        document.getElementById('preset-panel').classList.remove('open');
+        renderBatchTable();
+        updateDuplicateBadges();
+        applyColWidths(loadColWidths());
+      }
+
+      updateModeSlider();
+    }, 360);
+  }
 
   container.addEventListener('touchstart', (e) => {
-    // Only on mobile
-    if (!window.matchMedia('(max-width: 640px)').matches) return;
-    // Don't intercept if touching an input, select, or scrollable element
+    if (!mobileQuery.matches) return;
     const tag = e.target.tagName.toLowerCase();
     if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+    // Don't intercept horizontal scrollable elements (like batch table)
+    if (e.target.closest('.batch-table-scroll')) return;
 
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
-    tracking = true;
+    currentX = startX;
+    startTime = Date.now();
+    dragging = false;
+    directionLocked = false;
+    isVertical = false;
   }, { passive: true });
 
   container.addEventListener('touchmove', (e) => {
-    if (!tracking) return;
-    // We only track — no preventDefault so vertical scroll still works
-  }, { passive: true });
+    if (isVertical) return;
+    if (!mobileQuery.matches) return;
+
+    const x = e.touches[0].clientX;
+    const y = e.touches[0].clientY;
+    const dx = x - startX;
+    const dy = y - startY;
+
+    // Lock direction after 10px of movement
+    if (!directionLocked && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
+      directionLocked = true;
+      if (Math.abs(dy) > Math.abs(dx)) {
+        isVertical = true;
+        return;
+      }
+      // It's horizontal — check if the swipe direction is valid
+      if (dx < 0 && currentMode === 'batch') return;  // can't go further right
+      if (dx > 0 && currentMode === 'single') return; // can't go further left
+      dragging = true;
+      container.classList.add('swiping');
+      setTransitionsEnabled(false);
+    }
+
+    if (!dragging) return;
+
+    currentX = x;
+    const offset = currentX - startX;
+
+    // Prevent browser scroll while we're dragging horizontally
+    e.preventDefault();
+    positionViews(offset);
+  }, { passive: false });
 
   container.addEventListener('touchend', (e) => {
-    if (!tracking) return;
-    tracking = false;
-
-    const endX = e.changedTouches[0].clientX;
-    const endY = e.changedTouches[0].clientY;
-    const dx = endX - startX;
-    const dy = endY - startY;
-
-    // Require minimum horizontal distance and mostly horizontal movement
-    const minSwipe = 60;
-    if (Math.abs(dx) < minSwipe) return;
-    if (Math.abs(dy) > Math.abs(dx) * 0.7) return; // Too vertical
-
-    if (dx < 0 && currentMode === 'single') {
-      // Swipe left → go to batch
-      setMode('batch', 'left');
-    } else if (dx > 0 && currentMode === 'batch') {
-      // Swipe right → go to single
-      setMode('single', 'right');
+    if (!dragging) {
+      isVertical = false;
+      directionLocked = false;
+      return;
     }
+    dragging = false;
+    directionLocked = false;
+    isVertical = false;
+
+    const dx = currentX - startX;
+    const w = container.offsetWidth;
+    const elapsed = Date.now() - startTime;
+    const velocity = Math.abs(dx) / elapsed; // px/ms
+
+    const pastThreshold = Math.abs(dx) / w > THRESHOLD;
+    const fastFlick = velocity > VELOCITY_THRESHOLD && Math.abs(dx) > 30;
+
+    if (pastThreshold || fastFlick) {
+      // Commit the swipe
+      if (dx < 0 && currentMode === 'single') {
+        commitSwipe('batch');
+      } else if (dx > 0 && currentMode === 'batch') {
+        commitSwipe('single');
+      } else {
+        snapBack();
+      }
+    } else {
+      snapBack();
+    }
+  }, { passive: true });
+
+  container.addEventListener('touchcancel', () => {
+    if (dragging) {
+      dragging = false;
+      snapBack();
+    }
+    directionLocked = false;
+    isVertical = false;
   }, { passive: true });
 })();
 </script>
