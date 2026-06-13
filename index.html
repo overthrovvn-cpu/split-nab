@@ -705,7 +705,7 @@
       gap: 3px;
       padding: 5px;
       border-radius: 999px;
-      /* iOS Liquid Glass look */
+      /* liquidGL handles the glass refraction — CSS fallback below for non-WebGL */
       background: rgba(255, 255, 255, 0.55);
       backdrop-filter: blur(20px) saturate(1.8);
       -webkit-backdrop-filter: blur(20px) saturate(1.8);
@@ -715,6 +715,15 @@
         0 2px 8px rgba(0, 0, 0, 0.10),
         inset 0 1px 0 rgba(255, 255, 255, 0.9),
         inset 0 -1px 0 rgba(0, 0, 0, 0.06);
+    }
+
+    /* When liquidGL is active, strip CSS glass so WebGL refraction is visible */
+    .floating-mode-pill.liquidgl-active {
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border: none;
+      box-shadow: none;
     }
 
     .floating-pill-slider {
@@ -5861,6 +5870,8 @@ async function saveToYNABSingle() {
     subtransactions.push(subTx);
   }
 
+  const isSingleSplit = subtransactions.length === 1;
+
   const btn      = document.getElementById('save-ynab-btn');
   const btnMobile = document.getElementById('save-ynab-btn-mobile');
   [btn, btnMobile].forEach(b => { if (!b) return; b.disabled = true; b.textContent = 'Saving…'; });
@@ -7549,6 +7560,57 @@ document.addEventListener('keydown', e => {
 window.addEventListener('resize', () => {
   syncBottomBarPadding();
   updateFloatingPill();
+});
+</script>
+
+<!-- liquidGL: real WebGL refraction for floating mode pill -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/gh/naughtyduk/liquidGL@latest/scripts/liquidGL.js" defer></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // Only init on mobile viewports where the floating pill is visible
+  const mq = window.matchMedia("(max-width: 640px)");
+
+  function initLiquidGL() {
+    if (!mq.matches) return;
+    if (typeof liquidGL === "undefined") return;
+
+    const pill = document.querySelector(".floating-mode-pill");
+    if (!pill) return;
+
+    try {
+      liquidGL({
+        target: ".floating-mode-pill",
+        snapshot: "body",
+        resolution: 2.0,
+        refraction: 0.01,
+        bevelDepth: 0.05,
+        bevelWidth: 0.15,
+        frost: 2,
+        shadow: true,
+        specular: true,
+        reveal: "fade",
+        tilt: false,
+        magnify: 1,
+        on: {
+          init() {
+            // Strip CSS glass once WebGL is rendering
+            pill.classList.add("liquidgl-active");
+          }
+        }
+      });
+    } catch (e) {
+      // WebGL not available — keep CSS fallback
+      console.warn("liquidGL init failed, using CSS fallback:", e);
+    }
+  }
+
+  // Wait a tick for both deferred scripts to load
+  if (document.readyState === "complete") {
+    setTimeout(initLiquidGL, 100);
+  } else {
+    window.addEventListener("load", () => setTimeout(initLiquidGL, 100));
+  }
 });
 </script>
 </html>
