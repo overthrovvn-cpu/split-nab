@@ -175,22 +175,56 @@
   /* ── Views ── */
   .view-container {
     position: relative;
+    overflow: hidden;
   }
 
   .view {
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.18s ease;
+    transition: opacity 0.18s ease, transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
+    transform: translateX(0);
   }
 
   .view.active {
     opacity: 1;
     pointer-events: all;
     position: relative;
+  }
+
+  /* Mobile slide transitions */
+  @media (max-width: 640px) {
+    .view {
+      transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .view.slide-out-left {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+
+    .view.slide-out-right {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+
+    .view.slide-in-left {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+
+    .view.slide-in-right {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+
+    .view.active {
+      transform: translateX(0);
+      opacity: 1;
+    }
   }
 
   /* During a cross-fade the outgoing view briefly stays absolute while
@@ -737,13 +771,13 @@
       box-shadow: 0 2px 8px rgba(79, 110, 247, 0.45);
       transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
                   width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-      z-index: 0;
+      z-index: 5;
       pointer-events: none;
     }
 
     .floating-mode-pill button {
       position: relative;
-      z-index: 1;
+      z-index: 10;
       border: none;
       background: transparent;
       padding: 10px 24px;
@@ -3789,7 +3823,10 @@ document.addEventListener('mousedown', e => {
 /* ═══════════════════════════════════════════════
    MODE TOGGLE
 ═══════════════════════════════════════════════ */
-function setMode(mode) {
+function setMode(mode, direction) {
+  if (mode === currentMode) return;
+
+  const prevMode = currentMode;
   currentMode = mode;
   const single = document.getElementById('view-single');
   const batch  = document.getElementById('view-batch');
@@ -3824,27 +3861,65 @@ function setMode(mode) {
     return;
   }
 
-  // Cross-fade: pin the outgoing view absolutely so it doesn't affect layout
-  // while the incoming view slides into the normal flow and fades in.
-  const outH = outgoing.offsetHeight;
-  outgoing.classList.add('view-exiting');
-  outgoing.classList.remove('active');
+  // Determine slide direction: going to batch = slide left, going to single = slide right
+  const isMobile = window.matchMedia('(max-width: 640px)').matches;
+  const slideDir = direction || (mode === 'batch' ? 'left' : 'right');
 
-  incoming.classList.add('active');
+  if (isMobile) {
+    // Mobile: slide transition
+    const outClass = slideDir === 'left' ? 'slide-out-left' : 'slide-out-right';
+    const inClass  = slideDir === 'left' ? 'slide-in-right' : 'slide-in-left';
 
-  // Kick off the transition on the next frame so the browser registers the
-  // opacity change properly (from 0 → 1 on incoming, 1 → 0 on outgoing)
-  requestAnimationFrame(() => {
-    updateModeSlider();
-    // Cleanup outgoing after transition
+    // Position incoming off-screen without transition
+    incoming.style.transition = 'none';
+    incoming.classList.add(inClass);
+    incoming.classList.add('active');
+    incoming.style.position = 'absolute';
+
+    // Start outgoing slide
+    outgoing.classList.add(outClass);
+    outgoing.classList.remove('active');
+    outgoing.style.position = 'absolute';
+
+    // Force reflow then enable transitions
+    void incoming.offsetWidth;
+    incoming.style.transition = '';
+
+    // Slide incoming into view
+    incoming.classList.remove(inClass);
+    incoming.style.position = 'relative';
+
+    // Cleanup after transition
     const cleanup = () => {
-      outgoing.classList.remove('view-exiting');
+      outgoing.classList.remove(outClass);
+      outgoing.style.position = '';
       outgoing.removeEventListener('transitionend', cleanup);
     };
     outgoing.addEventListener('transitionend', cleanup, { once: true });
-    // Safety fallback in case transitionend doesn't fire (e.g. display:none)
-    setTimeout(() => outgoing.classList.remove('view-exiting'), 300);
-  });
+    setTimeout(() => {
+      outgoing.classList.remove(outClass);
+      outgoing.style.position = '';
+    }, 400);
+
+    requestAnimationFrame(() => updateModeSlider());
+  } else {
+    // Desktop: existing cross-fade
+    const outH = outgoing.offsetHeight;
+    outgoing.classList.add('view-exiting');
+    outgoing.classList.remove('active');
+
+    incoming.classList.add('active');
+
+    requestAnimationFrame(() => {
+      updateModeSlider();
+      const cleanup = () => {
+        outgoing.classList.remove('view-exiting');
+        outgoing.removeEventListener('transitionend', cleanup);
+      };
+      outgoing.addEventListener('transitionend', cleanup, { once: true });
+      setTimeout(() => outgoing.classList.remove('view-exiting'), 300);
+    });
+  }
 }
 
 function updateModeSlider() {
@@ -7561,6 +7636,58 @@ window.addEventListener('resize', () => {
   syncBottomBarPadding();
   updateFloatingPill();
 });
+
+/* ═══════════════════════════════════════════════
+   SWIPE GESTURE — switch between Single/Batch on mobile
+═══════════════════════════════════════════════ */
+(function initSwipeGesture() {
+  const container = document.querySelector('.view-container');
+  if (!container) return;
+
+  let startX = 0;
+  let startY = 0;
+  let tracking = false;
+
+  container.addEventListener('touchstart', (e) => {
+    // Only on mobile
+    if (!window.matchMedia('(max-width: 640px)').matches) return;
+    // Don't intercept if touching an input, select, or scrollable element
+    const tag = e.target.tagName.toLowerCase();
+    if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    tracking = true;
+  }, { passive: true });
+
+  container.addEventListener('touchmove', (e) => {
+    if (!tracking) return;
+    // We only track — no preventDefault so vertical scroll still works
+  }, { passive: true });
+
+  container.addEventListener('touchend', (e) => {
+    if (!tracking) return;
+    tracking = false;
+
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
+    const dx = endX - startX;
+    const dy = endY - startY;
+
+    // Require minimum horizontal distance and mostly horizontal movement
+    const minSwipe = 60;
+    if (Math.abs(dx) < minSwipe) return;
+    if (Math.abs(dy) > Math.abs(dx) * 0.7) return; // Too vertical
+
+    if (dx < 0 && currentMode === 'single') {
+      // Swipe left → go to batch
+      setMode('batch', 'left');
+    } else if (dx > 0 && currentMode === 'batch') {
+      // Swipe right → go to single
+      setMode('single', 'right');
+    }
+  }, { passive: true });
+})();
 </script>
 
 <!-- liquidGL: real WebGL refraction for floating mode pill -->
@@ -7596,6 +7723,14 @@ document.addEventListener("DOMContentLoaded", () => {
           init() {
             // Strip CSS glass once WebGL is rendering
             pill.classList.add("liquidgl-active");
+            // Ensure liquidGL canvases don't block button clicks
+            const canvases = pill.querySelectorAll("canvas");
+            canvases.forEach(c => { c.style.pointerEvents = "none"; });
+            // Also check sibling canvases (shadow/tilt layers)
+            const prev = pill.previousElementSibling;
+            const next = pill.nextElementSibling;
+            if (prev && prev.tagName === "CANVAS") prev.style.pointerEvents = "none";
+            if (next && next.tagName === "CANVAS") next.style.pointerEvents = "none";
           }
         }
       });
