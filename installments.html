@@ -1,0 +1,1834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Installments – Split-NAB</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f6ef7'/%3E%3Ctext x='16' y='22' font-family='-apple-system,BlinkMacSystemFont,sans-serif' font-size='14' font-weight='700' fill='white' text-anchor='middle'%3ESN%3C/text%3E%3C/svg%3E">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html {
+    overflow-x: hidden;
+    overscroll-behavior: none;
+  }
+
+  :root {
+    --bg: #f7f7f8;
+    --card: #ffffff;
+    --border: #e5e7eb;
+    --text: #111827;
+    --text-sec: #6b7280;
+    --text-muted: #9ca3af;
+    --accent: #4f6ef7;
+    --accent-hover: #3b5bdb;
+    --accent-light: #eef2ff;
+    --error: #ef4444;
+    --error-light: #fef2f2;
+    --success: #10b981;
+    --success-light: #ecfdf5;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --radius-card: 12px;
+    --radius: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 2px 12px rgba(0,0,0,0.08);
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    min-height: 100vh;
+    padding-bottom: 80px;
+    overflow-x: hidden;
+    overscroll-behavior: none;
+  }
+
+  /* ── Header ── */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    padding-top: max(12px, calc(env(safe-area-inset-top, 0px) + 12px));
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-sec);
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+    font-family: var(--font);
+  }
+  .back-btn:hover { background: var(--bg); color: var(--text); }
+
+  .header-divider { width: 1px; height: 20px; background: var(--border); }
+
+  .app-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.3px;
+  }
+
+  .page-title { font-size: 15px; font-weight: 600; color: var(--text); }
+
+  /* ── Container ── */
+  .container { padding: 24px 16px; }
+
+  /* ── Toolbar ── */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .toolbar-title { font-size: 15px; font-weight: 600; color: var(--text); }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s, color 0.15s;
+    font-family: var(--font);
+    white-space: nowrap;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-outline { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+  .btn-outline:hover { background: var(--accent-light); }
+  .btn-ghost { background: transparent; color: var(--text-sec); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--bg); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-icon {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 10px;
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--text-sec);
+    transition: background 0.15s;
+  }
+  .btn-icon:hover { background: var(--bg); }
+
+  /* ── Table card ── */
+  .table-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  /* ── Table scroll wrapper ── */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+  }
+
+  /* ── Table ── */
+  table {
+    border-collapse: collapse;
+    min-width: max-content;
+    width: 100%;
+  }
+
+  thead th {
+    background: var(--bg);
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap;
+    position: relative;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* Sticky pinned column */
+  th.pinned, td.pinned {
+    position: sticky;
+    z-index: 10;
+    background: var(--bg);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  td.pinned {
+    background: var(--card);
+  }
+
+  /* Pinned column right-edge shadow to indicate it's frozen */
+  th.pinned-last, td.pinned-last {
+    box-shadow: 2px 0 6px rgba(0,0,0,0.08);
+  }
+
+  /* Keep zebra stripe on pinned cells */
+  tr:nth-child(even) td.pinned {
+    background: #fafafa;
+  }
+
+  /* Pinned header highlight */
+  th.pinned {
+    background: #eef0fb;
+    color: var(--accent);
+  }
+
+  tbody td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: #f5f7ff; }
+  tbody tr:hover td.pinned { background: #f0f3ff; }
+
+  .cell-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+
+  .cell-center { text-align: center; }
+
+  /* Month cell indicators */
+  .month-paid {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--success-light);
+    color: var(--success);
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .month-cleared {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #d1fae5;
+    color: #059669;
+    font-size: 11px;
+    font-weight: 700;
+    opacity: 0.75;
+  }
+
+  .month-due {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent-light);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .month-pending {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid #d1d5db;
+    color: transparent;
+    font-size: 11px;
+    font-weight: 700;
+    background: #fff;
+  }
+
+  /* Subtle dot indicator for forwarded payments (advance from previous month) */
+  .month-paid.has-note,
+  .month-cleared.has-note,
+  .month-pending.has-note {
+    position: relative;
+    cursor: help;
+  }
+
+  .month-paid.has-note::after,
+  .month-cleared.has-note::after,
+  .month-pending.has-note::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #6366f1;
+    border: 1px solid #fff;
+  }
+
+  /* Green triangle flag for the last payment of an installment (top-right) */
+  .month-paid.is-last,
+  .month-cleared.is-last,
+  .month-pending.is-last {
+    position: relative;
+  }
+
+  .month-paid.is-last::before,
+  .month-cleared.is-last::before,
+  .month-pending.is-last::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    right: -5px;
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 7px solid var(--success);
+  }
+
+  /* When both advance dot and last flag are present, offset the flag */
+  .month-paid.has-note.is-last::before,
+  .month-cleared.has-note.is-last::before,
+  .month-pending.has-note.is-last::before {
+    top: -4px;
+    right: -12px;
+  }
+
+  /* Zero-balance rows — slightly muted */
+  .zero-balance-row td { opacity: 0.55; }
+
+  /* Toggle footer bar (sticky at bottom of table-card) */
+  .zero-balance-toggle-bar {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 15;
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-align: center;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    letter-spacing: 0.02em;
+    user-select: none;
+    -webkit-user-select: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .zero-balance-toggle-bar:hover {
+    background: var(--accent-light);
+    color: var(--accent);
+  }
+
+  /* Status / empty state inside table */
+  .table-status {
+    padding: 48px 24px;
+    text-align: center;
+    color: var(--text-muted);
+    display: none;
+  }
+  .status-icon  { font-size: 36px; margin-bottom: 12px; }
+  .status-title { font-size: 15px; font-weight: 600; color: var(--text-sec); margin-bottom: 6px; }
+  .status-sub   { font-size: 13px; color: var(--text-muted); }
+
+  /* Sortable column header — DISABLED */
+  thead th.sortable { cursor: default; }
+
+  .sort-indicator {
+    display: none;
+  }
+
+  /* Pin button inside th */
+  .th-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .pin-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 2px;
+    border-radius: 50%;
+    font-size: 9px;
+    line-height: 1;
+    opacity: 0;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+    color: #ef4444;
+  }
+
+  thead th:hover .pin-btn { opacity: 1; }
+  .pin-btn.is-pinned { opacity: 1; color: #ef4444; }
+  .pin-btn:hover { opacity: 1; }
+
+  /* ── Bottom bar ── */
+  .bottom-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 100;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    padding: 12px 24px;
+    padding-bottom: max(12px, calc(env(safe-area-inset-bottom, 0px) + 12px));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .bottom-bar-left  { display: flex; align-items: center; gap: 10px; }
+  .bottom-bar-right { display: flex; align-items: center; gap: 10px; }
+
+  /* ── Overlay / Modal ── */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 300;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 24px 16px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .overlay.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: var(--card);
+    border-radius: var(--radius-card);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+    padding: 28px;
+    width: 100%;
+    max-width: 440px;
+    margin: 0 auto;
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+  }
+
+  .modal-title { font-size: 17px; font-weight: 700; }
+
+  .modal-close {
+    background: none; border: none; font-size: 20px;
+    cursor: pointer; color: var(--text-muted);
+    line-height: 1; padding: 2px 6px; border-radius: 6px;
+  }
+  .modal-close:hover { background: var(--bg); color: var(--text); }
+
+  .modal-section-title {
+    font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--text-muted); margin-bottom: 10px;
+  }
+
+  .modal-divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+
+  /* Pin column list */
+  .pin-col-list { display: flex; flex-direction: column; gap: 6px; }
+
+  .pin-col-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .pin-col-item:hover { background: var(--accent-light); border-color: var(--accent); }
+  .pin-col-item.is-pinned { background: var(--accent-light); border-color: var(--accent); color: var(--accent); font-weight: 500; }
+
+  .pin-col-item-left { display: flex; align-items: center; gap: 8px; }
+
+  .pin-check {
+    width: 18px; height: 18px;
+    border-radius: 4px;
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .pin-col-item.is-pinned .pin-check { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* Toast */
+  .toast-area {
+    position: fixed; bottom: 70px; left: 16px;
+    z-index: 200; display: flex; flex-direction: column;
+    gap: 8px; max-width: 320px;
+  }
+  .toast {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 12px 14px; border-radius: var(--radius);
+    border-left: 3px solid; font-size: 13px;
+    box-shadow: var(--shadow); animation: slideIn 0.25s ease;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-16px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  .toast.success { background: var(--success-light); border-color: var(--success); color: #065f46; }
+  .toast.error   { background: var(--error-light);   border-color: var(--error);   color: #991b1b; }
+  .toast-msg { flex: 1; line-height: 1.4; }
+  .toast-close { background: none; border: none; cursor: pointer; font-size: 14px; color: inherit; opacity: 0.6; padding: 0; }
+  .toast-close:hover { opacity: 1; }
+
+  /* Description clickable for notes */
+  .desc-link {
+    cursor: pointer;
+    color: var(--text);
+    text-decoration: none;
+    border-bottom: 1px dashed var(--text-muted);
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .desc-link:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  /* Notes modal */
+  .notes-textarea {
+    width: 100%;
+    min-height: 180px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-family: var(--font);
+    color: var(--text);
+    background: var(--card);
+    outline: none;
+    resize: vertical;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    line-height: 1.5;
+  }
+  .notes-textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79,110,247,0.12);
+  }
+
+  /* Show older months button */
+  .show-older-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    margin-bottom: 10px;
+    border-radius: var(--radius);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-sec);
+    font-family: var(--font);
+    transition: background 0.15s, color 0.15s;
+  }
+  .show-older-btn:hover { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
+
+  @media (max-width: 640px) {
+    header { padding: 10px 14px; padding-top: max(10px, calc(env(safe-area-inset-top, 0px) + 10px)); }
+    .container { padding: 16px 12px; }
+    .bottom-bar { padding: 10px 14px; padding-bottom: max(10px, calc(env(safe-area-inset-bottom, 0px) + 10px)); }
+    .page-title { display: none; }
+  }
+
+  /* ── Add Installment Modal Form ── */
+  .add-form { display: flex; flex-direction: column; gap: 14px; }
+
+  .add-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .add-field label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-sec);
+  }
+
+  .add-field input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-family: var(--font);
+    color: var(--text);
+    background: var(--card);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .add-field input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79,110,247,0.12);
+  }
+
+  .add-field-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .add-preview {
+    padding: 10px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .add-preview-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .add-preview-value {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    word-break: break-word;
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══ -->
+<header>
+  <a href="index.html" class="back-btn">← Back</a>
+  <div class="header-divider"></div>
+  <span class="app-name">Split-NAB</span>
+  <div class="header-divider"></div>
+  <span class="page-title">Installments</span>
+</header>
+
+<!-- ══ MAIN ══ -->
+<main class="container">
+
+  <div class="toolbar">
+    <span class="toolbar-title">Installment Tracker</span>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost btn-sm" id="refresh-btn" title="Reload from YNAB">↺ Refresh</button>
+      <button class="btn btn-outline btn-sm" id="add-btn">+ Add Installment</button>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div id="table-status" class="table-status"></div>
+    <div class="table-wrap" id="table-wrap">
+      <table id="inst-table">
+        <thead id="inst-thead"></thead>
+        <tbody id="inst-tbody"></tbody>
+      </table>
+    </div>
+    <div id="zero-balance-footer" class="zero-balance-toggle-bar" style="display:none;"></div>
+  </div>
+
+</main>
+
+<!-- ══ BOTTOM BAR ══ -->
+<div class="bottom-bar">
+  <div class="bottom-bar-left">
+    <button class="btn-icon" id="settings-btn" title="Settings" aria-label="Settings">⚙</button>
+    <span style="font-size:12px;color:var(--text-muted);" id="row-count-label"></span>
+  </div>
+  <div class="bottom-bar-right">
+    <button class="btn btn-primary" id="add-btn-bar">+ Add Installment</button>
+  </div>
+</div>
+
+<!-- ══ TOAST ══ -->
+<div class="toast-area" id="toast-area" aria-live="polite"></div>
+
+<!-- ══ SETTINGS MODAL ══ -->
+<div class="overlay" id="settings-overlay" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="settings-title">Settings</h2>
+      <button class="modal-close" id="settings-close" aria-label="Close">×</button>
+    </div>
+
+    <p class="modal-section-title">YNAB Connection</p>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:4px;">
+      <div>
+        <label style="font-size:12px;font-weight:500;color:var(--text-sec);display:block;margin-bottom:4px;">Personal Access Token</label>
+        <div style="position:relative;display:flex;align-items:center;">
+          <input type="password" id="set-token" placeholder="Paste your YNAB token"
+            style="width:100%;padding:9px 36px 9px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:var(--font);outline:none;"
+            autocomplete="off">
+          <button onclick="toggleEye()" id="eye-btn"
+            style="position:absolute;right:8px;background:none;border:none;cursor:pointer;font-size:14px;color:var(--text-muted);"
+            aria-label="Show/hide token">👁</button>
+        </div>
+        <span style="font-size:11px;color:var(--text-muted);margin-top:4px;display:block;">
+          Same token used in Split-NAB. Get it at
+          <a href="https://app.ynab.com/settings/developer" target="_blank" style="color:var(--accent);">app.ynab.com/settings/developer</a>
+        </span>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:500;color:var(--text-sec);display:block;margin-bottom:4px;">Budget ID</label>
+        <input type="text" id="set-budget-id" placeholder="e.g. a1b2c3d4-…"
+          style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:var(--font);outline:none;"
+          autocomplete="off">
+        <span style="font-size:11px;color:var(--text-muted);margin-top:4px;display:block;">
+          Found in your YNAB URL: app.ynab.com/budgets/<strong>BUDGET-ID</strong>/…
+        </span>
+      </div>
+    </div>
+
+    <hr class="modal-divider">
+
+    <p class="modal-section-title">Pinned Columns</p>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">
+      Pinned columns stay fixed on the left as you scroll. Column order is never changed.
+    </p>
+    <div class="pin-col-list" id="pin-col-list"></div>
+
+    <hr class="modal-divider">
+    <button class="btn btn-primary" style="width:100%;" id="settings-done-btn">Save &amp; Reload</button>
+  </div>
+</div>
+
+<!-- ══ ADD INSTALLMENT MODAL ══ -->
+<div class="overlay" id="add-overlay" role="dialog" aria-modal="true" aria-labelledby="add-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="add-title">Add Installment</h2>
+      <button class="modal-close" id="add-close" aria-label="Close">×</button>
+    </div>
+
+    <div class="add-form">
+      <div class="add-field">
+        <label for="add-name">Name</label>
+        <input type="text" id="add-name" placeholder="e.g. Ricoh #1" autocomplete="off">
+        <span class="add-field-hint">The item or service being paid in installments.</span>
+      </div>
+
+      <div class="add-field">
+        <label for="add-amount">Monthly Amount (₱)</label>
+        <input type="number" id="add-amount" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
+        <span class="add-field-hint">The exact amount due each month.</span>
+      </div>
+
+      <div class="add-field">
+        <label for="add-months">Number of Months</label>
+        <input type="number" id="add-months" placeholder="e.g. 12" min="1" step="1" inputmode="numeric">
+        <span class="add-field-hint">Total installment period in months.</span>
+      </div>
+
+      <div class="add-field">
+        <label for="add-end">End Month (optional)</label>
+        <input type="month" id="add-end">
+        <span class="add-field-hint">When the last payment is due. Leave blank to omit.</span>
+      </div>
+
+      <div class="add-preview">
+        <span class="add-preview-label">Category name preview:</span>
+        <span class="add-preview-value" id="add-preview-value">—</span>
+      </div>
+
+      <button class="btn btn-primary" style="width:100%;margin-top:8px;" id="add-submit-btn">Create in YNAB</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ NOTES MODAL ══ -->
+<div class="overlay" id="notes-overlay" role="dialog" aria-modal="true" aria-labelledby="notes-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="notes-title">Category Notes</h2>
+      <button class="modal-close" id="notes-close" aria-label="Close">×</button>
+    </div>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;" id="notes-category-label"></p>
+    <textarea class="notes-textarea" id="notes-textarea" placeholder="No notes yet. Type here to add notes…"></textarea>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-primary" style="flex:1;" id="notes-save-btn">Save Notes</button>
+      <button class="btn btn-ghost" id="notes-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+</body>
+
+<script>
+/* ═══════════════════════════════════════════════
+   YNAB CONFIG  (shared localStorage keys with split-nab)
+═══════════════════════════════════════════════ */
+const YNAB_API              = 'https://api.ynab.com/v1';
+const INSTALLMENT_GROUP     = 'Installment Plans';
+// Regex: captures name, monthly amount, period, and end month/year
+// e.g. "Ricoh #1 @₱3,391.21 for 12mo till Dec'26"
+const INST_PATTERN = /^(.+?)\s*@[₱P]?([\d,]+(?:\.\d+)?)\s+for\s+(\d+)mo(?:\s+till\s+([A-Za-z]+)'(\d{2,4}))?/i;
+
+/* ═══════════════════════════════════════════════
+   COLUMN DEFINITIONS  (fixed order, never reordered)
+═══════════════════════════════════════════════ */
+const FIXED_COLS = [
+  { key: 'description',        label: 'Description',        width: 200, align: 'left'   },
+  { key: 'amount',             label: 'Amount',             width: 130, align: 'right'  },
+  { key: 'monthly_due',        label: 'Monthly Due',        width: 140, align: 'right'  },
+  { key: 'balance',            label: 'Balance',            width: 130, align: 'right'  },
+  { key: 'first_payment',      label: 'First Payment',      width: 130, align: 'center' },
+  { key: 'last_payment',       label: 'Last Payment',       width: 130, align: 'center' },
+  { key: 'installment_period', label: 'Installment Period', width: 140, align: 'center' },
+  { key: 'split',              label: 'Split',              width: 90,  align: 'center' },
+];
+
+/* ═══════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════ */
+const ynab = {
+  token:    localStorage.getItem('ynab_token')     || '',
+  budgetId: localStorage.getItem('ynab_budget_id') || '',
+  connected: false,
+};
+
+// installments: parsed from YNAB "Installment Plans" category group
+// Each row: { categoryId, description, monthly_due, installment_period,
+//             last_payment_label, first_payment, last_payment,
+//             amount, balance, txByMonth }
+// txByMonth: Map<"YYYY-MM", { cleared: bool }>
+let installments = [];
+let showZeroBalance = false;
+
+// Month visibility: how many "older" months to show (expands 5 at a time)
+let olderMonthsVisible = 0;
+
+// Notes modal state
+let notesCurrentCategoryId = null;
+let notesCurrentCategoryName = '';
+// Cache for category notes fetched from YNAB
+let categoryNotesCache = new Map();
+
+// Sorting disabled
+
+let pinnedCols = (() => {
+  try {
+    const raw = JSON.parse(localStorage.getItem('inst_pinned_cols') || 'null');
+    // null means never saved — use defaults
+    if (raw === null) return ['description', 'monthly_due', 'balance'];
+    if (!Array.isArray(raw)) return ['description', 'monthly_due', 'balance'];
+    // Filter out any month keys (YYYY-MM format) — only fixed cols can be pinned
+    const fixedKeys = FIXED_COLS.map(c => c.key);
+    return raw.filter(k => fixedKeys.includes(k));
+  } catch { return ['description', 'monthly_due', 'balance']; }
+})();
+
+/* ═══════════════════════════════════════════════
+   UTILITIES
+═══════════════════════════════════════════════ */
+function fmt(n) {
+  return Number(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fmtDate(s) {
+  if (!s) return '—';
+  const d = new Date(s + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function monthKey(y, m) { return `${y}-${String(m + 1).padStart(2, '0')}`; }
+
+function monthLabel(y, m) {
+  return new Date(y, m, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+}
+
+// Add N months to a date, return new Date at day=1
+function addMonths(dateStr, n) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return new Date(d.getFullYear(), d.getMonth() + n, 1);
+}
+
+/* ═══════════════════════════════════════════════
+   YNAB API
+═══════════════════════════════════════════════ */
+/* ── YNAB Session Cache ───────────────────── */
+const YNAB_CACHE_TTL = 5 * 60 * 1000;
+const YNAB_TX_TTL    = 2 * 60 * 1000;
+
+function _ynabCacheKey(endpoint) {
+  return `ynab_cache_${ynab.budgetId}_${endpoint.replace(/[^a-z0-9_\-/]/gi, '_')}`;
+}
+function _ynabCacheGet(endpoint) {
+  try {
+    const raw = sessionStorage.getItem(_ynabCacheKey(endpoint));
+    if (!raw) return null;
+    const { ts, data } = JSON.parse(raw);
+    const ttl = endpoint.includes('/transactions') ? YNAB_TX_TTL : YNAB_CACHE_TTL;
+    if (Date.now() - ts > ttl) { sessionStorage.removeItem(_ynabCacheKey(endpoint)); return null; }
+    return data;
+  } catch { return null; }
+}
+function _ynabCacheSet(endpoint, data) {
+  try { sessionStorage.setItem(_ynabCacheKey(endpoint), JSON.stringify({ ts: Date.now(), data })); }
+  catch { /* quota exceeded */ }
+}
+function _ynabCacheInvalidate(pattern) {
+  const prefix = `ynab_cache_${ynab.budgetId}_`;
+  for (let i = sessionStorage.length - 1; i >= 0; i--) {
+    const k = sessionStorage.key(i);
+    if (k && k.startsWith(prefix) && k.includes(pattern)) sessionStorage.removeItem(k);
+  }
+}
+function clearYNABCache() {
+  const prefix = `ynab_cache_${ynab.budgetId}_`;
+  for (let i = sessionStorage.length - 1; i >= 0; i--) {
+    const k = sessionStorage.key(i);
+    if (k && k.startsWith(prefix)) sessionStorage.removeItem(k);
+  }
+}
+
+async function ynabFetch(endpoint, options = {}) {
+  const method = (options.method || 'GET').toUpperCase();
+  const isRead = method === 'GET';
+  if (isRead) {
+    const cached = _ynabCacheGet(endpoint);
+    if (cached) return cached;
+  }
+  const res = await fetch(YNAB_API + endpoint, {
+    ...options,
+    headers: { 'Authorization': 'Bearer ' + ynab.token, 'Content-Type': 'application/json', ...(options.headers || {}) },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.detail || `HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  if (isRead) {
+    _ynabCacheSet(endpoint, data);
+  } else {
+    _ynabCacheInvalidate('/categories');
+    _ynabCacheInvalidate('/transactions');
+  }
+  return data;
+}
+
+/* ═══════════════════════════════════════════════
+   PARSE CATEGORY NAME → INSTALLMENT ROW
+   Format: "Ricoh #1 @₱3,391.21 for 12mo till Dec'26"
+   Returns null if the category doesn't match the pattern.
+═══════════════════════════════════════════════ */
+function parseInstallmentCategory(cat) {
+  const m = INST_PATTERN.exec(cat.name);
+  if (!m) return null;
+
+  const description    = m[1].trim();
+  const monthly_due    = parseFloat(m[2].replace(/,/g, ''));
+  const installment_period = parseInt(m[3], 10);
+  // "till Dec'26" is optional — we compute last_payment from first_payment if present
+  // first_payment is derived from transactions; we'll fill it in after scanning txns
+  const amount = monthly_due * installment_period;
+
+  return {
+    categoryId:          cat.id,
+    categoryName:        cat.name,
+    description,
+    monthly_due,
+    installment_period,
+    amount,
+    // These are filled after scanning transactions:
+    first_payment:  null,
+    last_payment:   null,
+    balance:        null,
+    txByMonth:      new Map(), // "YYYY-MM" → { cleared: bool, amount: number }
+  };
+}
+
+/* ═══════════════════════════════════════════════
+   LOAD DATA FROM YNAB
+═══════════════════════════════════════════════ */
+async function loadData() {
+  if (!ynab.token || !ynab.budgetId) {
+    showStatus('not-connected');
+    return;
+  }
+
+  showStatus('loading');
+
+  try {
+    // Fetch categories and all transactions in parallel
+    const [catRes, txRes] = await Promise.all([
+      ynabFetch(`/budgets/${ynab.budgetId}/categories`),
+      ynabFetch(`/budgets/${ynab.budgetId}/transactions`),
+    ]);
+
+    // Find the "Installment Plans" category group
+    const groups = catRes.data.category_groups || [];
+    const instGroup = groups.find(g =>
+      g.name.trim().toLowerCase() === INSTALLMENT_GROUP.toLowerCase() && !g.deleted
+    );
+
+    if (!instGroup) {
+      showStatus('no-group');
+      return;
+    }
+
+    // Parse each category in the group
+    const rows = [];
+    for (const cat of (instGroup.categories || [])) {
+      if (cat.hidden || cat.deleted) continue;
+      const row = parseInstallmentCategory(cat);
+      if (row) rows.push(row);
+    }
+
+    if (!rows.length) {
+      showStatus('no-categories');
+      return;
+    }
+
+    // Build a map: categoryId → row for fast lookup
+    const rowMap = new Map(rows.map(r => [r.categoryId, r]));
+
+    // Scan all transactions for installment category payments
+    // Collect all valid payments per category (sorted by date) for forwarding logic
+    const allTx = txRes.data.transactions || [];
+    const paymentsByCategory = new Map(); // categoryId → [{ key, amount, cleared, reconciled, date }]
+
+    for (const tx of allTx) {
+      const entries = [];
+
+      if (tx.subtransactions && tx.subtransactions.length) {
+        for (const sub of tx.subtransactions) {
+          if (sub.category_id) entries.push({ category_id: sub.category_id, amount: sub.amount, cleared: tx.cleared, account_name: tx.account_name, memo: sub.memo || tx.memo, date: tx.date });
+        }
+      } else if (tx.category_id) {
+        entries.push({ category_id: tx.category_id, amount: tx.amount, cleared: tx.cleared, account_name: tx.account_name, memo: tx.memo, date: tx.date });
+      }
+
+      for (const entry of entries) {
+        const row = rowMap.get(entry.category_id);
+        if (!row) continue;
+
+        const key = tx.date.slice(0, 7); // "YYYY-MM"
+        // YNAB amounts are in milliunits (negative = outflow)
+        const amountAbs = Math.abs(entry.amount) / 1000;
+
+        // Only count payments that exactly match the monthly due
+        if (Math.abs(amountAbs - row.monthly_due) > 0.01) continue;
+
+        const isReconciled = entry.cleared === 'reconciled';
+        const isCleared    = entry.cleared === 'cleared' || isReconciled;
+
+        if (!paymentsByCategory.has(entry.category_id)) paymentsByCategory.set(entry.category_id, []);
+        paymentsByCategory.get(entry.category_id).push({
+          key, amount: amountAbs, cleared: isCleared, reconciled: isReconciled, date: tx.date,
+          account_name: entry.account_name || '', memo: entry.memo || '',
+        });
+      }
+    }
+
+    // Distribute payments: if multiple payments land in the same month,
+    // forward extras to the next unpaid month in sequence.
+    for (const row of rows) {
+      const payments = paymentsByCategory.get(row.categoryId) || [];
+      // Sort by date so earlier payments get assigned first
+      payments.sort((a, b) => a.date.localeCompare(b.date));
+
+      // Assign payments month by month; extras overflow to next month
+      // Track which months are already filled
+      const filled = new Map(); // "YYYY-MM" → { cleared, reconciled, amount, forwarded, fromMonth }
+
+      for (const pay of payments) {
+        let targetKey = pay.key;
+
+        // If this month is already filled, find the next unfilled month
+        let forwarded = false;
+        let fromMonth = null;
+        while (filled.has(targetKey)) {
+          forwarded = true;
+          fromMonth = fromMonth || pay.key;
+          // Advance to next month
+          const [y, m] = targetKey.split('-').map(Number);
+          const next = new Date(y, m, 1); // m is already 1-based, so this gives next month
+          targetKey = monthKey(next.getFullYear(), next.getMonth());
+        }
+
+        filled.set(targetKey, {
+          cleared: pay.cleared,
+          reconciled: pay.reconciled,
+          amount: pay.amount,
+          forwarded,
+          fromMonth, // original month the payment was made in
+          date: pay.date,
+          account_name: pay.account_name,
+          memo: pay.memo,
+        });
+      }
+
+      // Store into row.txByMonth
+      for (const [key, val] of filled) {
+        row.txByMonth.set(key, val);
+      }
+    }
+
+    // Derive first_payment, last_payment, balance for each row
+    for (const row of rows) {
+      const paidMonths = [...row.txByMonth.keys()].sort();
+
+      if (paidMonths.length) {
+        // First payment = earliest month we found a transaction
+        row.first_payment = paidMonths[0] + '-01';
+      }
+
+      if (row.first_payment && row.installment_period) {
+        // Last payment = first_payment + (installment_period - 1) months
+        const lastDate = addMonths(row.first_payment, row.installment_period - 1);
+        row.last_payment = monthKey(lastDate.getFullYear(), lastDate.getMonth()) + '-01';
+      }
+
+      // Balance = total amount - sum of all cleared/reconciled payments
+      const paidTotal = [...row.txByMonth.values()]
+        .filter(v => v.cleared)
+        .reduce((sum, v) => sum + v.amount, 0);
+      row.balance = Math.max(0, row.amount - paidTotal);
+    }
+
+    installments = rows;
+    showStatus('ready');
+    render();
+    document.getElementById('row-count-label').textContent =
+      `${rows.length} installment${rows.length !== 1 ? 's' : ''}`;
+
+  } catch (err) {
+    showStatus('error', err.message);
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   STATUS STATES
+═══════════════════════════════════════════════ */
+function showStatus(state, detail = '') {
+  const wrap = document.getElementById('table-wrap');
+  const statusEl = document.getElementById('table-status');
+
+  const messages = {
+    'not-connected': { icon: '🔌', title: 'Not connected to YNAB', sub: 'Open Settings and enter your YNAB token and budget.' },
+    'loading':       { icon: '⏳', title: 'Loading from YNAB…',    sub: 'Fetching categories and transactions.' },
+    'no-group':      { icon: '📂', title: `No "${INSTALLMENT_GROUP}" group found`, sub: `Create a category group named exactly "${INSTALLMENT_GROUP}" in YNAB.` },
+    'no-categories': { icon: '📋', title: 'No installment categories found', sub: `Add categories to the "${INSTALLMENT_GROUP}" group using the format: Name @₱amount for Nmo` },
+    'error':         { icon: '⚠️', title: 'Failed to load data', sub: detail },
+    'ready':         null,
+  };
+
+  if (state === 'ready') {
+    statusEl.style.display = 'none';
+    return;
+  }
+
+  const msg = messages[state];
+  statusEl.innerHTML = `
+    <div class="status-icon">${msg.icon}</div>
+    <div class="status-title">${msg.title}</div>
+    <div class="status-sub">${msg.sub}</div>
+    ${state === 'not-connected' ? '<button class="btn btn-primary" style="margin-top:16px;" onclick="openSettings()">Open Settings</button>' : ''}
+  `;
+  statusEl.style.display = 'block';
+  // Clear the table when showing a status
+  document.getElementById('inst-thead').innerHTML = '';
+  document.getElementById('inst-tbody').innerHTML = '';
+  document.getElementById('row-count-label').textContent = '';
+}
+
+/* ═══════════════════════════════════════════════
+   MONTH COLUMNS
+   Default: show from previous month onward.
+   Older months are hidden and revealed 5 at a time.
+═══════════════════════════════════════════════ */
+function getAllMonthCols() {
+  if (!installments.length) {
+    const n = new Date();
+    return [{ key: monthKey(n.getFullYear(), n.getMonth()), label: monthLabel(n.getFullYear(), n.getMonth()), isMonth: true, width: 100, align: 'center' }];
+  }
+
+  let minD = null, maxD = null;
+  for (const r of installments) {
+    if (r.first_payment) { const d = new Date(r.first_payment + 'T00:00:00'); if (!minD || d < minD) minD = d; }
+    if (r.last_payment)  { const d = new Date(r.last_payment  + 'T00:00:00'); if (!maxD || d > maxD) maxD = d; }
+  }
+  if (!minD) { const n = new Date(); minD = new Date(n.getFullYear(), n.getMonth(), 1); }
+  if (!maxD) maxD = minD;
+
+  const cols = [];
+  let cur = new Date(minD.getFullYear(), minD.getMonth(), 1);
+  const end = new Date(maxD.getFullYear(), maxD.getMonth(), 1);
+  while (cur <= end) {
+    cols.push({ key: monthKey(cur.getFullYear(), cur.getMonth()), label: monthLabel(cur.getFullYear(), cur.getMonth()), isMonth: true, width: 100, align: 'center' });
+    cur.setMonth(cur.getMonth() + 1);
+  }
+  return cols;
+}
+
+function getMonthCols() {
+  const allMonths = getAllMonthCols();
+  if (!allMonths.length) return allMonths;
+
+  // Default cutoff: previous month (one month before current)
+  const now = new Date();
+  const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const cutoffKey = monthKey(prevMonth.getFullYear(), prevMonth.getMonth());
+
+  // Find the index of the cutoff month in allMonths
+  let cutoffIdx = allMonths.findIndex(c => c.key >= cutoffKey);
+  if (cutoffIdx < 0) cutoffIdx = allMonths.length; // all months are older
+
+  // How many older months exist (before the cutoff)
+  const olderCount = cutoffIdx;
+
+  // How many older months to actually show
+  const showCount = Math.min(olderMonthsVisible, olderCount);
+
+  // Start index: skip the hidden older months
+  const startIdx = olderCount - showCount;
+
+  // Track how many more can be revealed
+  window._hiddenOlderMonths = olderCount - showCount;
+
+  return allMonths.slice(startIdx);
+}
+
+function rowActiveInMonth(row, key) {
+  if (!row.first_payment || !row.last_payment) return false;
+  const [ky, km] = key.split('-').map(Number);
+  const col   = new Date(ky, km - 1, 1);
+  const first = new Date(row.first_payment + 'T00:00:00');
+  const last  = new Date(row.last_payment  + 'T00:00:00');
+  return col >= new Date(first.getFullYear(), first.getMonth(), 1)
+      && col <= new Date(last.getFullYear(),  last.getMonth(),  1);
+}
+
+/* ═══════════════════════════════════════════════
+   SORTING — DISABLED
+═══════════════════════════════════════════════ */
+function toggleSort(key) { /* sorting disabled */ }
+function getSortedRows(rows) { return rows; }
+
+/* ═══════════════════════════════════════════════
+   COMPUTE STICKY LEFT OFFSETS
+   Walk columns in order; for each pinned column,
+   its `left` = sum of widths of all pinned columns before it.
+═══════════════════════════════════════════════ */
+function computeStickyOffsets(allCols) {
+  let offset = 0;
+  const offsets = {};
+  for (const col of allCols) {
+    if (pinnedCols.includes(col.key)) {
+      offsets[col.key] = offset;
+      offset += col.width;
+    }
+  }
+  return offsets;
+}
+
+/* ═══════════════════════════════════════════════
+   RENDER
+═══════════════════════════════════════════════ */
+function render() {
+  const monthCols = getMonthCols();
+  const allCols   = [...FIXED_COLS, ...monthCols];
+  const offsets   = computeStickyOffsets(allCols);
+
+  // Find the last pinned column key (for the shadow)
+  const pinnedInOrder = allCols.filter(c => pinnedCols.includes(c.key));
+  const lastPinnedKey = pinnedInOrder.length ? pinnedInOrder[pinnedInOrder.length - 1].key : null;
+
+  /* ── HEADER ── */
+  const thead = document.getElementById('inst-thead');
+  const trh   = document.createElement('tr');
+
+  for (const col of allCols) {
+    const isPinned = pinnedCols.includes(col.key);
+    const isLast   = col.key === lastPinnedKey;
+
+    const th = document.createElement('th');
+    th.style.width    = col.width + 'px';
+    th.style.minWidth = col.width + 'px';
+    th.style.maxWidth = col.width + 'px';
+    th.style.textAlign = col.align || 'left';
+    th.dataset.col = col.key;
+    if (isPinned) {
+      th.classList.add('pinned');
+      th.style.left = offsets[col.key] + 'px';
+    }
+    if (isLast) th.classList.add('pinned-last');
+
+    const wrap = document.createElement('div');
+    wrap.className = 'th-wrap';
+    if (col.align === 'right')  wrap.style.justifyContent = 'flex-end';
+    if (col.align === 'center') wrap.style.justifyContent = 'center';
+
+    const lbl = document.createElement('span');
+    lbl.textContent = col.label;
+    wrap.appendChild(lbl);
+
+    // Pin button — only for fixed (non-month) columns
+    if (!col.isMonth) {
+      const pinBtn = document.createElement('button');
+      pinBtn.className   = 'pin-btn' + (isPinned ? ' is-pinned' : '');
+      pinBtn.title       = isPinned ? 'Unpin column' : 'Pin column';
+      pinBtn.textContent = '●';
+      pinBtn.setAttribute('aria-label', pinBtn.title);
+      pinBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePin(col.key); });
+      wrap.appendChild(pinBtn);
+    }
+
+    th.appendChild(wrap);
+    trh.appendChild(th);
+  }
+
+  thead.innerHTML = '';
+  thead.appendChild(trh);
+
+  /* ── BODY ── */
+  const tbody = document.getElementById('inst-tbody');
+  tbody.innerHTML = '';
+
+  const sortedInstallments = getSortedRows(installments);
+  const activeRows = sortedInstallments.filter(r => r.balance > 0);
+  const zeroRows   = sortedInstallments.filter(r => r.balance <= 0);
+
+  // Helper: build a single data row
+  function buildRow(row) {
+    const tr = document.createElement('tr');
+    for (const col of allCols) {
+      const isPinned = pinnedCols.includes(col.key);
+      const isLast   = col.key === lastPinnedKey;
+
+      const td = document.createElement('td');
+      td.style.width    = col.width + 'px';
+      td.style.minWidth = col.width + 'px';
+      td.style.maxWidth = col.width + 'px';
+      td.style.textAlign = col.align || 'left';
+      if (isPinned) { td.classList.add('pinned'); td.style.left = offsets[col.key] + 'px'; }
+      if (isLast)   td.classList.add('pinned-last');
+
+      if (col.isMonth) {
+        if (rowActiveInMonth(row, col.key)) {
+          // Compute progress: which month number is this within the installment period
+          const [colY, colM] = col.key.split('-').map(Number);
+          const [fpY, fpM] = row.first_payment ? row.first_payment.slice(0, 7).split('-').map(Number) : [colY, colM];
+          const monthNum = (colY - fpY) * 12 + (colM - fpM) + 1;
+          const progressNote = `${monthNum} of ${row.installment_period}`;
+
+          const tx = row.txByMonth.get(col.key);
+          const isLast = monthNum === row.installment_period;
+          if (tx) {
+            const badge = document.createElement('span');
+            const forwardNote = tx.forwarded ? `\n↳ Paid in ${tx.fromMonth} (advance)` : '';
+            const lastNote = isLast ? '\n🏁 Final payment' : '';
+            // Transaction details
+            const txDate = tx.date ? `\nDate: ${fmtDate(tx.date)}` : '';
+            const txAcct = tx.account_name ? `\nAccount: ${tx.account_name}` : '';
+            const txMemo = tx.memo ? `\nNote: ${tx.memo}` : '';
+            const txDetails = txDate + txAcct + txMemo;
+            if (tx.reconciled) {
+              badge.className = 'month-paid' + (tx.forwarded ? ' has-note' : '') + (isLast ? ' is-last' : '');
+              badge.textContent = '✓';
+              badge.title = `Reconciled · ₱${fmt(tx.amount)} (${progressNote})${txDetails}${forwardNote}${lastNote}`;
+            } else if (tx.cleared) {
+              badge.className = 'month-cleared' + (tx.forwarded ? ' has-note' : '') + (isLast ? ' is-last' : '');
+              badge.textContent = '✓';
+              badge.title = `Cleared · ₱${fmt(tx.amount)} (${progressNote})${txDetails}${forwardNote}${lastNote}`;
+            } else {
+              badge.className = 'month-pending' + (tx.forwarded ? ' has-note' : '') + (isLast ? ' is-last' : '');
+              badge.textContent = '';
+              badge.title = `Pending · ₱${fmt(tx.amount)} (${progressNote})${txDetails}${forwardNote}${lastNote}`;
+            }
+            td.appendChild(badge);
+          } else {
+            const badge = document.createElement('span');
+            badge.className = 'month-pending' + (isLast ? ' is-last' : ''); badge.textContent = '';
+            badge.title = `No payment recorded (${progressNote})${isLast ? '\n🏁 Final payment' : ''}`;
+            td.appendChild(badge);
+          }
+        } else {
+          td.textContent = '—'; td.style.color = 'var(--text-muted)';
+        }
+      } else {
+        if (col.align === 'right')  td.classList.add('cell-num');
+        if (col.align === 'center') td.classList.add('cell-center');
+        switch (col.key) {
+          case 'description':
+            const descLink = document.createElement('span');
+            descLink.className = 'desc-link';
+            descLink.textContent = row.description || '—';
+            descLink.title = 'Click to view/edit notes';
+            descLink.addEventListener('click', () => openNotesModal(row.categoryId, row.description));
+            td.appendChild(descLink);
+            break;
+          case 'amount':             td.textContent = '₱' + fmt(row.amount); break;
+          case 'monthly_due':        td.textContent = '₱' + fmt(row.monthly_due); break;
+          case 'balance':
+            td.textContent = '₱' + fmt(row.balance);
+            if (row.balance <= 0) td.style.color = 'var(--success)';
+            break;
+          case 'first_payment':      td.textContent = fmtDate(row.first_payment); break;
+          case 'last_payment':       td.textContent = fmtDate(row.last_payment); break;
+          case 'installment_period': td.textContent = row.installment_period ? row.installment_period + ' mos' : '—'; break;
+          case 'split':              td.textContent = '—'; break;
+          default:                   td.textContent = '—';
+        }
+      }
+      tr.appendChild(td);
+    }
+    return tr;
+  }
+
+  // Render active rows
+  activeRows.forEach(row => tbody.appendChild(buildRow(row)));
+
+  // Render zero-balance rows (conditionally)
+  if (showZeroBalance) {
+    zeroRows.forEach(row => {
+      const tr = buildRow(row);
+      tr.classList.add('zero-balance-row');
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Toggle footer (sticky bar outside table)
+  const footer = document.getElementById('zero-balance-footer');
+  if (zeroRows.length > 0) {
+    const label = showZeroBalance
+      ? `▲ Hide paid-off installments (${zeroRows.length})`
+      : `▼ Show paid-off installments (${zeroRows.length})`;
+    footer.textContent = label;
+    footer.style.display = 'block';
+    footer.onclick = () => {
+      showZeroBalance = !showZeroBalance;
+      render();
+    };
+  } else {
+    footer.style.display = 'none';
+  }
+
+  document.getElementById('row-count-label').textContent =
+    installments.length ? `${installments.length} installment${installments.length !== 1 ? 's' : ''}` : '';
+
+  // Render "Show older months" button if there are hidden months
+  renderOlderMonthsBtn();
+}
+
+/* ═══════════════════════════════════════════════
+   SHOW OLDER MONTHS BUTTON
+═══════════════════════════════════════════════ */
+function renderOlderMonthsBtn() {
+  let btn = document.getElementById('show-older-months-btn');
+  const hidden = window._hiddenOlderMonths || 0;
+
+  if (hidden > 0) {
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.id = 'show-older-months-btn';
+      btn.className = 'show-older-btn';
+      const toolbar = document.querySelector('.toolbar');
+      toolbar.parentNode.insertBefore(btn, document.querySelector('.table-card'));
+    }
+    btn.textContent = `← Show older months (${hidden} hidden)`;
+    btn.style.display = 'inline-flex';
+    btn.onclick = () => {
+      olderMonthsVisible += 5;
+      render();
+    };
+  } else if (btn) {
+    btn.style.display = 'none';
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   NOTES MODAL — View/edit YNAB category notes
+═══════════════════════════════════════════════ */
+async function openNotesModal(categoryId, description) {
+  notesCurrentCategoryId = categoryId;
+  notesCurrentCategoryName = description;
+
+  document.getElementById('notes-category-label').textContent = description;
+  document.getElementById('notes-textarea').value = '';
+  document.getElementById('notes-overlay').classList.add('open');
+  document.getElementById('notes-save-btn').disabled = false;
+  document.getElementById('notes-save-btn').textContent = 'Save Notes';
+
+  // Fetch notes from YNAB
+  try {
+    const res = await ynabFetch(`/budgets/${ynab.budgetId}/categories/${categoryId}`);
+    const note = res.data.category.note || '';
+    document.getElementById('notes-textarea').value = note;
+    categoryNotesCache.set(categoryId, note);
+  } catch (err) {
+    document.getElementById('notes-textarea').value = '';
+    showToast('error', `Could not load notes: ${err.message}`);
+  }
+
+  document.getElementById('notes-textarea').focus();
+}
+
+function closeNotesModal() {
+  document.getElementById('notes-overlay').classList.remove('open');
+  notesCurrentCategoryId = null;
+}
+
+async function saveNotes() {
+  if (!notesCurrentCategoryId) return;
+
+  const note = document.getElementById('notes-textarea').value;
+  const btn = document.getElementById('notes-save-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  try {
+    const res = await fetch(YNAB_API + `/budgets/${ynab.budgetId}/categories/${notesCurrentCategoryId}`, {
+      method: 'PATCH',
+      headers: { 'Authorization': 'Bearer ' + ynab.token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category: { note: note } }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.error?.detail || `HTTP ${res.status}`);
+    }
+
+    categoryNotesCache.set(notesCurrentCategoryId, note);
+    showToast('success', `Notes saved for "${notesCurrentCategoryName}"`);
+    closeNotesModal();
+  } catch (err) {
+    showToast('error', `Failed to save notes: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Notes';
+  }
+}
+function togglePin(key) {
+  // Only fixed columns can be pinned (not month columns)
+  const fixedKeys = FIXED_COLS.map(c => c.key);
+  if (!fixedKeys.includes(key)) return;
+
+  if (pinnedCols.includes(key)) {
+    pinnedCols = pinnedCols.filter(k => k !== key);
+  } else {
+    pinnedCols.push(key);
+  }
+  localStorage.setItem('inst_pinned_cols', JSON.stringify(pinnedCols));
+  render();
+  renderSettingsModal();
+}
+
+/* ═══════════════════════════════════════════════
+   SETTINGS MODAL — YNAB connection + pin columns
+═══════════════════════════════════════════════ */
+function renderSettingsModal() {
+  // Restore saved values
+  document.getElementById('set-token').value    = ynab.token;
+  document.getElementById('set-budget-id').value = ynab.budgetId;
+
+  // Only show fixed columns in pin list (month columns cannot be pinned)
+  const list      = document.getElementById('pin-col-list');
+  list.innerHTML  = '';
+
+  for (const col of FIXED_COLS) {
+    const isPinned = pinnedCols.includes(col.key);
+    const item = document.createElement('div');
+    item.className = 'pin-col-item' + (isPinned ? ' is-pinned' : '');
+    item.setAttribute('role', 'checkbox');
+    item.setAttribute('aria-checked', String(isPinned));
+    item.setAttribute('tabindex', '0');
+
+    const left = document.createElement('div');
+    left.className = 'pin-col-item-left';
+    left.innerHTML = `<span>${col.label}</span>`;
+
+    const check = document.createElement('div');
+    check.className   = 'pin-check';
+    check.textContent = isPinned ? '✓' : '';
+
+    item.appendChild(left);
+    item.appendChild(check);
+    item.addEventListener('click', () => togglePin(col.key));
+    item.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); togglePin(col.key); } });
+    list.appendChild(item);
+  }
+}
+
+function openSettings()  { renderSettingsModal(); document.getElementById('settings-overlay').classList.add('open'); }
+function closeSettings() { document.getElementById('settings-overlay').classList.remove('open'); }
+
+function toggleEye() {
+  const inp = document.getElementById('set-token');
+  const btn = document.getElementById('eye-btn');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
+async function saveSettings() {
+  const token    = document.getElementById('set-token').value.trim();
+  const budgetId = document.getElementById('set-budget-id').value.trim();
+
+  if (!token)    { showToast('error', 'YNAB token is required.'); return; }
+  if (!budgetId) { showToast('error', 'Budget ID is required.'); return; }
+
+  ynab.token    = token;
+  ynab.budgetId = budgetId;
+  localStorage.setItem('ynab_token',     token);
+  localStorage.setItem('ynab_budget_id', budgetId);
+
+  closeSettings();
+  await loadData();
+}
+
+/* ═══════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════ */
+function showToast(type, msg) {
+  const area  = document.getElementById('toast-area');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<span class="toast-msg">${msg}</span><button class="toast-close" aria-label="Dismiss">×</button>`;
+  toast.querySelector('.toast-close').addEventListener('click', () => toast.remove());
+  area.appendChild(toast);
+
+  // Auto-dismiss after 10 seconds, pause while hovered, 5s after mouse leaves
+  let timer = null;
+  let remaining = 10000;
+  let startTime = Date.now();
+
+  function startTimer() {
+    startTime = Date.now();
+    timer = setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(-16px)';
+      toast.style.transition = 'opacity 0.2s, transform 0.2s';
+      setTimeout(() => toast.remove(), 220);
+    }, remaining);
+  }
+
+  function pauseTimer() {
+    if (timer) { clearTimeout(timer); timer = null; }
+    remaining -= (Date.now() - startTime);
+    if (remaining < 0) remaining = 0;
+  }
+
+  function resetAfterLeave() {
+    remaining = 5000;
+    startTimer();
+  }
+
+  toast.addEventListener('mouseenter', pauseTimer);
+  toast.addEventListener('mouseleave', resetAfterLeave);
+
+  startTimer();
+}
+
+/* ═══════════════════════════════════════════════
+   ADD INSTALLMENT MODAL
+═══════════════════════════════════════════════ */
+function openAddModal() {
+  document.getElementById('add-name').value = '';
+  document.getElementById('add-amount').value = '';
+  document.getElementById('add-months').value = '';
+  document.getElementById('add-end').value = '';
+  updateAddPreview();
+  document.getElementById('add-overlay').classList.add('open');
+  document.getElementById('add-name').focus();
+}
+
+function closeAddModal() {
+  document.getElementById('add-overlay').classList.remove('open');
+}
+
+function buildCategoryName() {
+  const name   = document.getElementById('add-name').value.trim();
+  const amount = parseFloat(document.getElementById('add-amount').value);
+  const months = parseInt(document.getElementById('add-months').value, 10);
+  const endVal = document.getElementById('add-end').value; // "YYYY-MM" or ""
+
+  if (!name || !amount || !months) return null;
+
+  // Format amount with commas and 2 decimals
+  const fmtAmt = amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  let catName = `${name} @₱${fmtAmt} for ${months}mo`;
+
+  // Append "till Mon'YY" if end month is provided
+  if (endVal) {
+    const [ey, em] = endVal.split('-').map(Number);
+    const endDate = new Date(ey, em - 1, 1);
+    const monStr = endDate.toLocaleDateString('en-US', { month: 'short' });
+    const yrStr  = String(ey).slice(-2);
+    catName += ` till ${monStr}'${yrStr}`;
+  }
+
+  return catName;
+}
+
+function updateAddPreview() {
+  const preview = document.getElementById('add-preview-value');
+  const catName = buildCategoryName();
+  preview.textContent = catName || '—';
+}
+
+async function submitAddInstallment() {
+  const catName = buildCategoryName();
+  if (!catName) {
+    showToast('error', 'Please fill in name, amount, and months.');
+    return;
+  }
+
+  if (!ynab.token || !ynab.budgetId) {
+    showToast('error', 'YNAB not connected. Open Settings first.');
+    return;
+  }
+
+  const btn = document.getElementById('add-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Creating…';
+
+  try {
+    // First, find or create the "Installment Plans" category group
+    const catRes = await ynabFetch(`/budgets/${ynab.budgetId}/categories`);
+    const groups = catRes.data.category_groups || [];
+    let instGroup = groups.find(g =>
+      g.name.trim().toLowerCase() === INSTALLMENT_GROUP.toLowerCase() && !g.deleted
+    );
+
+    let groupId;
+    if (instGroup) {
+      groupId = instGroup.id;
+    } else {
+      // Create the category group
+      const groupRes = await fetch(YNAB_API + `/budgets/${ynab.budgetId}/categories`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + ynab.token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category_group: { name: INSTALLMENT_GROUP } }),
+      });
+      if (!groupRes.ok) {
+        const err = await groupRes.json().catch(() => ({}));
+        throw new Error(err?.error?.detail || `Failed to create group (HTTP ${groupRes.status})`);
+      }
+      const groupData = await groupRes.json();
+      groupId = groupData.data.category_group.id;
+    }
+
+    // Create the category in the group
+    const createRes = await fetch(YNAB_API + `/budgets/${ynab.budgetId}/categories`, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + ynab.token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category: { category_group_id: groupId, name: catName } }),
+    });
+
+    if (!createRes.ok) {
+      const err = await createRes.json().catch(() => ({}));
+      throw new Error(err?.error?.detail || `Failed to create category (HTTP ${createRes.status})`);
+    }
+
+    showToast('success', `Created: ${catName}`);
+    closeAddModal();
+    // Reload data to show the new installment
+    await loadData();
+
+  } catch (err) {
+    showToast('error', `Error: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Create in YNAB';
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('settings-btn').addEventListener('click', openSettings);
+  document.getElementById('settings-close').addEventListener('click', closeSettings);
+  document.getElementById('settings-done-btn').addEventListener('click', saveSettings);
+  document.getElementById('settings-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('settings-overlay')) closeSettings();
+  });
+  document.getElementById('refresh-btn').addEventListener('click', () => { clearYNABCache(); loadData(); });
+
+  // Add Installment buttons
+  document.getElementById('add-btn').addEventListener('click', openAddModal);
+  document.getElementById('add-btn-bar').addEventListener('click', openAddModal);
+
+  // Add Installment modal controls
+  document.getElementById('add-close').addEventListener('click', closeAddModal);
+  document.getElementById('add-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('add-overlay')) closeAddModal();
+  });
+  document.getElementById('add-submit-btn').addEventListener('click', submitAddInstallment);
+
+  // Notes modal controls
+  document.getElementById('notes-close').addEventListener('click', closeNotesModal);
+  document.getElementById('notes-cancel-btn').addEventListener('click', closeNotesModal);
+  document.getElementById('notes-save-btn').addEventListener('click', saveNotes);
+  document.getElementById('notes-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('notes-overlay')) closeNotesModal();
+  });
+
+  // Live preview update
+  document.getElementById('add-name').addEventListener('input', updateAddPreview);
+  document.getElementById('add-amount').addEventListener('input', updateAddPreview);
+  document.getElementById('add-months').addEventListener('input', updateAddPreview);
+  document.getElementById('add-end').addEventListener('input', updateAddPreview);
+
+  // Auto-load if we already have credentials
+  loadData();
+});
+</script>
+</html>

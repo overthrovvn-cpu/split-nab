@@ -1,0 +1,4 @@
+Let us make some Single-Entry page enhancements
+- Category field should be searchable as well. Maintain the auto features it has right now.
+-When a second split is created, expand the size of the Split-Entries, same as the size when splitwise it turned on.
+- Auto Balance should make sure that the sum of all is exactly equal to the amount. if a decimal needs to be adjusted, apply it on the first split

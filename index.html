@@ -2,41 +2,73 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Split-NAB</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f6ef7'/%3E%3Ctext x='16' y='22' font-family='-apple-system,BlinkMacSystemFont,sans-serif' font-size='14' font-weight='700' fill='white' text-anchor='middle'%3ESN%3C/text%3E%3C/svg%3E">
 <!-- PDF.js for in-browser PDF text extraction -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- Material Icons -->
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  html {
+    overflow-x: clip;
+    overscroll-behavior: none;
+  }
+
   :root {
-    --bg: #f7f7f8;
-    --card: #ffffff;
-    --border: #e5e7eb;
+    --bg: #eef1f8;
+    --card: rgba(255,255,255,0.72);
+    --card-solid: #ffffff;
+    --border: rgba(255,255,255,0.6);
+    --border-subtle: rgba(200,210,240,0.5);
     --text: #111827;
-    --text-sec: #6b7280;
+    --text-sec: #4b5563;
     --text-muted: #9ca3af;
     --accent: #4f6ef7;
     --accent-hover: #3b5bdb;
-    --accent-light: #eef2ff;
+    --accent-light: rgba(79,110,247,0.12);
     --error: #ef4444;
-    --error-light: #fef2f2;
+    --error-light: rgba(239,68,68,0.1);
     --success: #10b981;
-    --success-light: #ecfdf5;
-    --child-bg: #f9fafb;
+    --success-light: rgba(16,185,129,0.1);
+    --child-bg: rgba(249,250,251,0.6);
     --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    --radius-card: 12px;
-    --radius: 8px;
-    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 2px 12px rgba(0,0,0,0.08);
+    --radius-card: 16px;
+    --radius: 10px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.06), 0 8px 32px rgba(79,110,247,0.08);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+    --glass: rgba(255,255,255,0.62);
+    --glass-border: rgba(255,255,255,0.7);
+    --glass-shadow: 0 8px 32px rgba(79,110,247,0.10), 0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04);
+    --blur: blur(20px) saturate(1.8);
+    --sab: env(safe-area-inset-bottom, 0px);
   }
 
   body {
     font-family: var(--font);
-    background: var(--bg);
+    background:
+      radial-gradient(ellipse at 20% 10%, rgba(167,185,255,0.35) 0%, transparent 55%),
+      radial-gradient(ellipse at 80% 80%, rgba(139,211,255,0.28) 0%, transparent 55%),
+      radial-gradient(ellipse at 60% 30%, rgba(200,180,255,0.22) 0%, transparent 50%),
+      #eef1f8;
+    background-attachment: fixed;
     color: var(--text);
     font-size: 14px;
     min-height: 100vh;
     padding-bottom: 120px;
+    overflow-x: clip;
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* Allow text selection inside form inputs */
+  input, select, textarea {
+    -webkit-user-select: text;
+    user-select: text;
   }
 
   /* ── Header ── */
@@ -44,12 +76,29 @@
     position: sticky;
     top: 0;
     z-index: 100;
-    background: var(--card);
-    border-bottom: 1px solid var(--border);
+    background: var(--glass);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    border-bottom: 1px solid var(--glass-border);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.8), 0 4px 16px rgba(79,110,247,0.07);
     padding: 12px 24px;
+    padding-top: max(12px, calc(env(safe-area-inset-top, 0px) + 12px));
     display: flex;
     align-items: center;
     justify-content: space-between;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .header-divider {
+    width: 1px;
+    height: 18px;
+    background: var(--border);
+    margin: 0 4px;
   }
 
   .app-name {
@@ -61,14 +110,35 @@
 
   .mode-toggle {
     display: flex;
-    background: var(--bg);
-    border: 1px solid var(--border);
+    position: relative;
+    background: rgba(255,255,255,0.45);
+    backdrop-filter: blur(12px) saturate(1.5);
+    -webkit-backdrop-filter: blur(12px) saturate(1.5);
+    border: 1px solid rgba(255,255,255,0.65);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 2px 8px rgba(0,0,0,0.06);
     border-radius: 999px;
     padding: 3px;
     gap: 2px;
   }
 
+  .mode-toggle-slider {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    height: calc(100% - 6px);
+    width: 0;
+    border-radius: 999px;
+    background: var(--accent);
+    box-shadow: 0 2px 8px rgba(79,110,247,0.4), inset 0 1px 0 rgba(255,255,255,0.25);
+    transition: transform 0.2s cubic-bezier(0.4, 0.0, 0.2, 1),
+                width 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+    z-index: 0;
+    pointer-events: none;
+  }
+
   .mode-toggle button {
+    position: relative;
+    z-index: 1;
     border: none;
     background: transparent;
     padding: 6px 16px;
@@ -77,11 +147,10 @@
     font-weight: 500;
     cursor: pointer;
     color: var(--text-sec);
-    transition: background 0.2s, color 0.2s;
+    transition: color 0.15s ease;
   }
 
   .mode-toggle button.active {
-    background: var(--accent);
     color: #fff;
   }
 
@@ -94,28 +163,82 @@
 
   /* ── Card ── */
   .card {
-    background: var(--card);
-    border: 1px solid var(--border);
+    background: var(--glass);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    border: 1px solid var(--glass-border);
     border-radius: var(--radius-card);
-    box-shadow: var(--shadow);
+    box-shadow: var(--glass-shadow);
     padding: 24px;
   }
 
   /* ── Views ── */
+  .view-container {
+    position: relative;
+  }
+
+  /* Applied via JS only during active swipe to prevent clipping dropdowns normally */
+  .view-container.swiping {
+    overflow: hidden;
+  }
+
   .view {
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.25s ease;
+    transition: opacity 0.18s ease, transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     position: absolute;
-    width: calc(100% - 32px);
-    max-width: 1200px;
+    top: 0;
+    left: 0;
+    width: 100%;
+    transform: translateX(0);
   }
 
   .view.active {
     opacity: 1;
     pointer-events: all;
     position: relative;
-    width: 100%;
+  }
+
+  /* Mobile slide transitions */
+  @media (max-width: 640px) {
+    .view {
+      transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .view.slide-out-left {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+
+    .view.slide-out-right {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+
+    .view.slide-in-left {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+
+    .view.slide-in-right {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+
+    .view.active {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  /* During a cross-fade the outgoing view briefly stays absolute while
+     the incoming view becomes relative (sets the height). We add a
+     .view-exiting class to keep the outgoing view in-place. */
+  .view.view-exiting {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
   }
 
   /* ── Two-column layout ── */
@@ -128,6 +251,16 @@
   @media (min-width: 768px) {
     .two-col {
       grid-template-columns: 1fr 1fr;
+      transition: grid-template-columns 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .two-col.splitwise-expanded {
+      grid-template-columns: 1fr 2fr;
+    }
+    .two-col.splits-expanded {
+      grid-template-columns: 1fr 2fr;
+    }
+    .two-col.splitwise-expanded.splits-expanded {
+      grid-template-columns: 1fr 2fr;
     }
   }
 
@@ -167,21 +300,24 @@
   input[type="password"] {
     width: 100%;
     padding: 10px 14px;
-    border: 1px solid var(--border);
+    border: 1px solid rgba(200,210,240,0.6);
     border-radius: var(--radius);
     font-size: 14px;
     font-family: var(--font);
     color: var(--text);
-    background: var(--card);
+    background: rgba(255,255,255,0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     outline: none;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
     -webkit-appearance: none;
     appearance: none;
   }
 
   input:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(79,110,247,0.12);
+    background: rgba(255,255,255,0.9);
+    box-shadow: 0 0 0 3px rgba(79,110,247,0.15), inset 0 1px 0 rgba(255,255,255,0.8);
   }
 
   input.has-prefix { padding-left: 26px; }
@@ -207,33 +343,53 @@
     font-weight: 500;
     cursor: pointer;
     border: none;
-    transition: background 0.15s, color 0.15s, opacity 0.15s;
+    transition: background 0.15s, color 0.15s, opacity 0.15s, box-shadow 0.15s, transform 0.1s;
     font-family: var(--font);
     white-space: nowrap;
   }
 
   .btn-primary {
-    background: var(--accent);
+    background: linear-gradient(135deg, #5b7cff 0%, var(--accent) 50%, #3b5bdb 100%);
     color: #fff;
+    box-shadow: 0 2px 12px rgba(79,110,247,0.4), inset 0 1px 0 rgba(255,255,255,0.25);
   }
 
-  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #6a8aff 0%, #5577ff 50%, #4a6beb 100%);
+    box-shadow: 0 4px 16px rgba(79,110,247,0.5), inset 0 1px 0 rgba(255,255,255,0.3);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:active { transform: translateY(0); }
 
   .btn-outline {
-    background: transparent;
+    background: rgba(79,110,247,0.08);
     color: var(--accent);
-    border: 1px solid var(--accent);
+    border: 1px solid rgba(79,110,247,0.35);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
 
-  .btn-outline:hover { background: var(--accent-light); }
+  .btn-outline:hover {
+    background: rgba(79,110,247,0.15);
+    border-color: var(--accent);
+    box-shadow: 0 2px 8px rgba(79,110,247,0.2);
+  }
 
   .btn-ghost {
-    background: transparent;
+    background: rgba(255,255,255,0.5);
     color: var(--text-sec);
-    border: 1px solid var(--border);
+    border: 1px solid rgba(200,210,240,0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
 
-  .btn-ghost:hover { background: var(--bg); }
+  .btn-ghost:hover {
+    background: rgba(255,255,255,0.85);
+    border-color: rgba(150,170,220,0.7);
+    color: var(--text);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
 
   .btn-danger-ghost {
     background: transparent;
@@ -248,6 +404,7 @@
   .btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+    transform: none !important;
   }
 
   .btn-sm {
@@ -288,13 +445,17 @@
     color: var(--error);
   }
 
-  .split-rows { display: flex; flex-direction: column; gap: 8px; }
+  .split-rows { display: flex; flex-direction: column; gap: 10px; padding-top: 4px; }
+  /* Each wrapper is its own glass card — no shared borders needed */
+  .split-row-swipe-wrapper + .split-row-swipe-wrapper,
+  .split-rows > .split-row + .split-row { border-top: none; }
 
   /* ── Desktop split row: all fields in one flex line ── */
   .split-row {
     display: flex;
     align-items: center;
     gap: 8px;
+    padding: 12px 14px;
   }
 
   .split-row input[type="text"] { flex: 1; min-width: 0; }
@@ -307,22 +468,18 @@
       flex-direction: column;
       align-items: flex-start;
       gap: 0;
-      padding: 12px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
+      padding: 16px;
+      background: transparent;
     }
 
     /* Field labels inside split row — only visible on mobile */
     .split-field-label {
       display: block;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 4px;
-      margin-top: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-sec);
+      margin-bottom: 5px;
+      margin-top: 14px;
       text-align: left;
     }
 
@@ -348,14 +505,59 @@
     /* Hide the old amount-row delete button */
     .split-row .split-row-amount-row .btn-danger-ghost { display: none; }
 
-    /* Note takes full width */
-    .split-row .split-row-note { width: 100%; }
+    /* Note expand button — mobile only */
+    .split-note-toggle {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 12px;
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent);
+      cursor: pointer;
+      font-family: var(--font);
+    }
+
+    .split-note-toggle .note-chevron {
+      font-size: 10px;
+      transition: transform 0.2s ease;
+      display: inline-block;
+    }
+
+    .split-note-toggle.open .note-chevron {
+      transform: rotate(180deg);
+    }
+
+    /* Note field collapses on mobile */
+    .split-row-note {
+      width: 100%;
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transition: max-height 0.25s ease, opacity 0.2s ease;
+    }
+
+    .split-row-note.open {
+      max-height: 80px;
+      opacity: 1;
+    }
+
+    /* Label inside note — spacing matches other labels */
+    .split-row-note .split-field-label {
+      margin-top: 10px;
+    }
   }
 
   /* ── Desktop: unwrap the mobile helper divs so layout stays flat ── */
   @media (min-width: 641px) {
     /* Labels are hidden on desktop */
     .split-field-label { display: none; }
+
+    /* Note toggle button is hidden on desktop */
+    .split-note-toggle { display: none; }
 
     /* Unwrap amount-row div — its children join the parent flex directly */
     .split-row .split-row-amount-row {
@@ -366,6 +568,87 @@
 
     /* Unwrap note div */
     .split-row .split-row-note { display: contents; }
+  }
+
+  /* ── Hero Amount Field ── */
+  .amount-hero-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 18px 12px 14px;
+    margin-bottom: 18px;
+    position: relative;
+    width: 100%;
+    /* no background, no border, no shadow — just the number floating */
+  }
+
+  .amount-hero-input-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    width: 100%;
+    gap: 2px;
+  }
+
+  /* Spacer mirrors the symbol width so the number stays perfectly centred */
+  .amount-hero-spacer {
+    font-size: 22px;
+    font-weight: 700;
+    opacity: 0;
+    pointer-events: none;
+    flex-shrink: 0;
+    /* same content as .amount-hero-symbol so width matches */
+  }
+
+  .amount-hero-symbol {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+    opacity: 0.6;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  #s-amount {
+    border: none !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    padding: 0 !important;
+    text-align: center;
+    font-size: 48px !important;
+    font-weight: 800 !important;
+    color: var(--accent) !important;
+    letter-spacing: -2px;
+    /* width driven by sizeAmountInput() — initial guess for placeholder "0.00" */
+    width: 3.5ch;
+    min-width: 2ch;
+    caret-color: var(--accent);
+    -moz-appearance: textfield;
+  }
+
+  #s-amount::-webkit-outer-spin-button,
+  #s-amount::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  #s-amount::placeholder {
+    color: rgba(79,110,247,0.28);
+  }
+
+  /* Error state — just colour shift, no box */
+  .amount-hero-wrap.has-error .amount-hero-symbol,
+  .amount-hero-wrap.has-error #s-amount {
+    color: var(--error) !important;
+  }
+
+  .amount-hero-wrap .field-error {
+    text-align: center;
+    font-size: 12px;
   }
 
   /* ── Card section title ── */
@@ -383,30 +666,204 @@
     left: 0;
     right: 0;
     z-index: 100;
-    background: var(--card);
-    border-top: 1px solid var(--border);
-    padding: 12px 24px;
+    background: var(--glass);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    border-top: 1px solid var(--glass-border);
+    box-shadow: 0 -4px 24px rgba(79,110,247,0.08), 0 -1px 0 rgba(255,255,255,0.7);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Main row: Save button + toggle + YNAB status */
+  .bottom-bar-main {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 12px;
+    padding: 12px 24px;
+    padding-bottom: max(12px, calc(env(safe-area-inset-bottom, 0px) + 12px));
   }
 
   .bottom-bar-left { display: flex; align-items: center; gap: 10px; }
   .bottom-bar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
+  /* Hide YNAB status badge on mobile */
+  @media (max-width: 640px) {
+    #ynab-status-badge { display: none !important; }
+  }
+
+  /* ── Mobile Save Button (header, upper right) ── */
+  .mobile-save-btn {
+    display: none;
+  }
+
+  @media (max-width: 640px) {
+    .mobile-save-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 16px;
+      background: linear-gradient(135deg, #5b7cff 0%, var(--accent) 60%, #3b5bdb 100%);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 600;
+      font-family: var(--font);
+      cursor: pointer;
+      box-shadow: 0 2px 12px rgba(79,110,247,0.4), inset 0 1px 0 rgba(255,255,255,0.25);
+      transition: box-shadow 0.15s, transform 0.1s;
+    }
+    .mobile-save-btn:hover {
+      box-shadow: 0 4px 16px rgba(79,110,247,0.5);
+      transform: translateY(-1px);
+    }
+    .mobile-save-btn:active { transform: translateY(0); }
+
+    /* Hide desktop bottom bar on mobile */
+    .bottom-bar {
+      display: none !important;
+    }
+  }
+
+  /* ── Floating Mode Pill (mobile only, iOS liquid glass style) ── */
+  .floating-mode-pill {
+    display: none;
+  }
+
+  @media (max-width: 640px) {
+    .floating-mode-pill {
+      display: flex;
+      position: fixed;
+      bottom: max(28px, env(safe-area-inset-bottom, 28px));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 200;
+      align-items: center;
+      gap: 3px;
+      padding: 5px;
+      border-radius: 999px;
+      /* liquidGL handles the glass refraction — CSS fallback below for non-WebGL */
+      background: rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(20px) saturate(1.8);
+      -webkit-backdrop-filter: blur(20px) saturate(1.8);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.18),
+        0 2px 8px rgba(0, 0, 0, 0.10),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.06);
+    }
+
+    /* When liquidGL is active, strip CSS glass so WebGL refraction is visible */
+    .floating-mode-pill.liquidgl-active {
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border: none;
+      box-shadow: none;
+    }
+
+    .floating-pill-slider {
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      height: calc(100% - 10px);
+      width: 0;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 2px 8px rgba(79, 110, 247, 0.45);
+      transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+                  width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    .floating-mode-pill button {
+      position: relative;
+      z-index: 10;
+      border: none;
+      background: transparent;
+      padding: 10px 24px;
+      border-radius: 999px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: var(--font);
+      cursor: pointer;
+      color: rgba(0, 0, 0, 0.5);
+      transition: color 0.15s ease;
+      min-width: 80px;
+      text-align: center;
+    }
+
+    .floating-mode-pill button.active {
+      color: #fff;
+    }
+  }
+
+  /* ── In-page Splitwise section (mobile, inside each view) ── */
+  .sw-inline-section {
+    display: none;
+  }
+
+  @media (max-width: 640px) {
+    .sw-inline-section {
+      display: block;
+      margin-top: 16px;
+      padding: 16px;
+      background: var(--glass);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-card);
+      box-shadow: var(--glass-shadow);
+    }
+
+    .sw-inline-toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sw-inline-toggle-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      flex: 1;
+    }
+
+    .sw-inline-panel {
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transition: max-height 0.3s ease, opacity 0.25s ease, margin-top 0.25s ease;
+      margin-top: 0;
+    }
+
+    .sw-inline-panel.open {
+      max-height: 200px;
+      opacity: 1;
+      margin-top: 14px;
+    }
+  }
+
   .btn-icon {
-    background: transparent;
-    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.5);
+    border: 1px solid rgba(200,210,240,0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border-radius: var(--radius);
     padding: 8px 10px;
     cursor: pointer;
     font-size: 16px;
     color: var(--text-sec);
-    transition: background 0.15s;
+    transition: background 0.15s, box-shadow 0.15s;
   }
 
-  .btn-icon:hover { background: var(--bg); }
+  .btn-icon:hover {
+    background: rgba(255,255,255,0.85);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
 
   /* ── Toggle switch ── */
   .toggle-wrap {
@@ -472,7 +929,10 @@
     border-radius: var(--radius);
     border-left: 3px solid;
     font-size: 13px;
-    box-shadow: var(--shadow);
+    background: var(--glass);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+    box-shadow: var(--glass-shadow);
     animation: slideIn 0.25s ease;
   }
 
@@ -482,15 +942,21 @@
   }
 
   .toast.success {
-    background: var(--success-light);
+    background: rgba(236,253,245,0.85);
     border-color: var(--success);
     color: #065f46;
   }
 
   .toast.error {
-    background: var(--error-light);
+    background: rgba(254,242,242,0.85);
     border-color: var(--error);
     color: #991b1b;
+  }
+
+  .toast.warning {
+    background: rgba(255,251,235,0.85);
+    border-color: #f59e0b;
+    color: #92400e;
   }
 
   .toast-msg { flex: 1; line-height: 1.4; }
@@ -512,7 +978,9 @@
   .overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.45);
+    background: rgba(15, 20, 50, 0.35);
+    backdrop-filter: blur(6px) saturate(1.2);
+    -webkit-backdrop-filter: blur(6px) saturate(1.2);
     z-index: 300;
     display: flex;
     align-items: flex-start;
@@ -531,9 +999,16 @@
   }
 
   .modal {
-    background: var(--card);
-    border-radius: var(--radius-card);
-    box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+    background: rgba(255,255,255,0.78);
+    backdrop-filter: blur(32px) saturate(2);
+    -webkit-backdrop-filter: blur(32px) saturate(2);
+    border: 1px solid rgba(255,255,255,0.85);
+    border-radius: 20px;
+    box-shadow:
+      0 24px 64px rgba(0,0,0,0.18),
+      0 4px 16px rgba(79,110,247,0.1),
+      inset 0 1px 0 rgba(255,255,255,1),
+      inset 0 -1px 0 rgba(0,0,0,0.04);
     padding: 28px;
     width: 100%;
     max-width: 440px;
@@ -551,17 +1026,21 @@
   .modal-title { font-size: 17px; font-weight: 700; }
 
   .modal-close {
-    background: none;
-    border: none;
+    background: rgba(0,0,0,0.05);
+    border: 1px solid rgba(0,0,0,0.06);
     font-size: 20px;
     cursor: pointer;
     color: var(--text-muted);
     line-height: 1;
-    padding: 2px 6px;
-    border-radius: 6px;
+    padding: 2px 8px;
+    border-radius: 8px;
+    transition: background 0.15s, color 0.15s;
   }
 
-  .modal-close:hover { background: var(--bg); color: var(--text); }
+  .modal-close:hover {
+    background: rgba(0,0,0,0.1);
+    color: var(--text);
+  }
 
   .modal-section-title {
     font-size: 12px;
@@ -570,6 +1049,12 @@
     letter-spacing: 0.06em;
     color: var(--text-muted);
     margin-bottom: 14px;
+  }
+
+  .modal-divider {
+    border: none;
+    border-top: 1px solid rgba(0,0,0,0.07);
+    margin: 18px 0;
   }
 
   .password-wrap {
@@ -601,10 +1086,15 @@
     position: absolute;
     top: calc(100% + 10px);
     right: 0;
-    background: var(--card);
-    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.82);
+    backdrop-filter: blur(24px) saturate(1.8);
+    -webkit-backdrop-filter: blur(24px) saturate(1.8);
+    border: 1px solid rgba(255,255,255,0.85);
     border-radius: var(--radius-card);
-    box-shadow: var(--shadow);
+    box-shadow:
+      0 16px 40px rgba(0,0,0,0.14),
+      0 2px 8px rgba(79,110,247,0.08),
+      inset 0 1px 0 rgba(255,255,255,0.9);
     padding: 16px;
     width: 240px;
     z-index: 150;
@@ -623,7 +1113,7 @@
 
   .popover-divider {
     border: none;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid rgba(0,0,0,0.07);
     margin: 10px 0;
   }
 
@@ -634,12 +1124,13 @@
     align-items: center;
     justify-content: space-between;
     padding: 6px 8px;
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 13px;
     color: var(--text);
+    transition: background 0.15s;
   }
 
-  .preset-item:hover { background: var(--bg); }
+  .preset-item:hover { background: rgba(79,110,247,0.08); }
 
   .preset-delete {
     background: none;
@@ -649,18 +1140,104 @@
     font-size: 14px;
     padding: 0 2px;
     line-height: 1;
+    transition: color 0.15s;
   }
 
   .preset-delete:hover { color: var(--error); }
 
+  /* ── Preset Suggestions (below Amount field) ── */
+  .preset-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .preset-suggestions:empty { display: none; }
+
+  .preset-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(79,110,247,0.25);
+    background: rgba(79,110,247,0.07);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    user-select: none;
+    -webkit-user-select: none;
+    white-space: nowrap;
+  }
+
+  .preset-chip:hover {
+    background: rgba(79,110,247,0.15);
+    border-color: var(--accent);
+    box-shadow: 0 2px 8px rgba(79,110,247,0.2);
+  }
+
+  .preset-chip-icon { font-size: 11px; opacity: 0.7; }
+
   /* ── Batch Table ── */
   .batch-toolbar {
     display: flex;
+    flex-direction: column;
+    margin-bottom: 18px;
+    gap: 8px;
+  }
+
+  /* Row 1: title+selection on left, primary actions on right */
+  .batch-toolbar-row1 {
+    display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 18px;
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+
+  .batch-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     flex-wrap: wrap;
-    gap: 10px;
+    min-width: 0;
+  }
+
+  .batch-toolbar-primary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  /* Row 2: secondary actions — always visible on desktop, below on mobile */
+  .batch-toolbar-row2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* On desktop, collapse both rows back into a single flex line */
+  @media (min-width: 641px) {
+    .batch-toolbar {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .batch-toolbar-row1 {
+      flex: 1;
+      justify-content: flex-start;
+    }
+    .batch-toolbar-row2 {
+      flex-shrink: 0;
+    }
   }
 
   .batch-title { font-size: 15px; font-weight: 600; }
@@ -719,7 +1296,7 @@
   .table-wrap {
     overflow-x: auto;
     border-radius: var(--radius);
-    border: 1px solid var(--border);
+    border: 1px solid rgba(200,210,240,0.5);
     position: relative;
     -webkit-overflow-scrolling: touch;
   }
@@ -732,7 +1309,9 @@
   }
 
   thead th {
-    background: var(--bg);
+    background: rgba(238,241,248,0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     padding: 10px 12px;
     text-align: left;
     font-size: 12px;
@@ -740,12 +1319,78 @@
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid rgba(200,210,240,0.5);
     white-space: nowrap;
     position: relative;
     overflow: visible;
     user-select: none;
     -webkit-user-select: none;
+  }
+
+  /* ── Sortable column headers ── */
+  thead th.sortable { cursor: pointer; }
+  thead th.sortable:hover { background: rgba(79,110,247,0.08); }
+
+  .sort-indicator {
+    display: inline-block;
+    font-size: 10px;
+    margin-left: 3px;
+    color: var(--accent);
+    opacity: 0;
+    transition: opacity 0.15s;
+    vertical-align: middle;
+  }
+
+  thead th.sorted .sort-indicator { opacity: 1; }
+  thead th.sortable:hover .sort-indicator { opacity: 0.5; }
+  thead th.sorted:hover .sort-indicator { opacity: 1; }
+
+  /* ── Context menu (right-click / long-press) ── */
+  .ctx-menu {
+    position: fixed;
+    z-index: 9999;
+    background: rgba(255,255,255,0.88);
+    backdrop-filter: blur(24px) saturate(1.8);
+    -webkit-backdrop-filter: blur(24px) saturate(1.8);
+    border: 1px solid rgba(255,255,255,0.85);
+    border-radius: var(--radius-card);
+    box-shadow:
+      0 16px 40px rgba(0,0,0,0.14),
+      0 2px 8px rgba(79,110,247,0.08),
+      inset 0 1px 0 rgba(255,255,255,0.9);
+    padding: 5px;
+    min-width: 160px;
+    display: none;
+  }
+
+  .ctx-menu.visible { display: block; }
+
+  .ctx-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    font-size: 13px;
+    font-family: var(--font);
+    color: var(--text);
+    cursor: pointer;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    border-radius: 8px;
+    transition: background 0.1s, color 0.1s;
+  }
+
+  .ctx-menu-item:hover { background: rgba(79,110,247,0.1); color: var(--accent); }
+
+  .ctx-menu-item.danger { color: var(--error); }
+  .ctx-menu-item.danger:hover { background: rgba(239,68,68,0.1); }
+
+  .ctx-menu-divider {
+    height: 1px;
+    background: rgba(0,0,0,0.07);
+    margin: 4px 0;
   }
 
   /* ── Column resize handle ── */
@@ -807,7 +1452,9 @@
     cursor: col-resize !important;
   }
 
-  tbody tr.parent-row { background: var(--card); }
+  tbody tr.parent-row {
+    background: var(--card);
+  }
 
   tbody tr.child-row {
     background: var(--child-bg);
@@ -815,7 +1462,6 @@
 
   tbody tr.child-row td:first-child {
     border-left: 3px solid var(--accent);
-    padding-left: 24px;
   }
 
   tbody td {
@@ -949,6 +1595,40 @@
     align-items: center;
   }
 
+  /* iOS-style minus badge for removing splits */
+  .btn-minus-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--error);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+    flex-shrink: 0;
+  }
+
+  .btn-minus-badge:hover {
+    transform: scale(1.15);
+  }
+
+  .btn-minus-badge:active {
+    transform: scale(0.9);
+  }
+
+  .btn-minus-badge:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: none;
+  }
+
   /* Drag overlay */
   .drag-overlay {
     position: absolute;
@@ -968,6 +1648,215 @@
 
   .drag-overlay.visible { display: flex; }
 
+  /* ── Row Selection ── */
+  tbody tr.row-selected {
+    background: #e8f0fe !important;
+  }
+
+  tbody tr.row-focused {
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+
+  .row-selector-cell {
+    width: 4px;
+    min-width: 4px;
+    max-width: 4px;
+    padding: 0 !important;
+    border-bottom: 1px solid var(--border);
+    background: transparent;
+    transition: background 0.15s;
+    cursor: pointer;
+  }
+
+  thead .row-selector-cell {
+    background: var(--bg);
+  }
+
+  tbody tr.row-selected .row-selector-cell {
+    background: var(--accent);
+  }
+
+  /* ── Batch Selection Actions (called out in header) ── */
+  .batch-selection-actions {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    margin-left: 12px;
+    animation: batchActFadeIn 0.15s ease;
+  }
+
+  .batch-selection-actions.visible {
+    display: inline-flex;
+  }
+
+  @keyframes batchActFadeIn {
+    from { opacity: 0; transform: translateY(-2px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .batch-selection-actions .action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text-sec);
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    font-family: var(--font);
+  }
+
+  .batch-selection-actions .action-btn:hover {
+    background: var(--accent-light);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .batch-selection-actions .action-btn.danger:hover {
+    background: var(--error-light);
+    color: var(--error);
+    border-color: var(--error);
+  }
+
+  .selection-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    padding: 3px 8px;
+    background: var(--accent-light);
+    border-radius: 999px;
+  }
+
+  /* ── Edit Mode (iOS-style checkboxes) ── */
+  .edit-checkbox-cell {
+    width: 28px;
+    min-width: 28px;
+    text-align: center;
+    padding: 4px !important;
+  }
+
+  .edit-checkbox-cell.hidden-cell {
+    display: none;
+  }
+
+  .batch-edit-mode .edit-checkbox-cell.hidden-cell {
+    display: table-cell;
+  }
+
+  .edit-checkbox {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid #d1d5db;
+    background: var(--card);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+  }
+
+  .edit-checkbox:hover {
+    border-color: var(--accent);
+  }
+
+  .edit-checkbox.checked {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .edit-checkbox.checked::after {
+    content: '✓';
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  /* ── Focus Mode (maximize) ── */
+  .batch-focus-mode {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    background: var(--card);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .batch-focus-mode .table-wrap {
+    flex: 1;
+    overflow: auto;
+    border-radius: var(--radius);
+  }
+
+  .batch-focus-mode table {
+    min-width: unset;
+  }
+
+  /* ── Split row minus badge on left ── */
+  .child-row .btn-minus-badge-left {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--error);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+    flex-shrink: 0;
+  }
+
+  .child-row .btn-minus-badge-left:hover {
+    transform: scale(1.15);
+  }
+
+  .child-row .btn-minus-badge-left:active {
+    transform: scale(0.9);
+  }
+
+  .child-row .btn-minus-badge-left:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* ── Maximize button ── */
+  .btn-maximize {
+    background: rgba(255,255,255,0.5);
+    border: 1px solid rgba(200,210,240,0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: var(--radius);
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-sec);
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font);
+  }
+
+  .btn-maximize:hover {
+    background: rgba(79,110,247,0.12);
+    color: var(--accent);
+    box-shadow: 0 2px 8px rgba(79,110,247,0.15);
+  }
+
   /* ── Utility ── */
   .mt-8 { margin-top: 8px; }
   .mt-16 { margin-top: 16px; }
@@ -981,10 +1870,15 @@
     top: calc(100% + 4px);
     left: 0;
     right: 0;
-    background: var(--card);
-    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.88);
+    backdrop-filter: blur(20px) saturate(1.8);
+    -webkit-backdrop-filter: blur(20px) saturate(1.8);
+    border: 1px solid rgba(255,255,255,0.85);
     border-radius: var(--radius);
-    box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+    box-shadow:
+      0 8px 24px rgba(0,0,0,0.12),
+      0 2px 8px rgba(79,110,247,0.07),
+      inset 0 1px 0 rgba(255,255,255,0.9);
     z-index: 500;
     max-height: 200px;
     overflow-y: auto;
@@ -1001,10 +1895,14 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    transition: background 0.12s;
   }
 
   .dropdown-item:hover,
-  .dropdown-item.active { background: var(--accent-light); color: var(--accent); }
+  .dropdown-item.active {
+    background: rgba(79,110,247,0.1);
+    color: var(--accent);
+  }
 
   .dropdown-empty {
     padding: 8px 12px;
@@ -1046,37 +1944,31 @@
   /* Status badge in modal header — hidden on desktop, shown on mobile */
   .modal-status-badge { display: none; }
 
-  /* ── Settings section divider ── */
-  .modal-divider {
-    border: none;
-    border-top: 1px solid var(--border);
-    margin: 18px 0;
-  }
+  /* ── Settings section divider — see .modal-divider above ── */
 
-  /* ── Splitwise panel (below bottom bar toggle) ── */
+  /* ── Splitwise panel — second row inside the bottom bar ── */
   .sw-panel {
-    position: fixed;
-    bottom: 57px;
-    left: 0;
-    right: 0;
-    z-index: 90;
-    background: var(--card);
-    border-top: 1px solid var(--border);
-    padding: 10px 24px;
     display: none;
     align-items: center;
     gap: 12px;
     flex-wrap: wrap;
+    padding: 10px 24px;
+    border-top: 1px solid rgba(255,255,255,0.5);
+    background: rgba(255,255,255,0.3);
   }
 
   .sw-panel.open { display: flex; }
 
-  @media (max-width: 540px) {
+  @media (max-width: 640px) {
+    /* On mobile, the sw-panel inside bottom-bar is hidden — we use sw-inline-section instead */
     .sw-panel {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 6px;
-      padding: 8px 16px;
+      display: none !important;
+    }
+  }
+
+  @media (max-width: 540px) {
+    .bottom-bar-main {
+      padding: 10px 16px;
     }
     .sw-payer-wrap {
       margin-left: 0 !important;
@@ -1232,14 +2124,16 @@
   select.field-select {
     width: 100%;
     padding: 10px 14px;
-    border: 1px solid var(--border);
+    border: 1px solid rgba(200,210,240,0.6);
     border-radius: var(--radius);
     font-size: 14px;
     font-family: var(--font);
     color: var(--text);
-    background: var(--card);
+    background: rgba(255,255,255,0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     outline: none;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
     -webkit-appearance: none;
     appearance: none;
     cursor: pointer;
@@ -1247,7 +2141,8 @@
 
   select.field-select:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(79,110,247,0.12);
+    background: rgba(255,255,255,0.9);
+    box-shadow: 0 0 0 3px rgba(79,110,247,0.15), inset 0 1px 0 rgba(255,255,255,0.8);
   }
 
   .connect-row {
@@ -1262,100 +2157,360 @@
   .nav-link {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 6px 12px;
+    gap: 4px;
+    padding: 5px 11px;
     border-radius: var(--radius);
     font-size: 13px;
     font-weight: 500;
     color: var(--text-sec);
-    background: transparent;
-    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(200,210,240,0.6);
     text-decoration: none;
-    transition: background 0.15s, color 0.15s;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
     white-space: nowrap;
+    cursor: pointer;
+    font-family: var(--font);
+    line-height: 1;
   }
 
-  .nav-link:hover { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
+  .nav-link .material-icons {
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  .nav-link:hover {
+    background: rgba(79,110,247,0.12);
+    color: var(--accent);
+    border-color: rgba(79,110,247,0.3);
+    box-shadow: 0 2px 8px rgba(79,110,247,0.15);
+  }
+
+  /* ── Hamburger menu (mobile only) ── */
+  .hamburger-wrap {
+    display: none;
+    position: relative;
+    margin-left: auto;
+  }
+
+  /* Mobile: title+chevron trigger replaces hamburger icon */
+  .mobile-nav-trigger {
+    display: none;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: var(--font);
+  }
+
+  .mobile-nav-trigger .app-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.3px;
+  }
+
+  .mobile-nav-chevron {
+    font-size: 13px;
+    color: var(--accent);
+    display: inline-block;
+    transition: transform 0.2s ease;
+    line-height: 1;
+  }
+
+  .mobile-nav-trigger[aria-expanded="true"] .mobile-nav-chevron {
+    transform: rotate(180deg);
+  }
+
+  .hamburger-btn {
+    background: rgba(255,255,255,0.5);
+    border: 1px solid rgba(200,210,240,0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: var(--radius);
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    color: var(--text-sec);
+    transition: background 0.15s, box-shadow 0.15s;
+  }
+
+  .hamburger-btn:hover {
+    background: rgba(255,255,255,0.85);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+
+  .hamburger-icon { display: block; }
+
+  .hamburger-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    background: rgba(255,255,255,0.88);
+    backdrop-filter: blur(24px) saturate(1.8);
+    -webkit-backdrop-filter: blur(24px) saturate(1.8);
+    border: 1px solid rgba(255,255,255,0.85);
+    border-radius: var(--radius-card);
+    box-shadow:
+      0 16px 40px rgba(0,0,0,0.14),
+      0 2px 8px rgba(79,110,247,0.08),
+      inset 0 1px 0 rgba(255,255,255,0.9);
+    min-width: 180px;
+    z-index: 500;
+    padding: 6px;
+  }
+
+  .hamburger-menu.open { display: block; }
+
+  .hamburger-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    text-decoration: none;
+    border-radius: 10px;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .hamburger-item .material-icons {
+    font-size: 18px;
+    color: var(--text-sec);
+    transition: color 0.15s;
+  }
+
+  .hamburger-item:hover { background: rgba(79,110,247,0.1); color: var(--accent); }
+  .hamburger-item:hover .material-icons { color: var(--accent); }
+
+  @media (max-width: 640px) {
+    .nav-link { display: none; }
+    .header-divider { display: none; }
+    .hamburger-wrap { display: block; }
+    /* Hide the desktop app-name span; the trigger button shows it instead */
+    .header-left > .app-name { display: none; }
+    .mobile-nav-trigger { display: inline-flex; }
+    .header-left { position: relative; }
+    /* Hide the mode toggle from header on mobile — it lives in the floating pill instead */
+    .header-mode-toggle-wrap { display: none !important; }
+  }
+
+  /* Ensure the wrapper shows on desktop */
+  @media (min-width: 641px) {
+    .header-mode-toggle-wrap {
+      display: flex;
+      align-items: center;
+    }
+  }
+
+  /* ── Expandable details section (Transaction Details) ── */
+  .details-expand-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 8px 12px;
+    margin-top: 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-sec);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    font-family: var(--font);
+  }
+
+  .details-expand-btn:hover {
+    background: var(--accent-light);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .details-expand-btn .expand-chevron {
+    display: inline-block;
+    font-size: 10px;
+    transition: transform 0.2s ease;
+  }
+
+  .details-expand-btn.expanded .expand-chevron {
+    transform: rotate(180deg);
+  }
+
+  .details-expandable {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.3s ease, opacity 0.25s ease;
+  }
+
+  .details-expandable.open {
+    max-height: 300px;
+    opacity: 1;
+  }
+
+  /* On desktop, always show the expandable fields */
+  @media (min-width: 768px) {
+    .details-expand-btn {
+      display: none;
+    }
+    .details-expandable {
+      max-height: none !important;
+      opacity: 1 !important;
+      overflow: visible;
+    }
+  }
 
   /* ── Swipe-to-delete (split rows — all viewports) ── */
 
-  /* Outer wrapper clips the sliding row and holds the delete button behind it */
+  /* Outer wrapper: each split is its own liquid glass card */
   .split-row-swipe-wrapper {
     position: relative;
     overflow: hidden;
-    border-radius: var(--radius);
+    border-radius: 14px;
+    background: rgba(255,255,255,0.58);
+    backdrop-filter: blur(20px) saturate(1.8);
+    -webkit-backdrop-filter: blur(20px) saturate(1.8);
+    border: 1px solid rgba(255,255,255,0.72);
+    box-shadow:
+      0 2px 12px rgba(79,110,247,0.07),
+      0 1px 3px rgba(0,0,0,0.05),
+      inset 0 1px 0 rgba(255,255,255,0.9),
+      inset 0 -1px 0 rgba(0,0,0,0.03);
+    transition: box-shadow 0.2s ease, transform 0.15s ease;
   }
 
-  /* The red delete action — hidden behind the row until swiped */
+  .split-row-swipe-wrapper:focus-within {
+    box-shadow:
+      0 0 0 2px rgba(79,110,247,0.18),
+      0 4px 16px rgba(79,110,247,0.12),
+      inset 0 1px 0 rgba(255,255,255,0.9),
+      inset 0 -1px 0 rgba(0,0,0,0.03);
+  }
+
+  /* Right-side zone that holds the delete circle */
   .split-swipe-delete-action {
     position: absolute;
     top: 0;
     right: 0;
     bottom: 0;
-    width: 80px;
-    background: var(--error);
+    width: 100px;
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-direction: column;
-    gap: 3px;
+    pointer-events: none;
+  }
+
+  /* Liquid-glass delete button */
+  .split-swipe-delete-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    /* Frosted glass with red tint */
+    background: rgba(239, 68, 68, 0.82);
+    backdrop-filter: blur(16px) saturate(1.6);
+    -webkit-backdrop-filter: blur(16px) saturate(1.6);
+    border: 1.5px solid rgba(255, 200, 200, 0.5);
+    box-shadow:
+      0 4px 16px rgba(239, 68, 68, 0.45),
+      0 1px 4px rgba(0, 0, 0, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.1);
     color: #fff;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    outline: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
     user-select: none;
     -webkit-user-select: none;
-    border-radius: 0 var(--radius) var(--radius) 0;
+    transform: scale(0);
+    opacity: 0;
+    will-change: transform, opacity;
+    transition: box-shadow 0.15s ease;
   }
 
-  .split-swipe-delete-action .swipe-delete-icon {
-    font-size: 18px;
-    line-height: 1;
+  .split-swipe-delete-btn:hover {
+    background: rgba(220, 38, 38, 0.9);
+    box-shadow:
+      0 6px 20px rgba(239, 68, 68, 0.6),
+      0 1px 4px rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.12);
   }
 
-  /* The actual split row slides on top, fully covering the delete action by default */
+  .split-swipe-delete-btn svg {
+    display: block;
+    flex-shrink: 0;
+  }
+
+  /* ── Snap animations (applied only when finger is lifted) ── */
+
+  /* The row sits on top of the delete button, dragged by JS */
   .split-row-swipe-wrapper .split-row {
     position: relative;
     z-index: 1;
-    transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    background: transparent;
     will-change: transform;
   }
 
-  /* Swiped-open state */
-  .split-row-swipe-wrapper.swipe-open .split-row {
-    transform: translateX(-80px);
+  /* Snap to open resting position */
+  .split-row-swipe-wrapper.snap-open .split-row {
+    transition: transform 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .split-row-swipe-wrapper.snap-open .split-swipe-delete-btn {
+    transition: transform 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                opacity   0.15s ease;
   }
 
-  /* While actively dragging — no transition so it follows the finger/trackpad */
-  .split-row-swipe-wrapper.swiping .split-row {
-    transition: none;
+  /* Snap back to closed */
+  .split-row-swipe-wrapper.snap-close .split-row {
+    transition: transform 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .split-row-swipe-wrapper.snap-close .split-swipe-delete-btn {
+    transition: transform 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                opacity   0.15s ease;
   }
 
-  /* Suppress text selection while swiping */
+  /* Delete — row flies off left */
+  .split-row-swipe-wrapper.snap-delete .split-row {
+    transition: transform 0.2s ease-in, opacity 0.2s ease-in;
+    transform: translateX(-110%) !important;
+    opacity: 0;
+  }
+  .split-row-swipe-wrapper.snap-delete .split-swipe-delete-btn {
+    transition: transform 0.15s ease-in, opacity 0.15s ease-in;
+    transform: scale(0) !important;
+    opacity: 0 !important;
+  }
+
+  /* Pointer events only when resting open */
+  .split-row-swipe-wrapper.swipe-open .split-swipe-delete-action {
+    pointer-events: auto;
+  }
+
+  /* Suppress text selection while dragging */
   .split-row-swipe-wrapper.swiping {
     user-select: none;
     -webkit-user-select: none;
   }
 
-  /* Snap-back animation when closing */
-  .split-row-swipe-wrapper.swipe-closing .split-row {
-    transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  /* Entrance animation for newly added split cards */
+  @keyframes splitCardIn {
+    from { opacity: 0; transform: translateY(8px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
   }
 
-  /* Delete confirmation flash */
-  .split-row-swipe-wrapper.swipe-deleting .split-row {
-    transition: transform 0.18s ease-in, opacity 0.18s ease-in;
-    transform: translateX(-100%);
-    opacity: 0;
-  }
-
-  /* Mobile-only: stacked card needs its own border-radius preserved on the row */
-  @media (max-width: 640px) {
-    .split-row-swipe-wrapper .split-row {
-      border-radius: var(--radius);
-    }
+  .split-row-swipe-wrapper.animate-in {
+    animation: splitCardIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
   }
 </style>
 </head>
@@ -1363,18 +2518,80 @@
 
 <!-- ══ HEADER ══ -->
 <header>
-  <span class="app-name">Split-NAB</span>
-  <div class="mode-toggle" role="group" aria-label="View mode">
-    <button id="btn-single" class="active" aria-pressed="true" onclick="setMode('single')">Single Entry</button>
-    <button id="btn-batch" aria-pressed="false" onclick="setMode('batch')">Batch</button>
+  <div class="header-left">
+    <span class="app-name">Split-NAB</span>
+    <!-- Mobile: title + chevron trigger -->
+    <button class="mobile-nav-trigger" id="hamburger-btn" aria-label="Menu" aria-expanded="false" onclick="toggleHamburger()">
+      <span class="app-name">Split-NAB</span>
+      <span class="mobile-nav-chevron">&#8964;</span>
+    </button>
+    <div class="hamburger-menu" id="hamburger-menu">
+      <a href="installments.html" class="hamburger-item">
+        <span class="material-icons">table_chart</span>
+        Installments
+      </a>
+      <a href="trackers.html" class="hamburger-item">
+        <span class="material-icons">check_box</span>
+        Trackers
+      </a>
+      <button class="hamburger-item" onclick="openSettings(); toggleHamburger()" style="width:100%;background:none;border:none;cursor:pointer;text-align:left;">
+        <span class="material-icons">settings</span>
+        Settings
+      </button>
+    </div>
+    <div class="header-divider"></div>
+    <a href="installments.html" class="nav-link" aria-label="Go to Installments tracker">
+      <span class="material-icons">table_chart</span>
+      Installments
+    </a>
+    <a href="trackers.html" class="nav-link" aria-label="Go to Trackers">
+      <span class="material-icons">check_box</span>
+      Trackers
+    </a>
+    <button class="nav-link" id="settings-btn" onclick="openSettings()" aria-label="Settings">
+      <span class="material-icons">settings</span>
+      Settings
+    </button>
   </div>
-  <a href="installments.html" class="nav-link" aria-label="Go to Installments tracker">
-    📋 Installments
-  </a>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <!-- Mobile Save button (upper right, mobile only) -->
+    <button class="mobile-save-btn" onclick="saveToYNAB()" id="save-ynab-btn-mobile" aria-label="Save transactions">
+      Save
+    </button>
+    <div class="header-mode-toggle-wrap">
+    <div class="mode-toggle" role="group" aria-label="View mode">
+      <span class="mode-toggle-slider" id="mode-slider"></span>
+      <button id="btn-single" class="active" aria-pressed="true" onclick="setMode('single')">Single Entry</button>
+      <button id="btn-batch" aria-pressed="false" onclick="setMode('batch')">Batch</button>
+    </div>
+    </div>
+    <script>
+      // Run synchronously before first paint to avoid slider flicker
+      (function() {
+        requestAnimationFrame(function() {
+          var slider = document.getElementById('mode-slider');
+          var btn    = document.getElementById('btn-single');
+          if (!slider || !btn) return;
+          var toggle = btn.parentElement;
+          var tRect  = toggle.getBoundingClientRect();
+          var bRect  = btn.getBoundingClientRect();
+          slider.style.transition = 'none';
+          slider.style.width     = bRect.width + 'px';
+          slider.style.transform = 'translateX(' + (bRect.left - tRect.left - 3) + 'px)';
+          // Re-enable transitions after one more frame
+          requestAnimationFrame(function() {
+            slider.style.transition = '';
+          });
+        });
+      })();
+    </script>
+    <!-- Hamburger menu removed — now attached to mobile-nav-trigger in header-left -->
+  </div>
 </header>
 
 <!-- ══ MAIN ══ -->
 <main class="container">
+  <div class="view-container">
 
   <!-- ── SINGLE ENTRY VIEW ── -->
   <section id="view-single" class="view active" aria-label="Single entry mode">
@@ -1382,17 +2599,19 @@
 
       <!-- Left: Transaction Details -->
       <div class="card">
-        <h2 class="card-title">Transaction Details</h2>
 
-        <div class="field">
-          <label for="s-amount">Total Amount</label>
-          <div class="input-wrap">
-            <span class="input-prefix">$</span>
-            <input type="number" id="s-amount" class="has-prefix" placeholder="0.00" min="0" step="0.01" inputmode="decimal"
-                   oninput="onTotalAmountInput()" aria-describedby="s-amount-err">
+        <div class="amount-hero-wrap" id="s-amount-wrap">
+          <div class="amount-hero-input-row">
+            <span class="amount-hero-symbol">₱</span>
+            <input type="number" id="s-amount" placeholder="0.00" min="0" step="0.01" inputmode="decimal"
+                   autofocus oninput="onTotalAmountInput()" aria-label="Total Amount" aria-describedby="s-amount-err">
+            <span class="amount-hero-spacer" aria-hidden="true">₱</span>
           </div>
           <span class="field-error" id="s-amount-err">Please enter a valid amount.</span>
         </div>
+
+        <!-- Saved presets — shown below amount -->
+        <div class="preset-suggestions" id="preset-suggestions" aria-label="Saved presets" style="justify-content:center;margin-bottom:14px;"></div>
 
         <div class="field">
           <label for="s-payee">Payee</label>
@@ -1414,16 +2633,23 @@
           <span class="field-error" id="s-account-err">Account is required.</span>
         </div>
 
-        <div class="field">
-          <label for="s-date">Date</label>
-          <input type="date" id="s-date" aria-describedby="s-date-err">
-          <span class="field-error" id="s-date-err">Date is required.</span>
+        <div class="details-expandable" id="details-expandable">
+          <div class="field" style="margin-top:14px;">
+            <label for="s-date">Date</label>
+            <input type="date" id="s-date" aria-describedby="s-date-err">
+            <span class="field-error" id="s-date-err">Date is required.</span>
+          </div>
+
+          <div class="field">
+            <label for="s-memo">Memo</label>
+            <input type="text" id="s-memo" placeholder="e.g. Team lunch">
+          </div>
         </div>
 
-        <div class="field">
-          <label for="s-memo">Memo</label>
-          <input type="text" id="s-memo" placeholder="e.g. Team lunch">
-        </div>
+        <button class="details-expand-btn" id="details-expand-btn" onclick="toggleDetailsExpand()" aria-expanded="false" aria-controls="details-expandable">
+          <span>More details</span>
+          <span class="expand-chevron">▼</span>
+        </button>
       </div>
 
       <!-- Right: Split Entries -->
@@ -1453,27 +2679,68 @@
       </div>
 
     </div>
+
+    <!-- ── Mobile: Splitwise inline section (single view) ── -->
+    <div class="sw-inline-section" id="sw-inline-single">
+      <div class="sw-inline-toggle-row">
+        <span class="sw-inline-toggle-label">Also log to Splitwise</span>
+        <label class="toggle">
+          <input type="checkbox" id="splitwise-toggle-mobile" aria-label="Also log to Splitwise" onchange="onSplitwiseToggleMobile(this)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="sw-inline-panel" id="sw-inline-panel-single">
+        <span class="sw-panel-label" style="font-size:12px;font-weight:600;color:var(--text-sec);">Splitwise</span>
+        <span id="sw-panel-status-inline-single" class="sw-status-badge error" style="font-size:12px;padding:3px 8px;border-radius:999px;font-weight:500;background:var(--error-light);color:var(--error);margin-left:8px;">Not configured</span>
+        <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <label style="font-size:12px;color:var(--text-sec);white-space:nowrap;">Paying account:</label>
+          <select id="sw-active-account-select-inline" class="sw-payer-select" onchange="onSwActiveAccountChange(this.value)" aria-label="Active Splitwise account" style="min-width:120px;padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;font-family:var(--font);color:var(--text);background:var(--card);outline:none;cursor:pointer;">
+            <option value="">— select —</option>
+          </select>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- ── BATCH VIEW ── -->
   <section id="view-batch" class="view" aria-label="Batch mode">
     <div class="card">
       <div class="batch-toolbar">
-        <h2 class="batch-title">Batch Transactions</h2>
-        <div style="display:flex;gap:8px;align-items:center;">
+        <!-- Row 1: title + primary actions -->
+        <div class="batch-toolbar-row1">
+          <div class="batch-toolbar-left">
+            <h2 class="batch-title">Batch Transactions</h2>
+            <span class="batch-selection-actions" id="batch-selection-actions">
+              <span class="selection-count" id="batch-selection-count">0 selected</span>
+              <button class="action-btn" onclick="batchSelectionSplit()" title="Split selected">✂ Split</button>
+              <button class="action-btn" onclick="batchSelectionBalance()" title="Balance selected">⚖ Balance</button>
+              <button class="action-btn danger" onclick="batchSelectionRemove()" title="Remove selected">✕ Remove</button>
+            </span>
+          </div>
+          <div class="batch-toolbar-primary">
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('pdf-input').click()" id="pdf-import-btn">
+              ↑ Import PDF
+            </button>
+            <input type="file" id="pdf-input" accept=".pdf" style="display:none" aria-label="Import PDF statement">
+            <button class="btn btn-outline btn-sm" onclick="addBatchTransaction()">+ Add</button>
+          </div>
+        </div>
+        <!-- Row 2: secondary actions -->
+        <div class="batch-toolbar-row2">
+          <button class="btn-maximize" id="batch-edit-btn" onclick="toggleBatchEditMode()" title="Edit mode">
+            ✎ <span style="font-size:12px;">Edit</span>
+          </button>
+          <button class="btn-maximize" id="batch-maximize-btn" onclick="toggleBatchFocusMode()" title="Focus mode — expand table">
+            ⛶ <span style="font-size:12px;">Focus</span>
+          </button>
           <button class="btn btn-ghost btn-sm" onclick="document.getElementById('csv-input').click()">
             ↑ Import CSV
           </button>
           <input type="file" id="csv-input" accept=".csv" style="display:none" aria-label="Import CSV file">
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('pdf-input').click()" id="pdf-import-btn">
-            ↑ Import BPI PDF
-          </button>
-          <input type="file" id="pdf-input" accept=".pdf" style="display:none" aria-label="Import BPI PDF statement">
           <button class="btn btn-ghost btn-sm" onclick="document.getElementById('pdf-debug-input').click()" id="pdf-debug-btn" title="Dumps extracted text to browser console for debugging">
             🔍 Debug PDF
           </button>
-          <input type="file" id="pdf-debug-input" accept=".pdf" style="display:none" aria-label="Debug BPI PDF extraction">
-          <button class="btn btn-outline btn-sm" onclick="addBatchTransaction()">+ Add Transaction</button>
+          <input type="file" id="pdf-debug-input" accept=".pdf" style="display:none" aria-label="Debug PDF extraction">
         </div>
       </div>
 
@@ -1483,7 +2750,9 @@
         <table id="batch-table" aria-label="Batch transactions">
           <thead>
             <tr>
+              <th class="row-selector-cell"></th>
               <th class="td-num" data-col="num">#</th>
+              <th class="edit-checkbox-cell hidden-cell"></th>
               <th data-col="date">Date<span class="col-resize-handle" data-col="date"></span></th>
               <th data-col="account">Account<span class="col-resize-handle" data-col="account"></span></th>
               <th data-col="total">Total Amount<span class="col-resize-handle" data-col="total"></span></th>
@@ -1492,7 +2761,6 @@
               <th data-col="category">Category<span class="col-resize-handle" data-col="category"></span></th>
               <th data-col="amount">Amount<span class="col-resize-handle" data-col="amount"></span></th>
               <th data-col="note">Note<span class="col-resize-handle" data-col="note"></span></th>
-              <th data-col="actions">Actions</th>
             </tr>
           </thead>
           <tbody id="batch-tbody"></tbody>
@@ -1501,33 +2769,80 @@
 
       <div id="batch-summary"></div>
     </div>
+
+    <!-- ── Mobile: Splitwise inline section (batch view) ── -->
+    <div class="sw-inline-section" id="sw-inline-batch">
+      <div class="sw-inline-toggle-row">
+        <span class="sw-inline-toggle-label">Also log to Splitwise</span>
+        <label class="toggle">
+          <input type="checkbox" id="splitwise-toggle-batch" aria-label="Also log to Splitwise" onchange="onSplitwiseToggleBatch(this)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="sw-inline-panel" id="sw-inline-panel-batch">
+        <span class="sw-panel-label" style="font-size:12px;font-weight:600;color:var(--text-sec);">Splitwise</span>
+        <span id="sw-panel-status-inline-batch" class="sw-status-badge error" style="font-size:12px;padding:3px 8px;border-radius:999px;font-weight:500;background:var(--error-light);color:var(--error);margin-left:8px;">Not configured</span>
+        <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <label style="font-size:12px;color:var(--text-sec);white-space:nowrap;">Paying account:</label>
+          <select id="sw-active-account-select-inline-batch" class="sw-payer-select" onchange="onSwActiveAccountChange(this.value)" aria-label="Active Splitwise account (batch)" style="min-width:120px;padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;font-family:var(--font);color:var(--text);background:var(--card);outline:none;cursor:pointer;">
+            <option value="">— select —</option>
+          </select>
+        </div>
+      </div>
+    </div>
   </section>
 
+  </div><!-- /.view-container -->
 </main>
+
+<!-- ══ FLOATING MODE PILL (mobile only) ══ -->
+<div class="floating-mode-pill" role="group" aria-label="View mode" id="floating-pill">
+  <span class="floating-pill-slider" id="floating-pill-slider"></span>
+  <button id="pill-btn-single" class="active" aria-pressed="true" onclick="setMode('single')">Single</button>
+  <button id="pill-btn-batch" aria-pressed="false" onclick="setMode('batch')">Batch</button>
+</div>
 
 <!-- ══ BOTTOM BAR ══ -->
 <div class="bottom-bar" role="toolbar" aria-label="Actions">
-  <div class="bottom-bar-left">
-    <button class="btn-icon" id="settings-btn" onclick="openSettings()" aria-label="Settings" title="Settings">⚙</button>
-    <span class="ynab-status disconnected" id="ynab-status-badge">
-      <span class="ynab-status-dot"></span>
-      <span id="ynab-status-text">Not connected</span>
-    </span>
-  </div>
-  <div class="bottom-bar-right">
+  <div class="bottom-bar-main">
+    <button class="btn btn-primary" onclick="saveToYNAB()" id="save-ynab-btn">Save Transactions</button>
     <label class="toggle-wrap" title="Also log to Splitwise">
-      <span>Also log to Splitwise</span>
       <span class="toggle">
         <input type="checkbox" id="splitwise-toggle" aria-label="Also log to Splitwise" onchange="onSplitwiseToggle(this)">
         <span class="toggle-slider"></span>
       </span>
+      <span>Also log to Splitwise</span>
     </label>
-    <button class="btn btn-primary" onclick="saveToYNAB()" id="save-ynab-btn">Save to YNAB</button>
+    <span class="ynab-status disconnected" id="ynab-status-badge" style="margin-left:auto;">
+      <span class="ynab-status-dot"></span>
+      <span id="ynab-status-text">Not connected</span>
+    </span>
+  </div>
+
+  <!-- ══ SPLITWISE STATUS PANEL ══ -->
+  <div class="sw-panel" id="sw-panel" role="status" aria-label="Splitwise status">
+    <span class="sw-panel-label">Splitwise</span>
+    <span id="sw-panel-status" class="sw-status-badge error">Not configured</span>
+    <span id="sw-panel-user" style="font-size:12px;color:var(--text-sec);"></span>
+    <div class="sw-payer-wrap" style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+      <label style="font-size:12px;color:var(--text-sec);white-space:nowrap;">Paying account:</label>
+      <select id="sw-active-account-select" class="sw-payer-select" onchange="onSwActiveAccountChange(this.value)" aria-label="Active Splitwise account" style="min-width:120px;">
+        <option value="">— select —</option>
+      </select>
+    </div>
   </div>
 </div>
 
 <!-- ══ TOAST AREA ══ -->
 <div class="toast-area" id="toast-area" aria-live="polite" aria-atomic="false"></div>
+
+<!-- ══ BATCH CONTEXT MENU ══ -->
+<div class="ctx-menu" id="batch-ctx-menu" role="menu" aria-label="Row actions">
+  <button class="ctx-menu-item" data-action="split" role="menuitem">+ Split</button>
+  <button class="ctx-menu-item" data-action="balance" role="menuitem">⚖ Balance</button>
+  <div class="ctx-menu-divider"></div>
+  <button class="ctx-menu-item danger" data-action="remove" role="menuitem">🗑 Remove</button>
+</div>
 
 <!-- ══ SETTINGS MODAL ══ -->
 <div class="overlay" id="settings-overlay" role="dialog" aria-modal="true" aria-labelledby="settings-title"
@@ -1684,22 +2999,43 @@
   </div>
 </div>
 
-<!-- ══ SPLITWISE STATUS PANEL (above bottom bar) ══ -->
-<div class="sw-panel" id="sw-panel" role="status" aria-label="Splitwise status">
-  <span class="sw-panel-label">Splitwise</span>
-  <span id="sw-panel-status" class="sw-status-badge error">Not configured</span>
-  <span id="sw-panel-user" style="font-size:12px;color:var(--text-sec);"></span>
-  <div class="sw-payer-wrap" style="margin-left:auto;display:flex;align-items:center;gap:8px;">
-    <label style="font-size:12px;color:var(--text-sec);white-space:nowrap;">Paying account:</label>
-    <select id="sw-active-account-select" class="sw-payer-select" onchange="onSwActiveAccountChange(this.value)" aria-label="Active Splitwise account" style="min-width:120px;">
-      <option value="">— select —</option>
-    </select>
-  </div>
-</div>
-
 </body>
 
 <script>
+/* ═══════════════════════════════════════════════
+   TRANSACTION DETAILS — EXPANDABLE SECTION
+═══════════════════════════════════════════════ */
+function toggleDetailsExpand() {
+  const panel = document.getElementById('details-expandable');
+  const btn   = document.getElementById('details-expand-btn');
+  const isOpen = panel.classList.toggle('open');
+  btn.classList.toggle('expanded', isOpen);
+  btn.setAttribute('aria-expanded', String(isOpen));
+  btn.querySelector('span:first-child').textContent = isOpen ? 'Less details' : 'More details';
+}
+
+/* ═══════════════════════════════════════════════
+   HAMBURGER MENU
+═══════════════════════════════════════════════ */
+function toggleHamburger() {
+  const menu = document.getElementById('hamburger-menu');
+  const btn  = document.getElementById('hamburger-btn');
+  const isOpen = menu.classList.toggle('open');
+  btn.setAttribute('aria-expanded', String(isOpen));
+}
+
+// Close hamburger when clicking outside
+document.addEventListener('click', (e) => {
+  const trigger = document.getElementById('hamburger-btn');
+  const menu    = document.getElementById('hamburger-menu');
+  if (trigger && menu && !trigger.contains(e.target) && !menu.contains(e.target)) {
+    if (menu.classList.contains('open')) {
+      menu.classList.remove('open');
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+  }
+});
+
 /* ═══════════════════════════════════════════════
    YNAB CONFIG
 ═══════════════════════════════════════════════ */
@@ -1712,7 +3048,7 @@ let currentMode = 'single';
 let splitRowId = 0;
 let batchTxId = 0;
 let batchSplitId = 0;
-// Presets: array of { name, splits: [{category, categoryId, note}] }
+// Presets: array of { name, payee, payeeId, account, accountId, splits: [{payee, payeeId, category, categoryId}] }
 // Migrate legacy format (array of strings) gracefully
 let presets = (() => {
   try {
@@ -1744,6 +3080,9 @@ const ynab = {
 // Batch data model
 // tx: { id, date, account, accountId, total, payee, payeeId, memo, splits: [{id, category, categoryId, amount, note, swUserId}], swPayerAccountLabel }
 let batchData = [];
+
+// Batch sort state: { key: column key, dir: 'asc' | 'desc' } or null
+let batchSortState = null;
 
 // Feature flags (persisted in localStorage)
 const flags = {
@@ -1803,6 +3142,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Render presets
   renderPresets();
+  renderPresetSuggestions();
+
+  // Focus the amount field immediately — before any async API calls
+  const amountEl = document.getElementById('s-amount');
+  if (amountEl) amountEl.focus();
+
+  // Size the hero amount input to its placeholder width on first paint
+  sizeAmountInput();
+
+  // Sync body padding to bottom bar height (bar may grow if sw-panel is open)
+  syncBottomBarPadding();
+
+  // Initialize floating pill slider position (mobile)
+  requestAnimationFrame(() => updateFloatingPill());
 
   // Auto-connect if token exists
   if (ynab.token) {
@@ -1816,6 +3169,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Init column resize handles for batch table
   initColResize();
+
+  // Init batch context menu (right-click / long-press)
+  initBatchCtxMenu();
+
+  // Auto-select all text on focus for populated inputs
+  document.addEventListener('focus', (e) => {
+    const el = e.target;
+    if ((el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'number' || el.type === 'password')) || el.tagName === 'TEXTAREA') {
+      if (el.value) {
+        // Use requestAnimationFrame to ensure selection works on mobile browsers
+        requestAnimationFrame(() => el.select());
+      }
+    }
+  }, true);
 
   // Apply dev tools visibility based on saved flag
   applyDevToolsVisibility();
@@ -2189,7 +3556,53 @@ function applyPayeeDefaults(payeeName, { accountInputEl, splitCategoryInputs } =
 /* ═══════════════════════════════════════════════
    YNAB API
 ═══════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════
+   YNAB API  +  SESSION CACHE
+═══════════════════════════════════════════════ */
+const YNAB_CACHE_TTL = 5 * 60 * 1000;  // 5 min
+const YNAB_TX_TTL    = 2 * 60 * 1000;  // 2 min for transactions
+
+function _ynabCacheKey(endpoint) {
+  return `ynab_cache_${ynab.budgetId}_${endpoint.replace(/[^a-z0-9_\-/]/gi, '_')}`;
+}
+function _ynabCacheGet(endpoint) {
+  try {
+    const raw = sessionStorage.getItem(_ynabCacheKey(endpoint));
+    if (!raw) return null;
+    const { ts, data } = JSON.parse(raw);
+    const ttl = endpoint.includes('/transactions') ? YNAB_TX_TTL : YNAB_CACHE_TTL;
+    if (Date.now() - ts > ttl) { sessionStorage.removeItem(_ynabCacheKey(endpoint)); return null; }
+    return data;
+  } catch { return null; }
+}
+function _ynabCacheSet(endpoint, data) {
+  try { sessionStorage.setItem(_ynabCacheKey(endpoint), JSON.stringify({ ts: Date.now(), data })); }
+  catch { /* quota exceeded */ }
+}
+function _ynabCacheInvalidate(pattern) {
+  const prefix = `ynab_cache_${ynab.budgetId}_`;
+  for (let i = sessionStorage.length - 1; i >= 0; i--) {
+    const k = sessionStorage.key(i);
+    if (k && k.startsWith(prefix) && k.includes(pattern)) sessionStorage.removeItem(k);
+  }
+}
+function clearYNABCache() {
+  const prefix = `ynab_cache_${ynab.budgetId}_`;
+  for (let i = sessionStorage.length - 1; i >= 0; i--) {
+    const k = sessionStorage.key(i);
+    if (k && k.startsWith(prefix)) sessionStorage.removeItem(k);
+  }
+}
+
 async function ynabFetch(endpoint, options = {}) {
+  const method = (options.method || 'GET').toUpperCase();
+  const isRead = method === 'GET';
+
+  if (isRead) {
+    const cached = _ynabCacheGet(endpoint);
+    if (cached) return cached;
+  }
+
   const res = await fetch(YNAB_API + endpoint, {
     ...options,
     headers: {
@@ -2200,6 +3613,16 @@ async function ynabFetch(endpoint, options = {}) {
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error?.detail || 'YNAB API error');
+
+  if (isRead) {
+    _ynabCacheSet(endpoint, data);
+  } else {
+    _ynabCacheInvalidate('/categories');
+    _ynabCacheInvalidate('/accounts');
+    _ynabCacheInvalidate('/payees');
+    _ynabCacheInvalidate('/transactions');
+  }
+
   return data;
 }
 
@@ -2283,6 +3706,7 @@ async function loadBudgetData(budgetId) {
     ynab.memoIndex = buildMemoIndex(allTransactions);
 
     const budgetName = ynab.budgets.find(b => b.id === budgetId)?.name || '';
+    localStorage.setItem('ynab_budget_name', budgetName);
     setYnabStatus(true, budgetName ? `Connected · ${budgetName}` : 'Connected');
     showToast('success', `Loaded ${ynab.accounts.length} accounts, ${ynab.categories.length} categories.`);
   } catch (err) {
@@ -2372,9 +3796,13 @@ function setupSearchableInput(inputEl, listEl, getItems, onSelect, key = 'name')
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       idx = Math.max(idx - 1, 0);
-    } else if (e.key === 'Enter' && idx >= 0) {
+    } else if (e.key === 'Enter') {
       e.preventDefault();
-      items[idx].dispatchEvent(new MouseEvent('mousedown'));
+      // Select active item, or fall back to first item in list
+      const targetIdx = idx >= 0 ? idx : 0;
+      if (items[targetIdx]) {
+        items[targetIdx].dispatchEvent(new MouseEvent('mousedown'));
+      }
       return;
     } else if (e.key === 'Escape') {
       closeDropdown(listEl);
@@ -2399,35 +3827,142 @@ document.addEventListener('mousedown', e => {
 /* ═══════════════════════════════════════════════
    MODE TOGGLE
 ═══════════════════════════════════════════════ */
-function setMode(mode) {
+function setMode(mode, direction) {
+  if (mode === currentMode) return;
+
+  const prevMode = currentMode;
   currentMode = mode;
   const single = document.getElementById('view-single');
   const batch  = document.getElementById('view-batch');
   const btnS   = document.getElementById('btn-single');
   const btnB   = document.getElementById('btn-batch');
 
+  const incoming = mode === 'single' ? single : batch;
+  const outgoing = mode === 'single' ? batch  : single;
+  const inBtn    = mode === 'single' ? btnS   : btnB;
+  const outBtn   = mode === 'single' ? btnB   : btnS;
+
+  // Update button states immediately
+  inBtn.classList.add('active');
+  outBtn.classList.remove('active');
+  inBtn.setAttribute('aria-pressed', 'true');
+  outBtn.setAttribute('aria-pressed', 'false');
+
   if (mode === 'single') {
-    single.classList.add('active');
-    batch.classList.remove('active');
-    btnS.classList.add('active');
-    btnB.classList.remove('active');
-    btnS.setAttribute('aria-pressed', 'true');
-    btnB.setAttribute('aria-pressed', 'false');
     document.getElementById('preset-btn').closest('.popover-wrap').style.display = '';
   } else {
-    batch.classList.add('active');
-    single.classList.remove('active');
-    btnB.classList.add('active');
-    btnS.classList.remove('active');
-    btnB.setAttribute('aria-pressed', 'true');
-    btnS.setAttribute('aria-pressed', 'false');
-    // Hide preset panel — only relevant for single entry mode
     document.getElementById('preset-btn').closest('.popover-wrap').style.display = 'none';
     document.getElementById('preset-panel').classList.remove('open');
     renderBatchTable();
-    // Re-apply column widths after the table becomes visible
+    updateDuplicateBadges();
     applyColWidths(loadColWidths());
   }
+
+  // If the outgoing view isn't currently visible, just snap to the new state
+  if (!outgoing.classList.contains('active')) {
+    incoming.classList.add('active');
+    updateModeSlider();
+    return;
+  }
+
+  // Determine slide direction: going to batch = slide left, going to single = slide right
+  const isMobile = window.matchMedia('(max-width: 640px)').matches;
+  const slideDir = direction || (mode === 'batch' ? 'left' : 'right');
+
+  if (isMobile) {
+    // Mobile: slide transition
+    const outClass = slideDir === 'left' ? 'slide-out-left' : 'slide-out-right';
+    const inClass  = slideDir === 'left' ? 'slide-in-right' : 'slide-in-left';
+
+    // Position incoming off-screen without transition
+    incoming.style.transition = 'none';
+    incoming.classList.add(inClass);
+    incoming.classList.add('active');
+    incoming.style.position = 'absolute';
+
+    // Start outgoing slide
+    outgoing.classList.add(outClass);
+    outgoing.classList.remove('active');
+    outgoing.style.position = 'absolute';
+
+    // Force reflow then enable transitions
+    void incoming.offsetWidth;
+    incoming.style.transition = '';
+
+    // Slide incoming into view
+    incoming.classList.remove(inClass);
+    incoming.style.position = 'relative';
+
+    // Cleanup after transition
+    const cleanup = () => {
+      outgoing.classList.remove(outClass);
+      outgoing.style.position = '';
+      outgoing.removeEventListener('transitionend', cleanup);
+    };
+    outgoing.addEventListener('transitionend', cleanup, { once: true });
+    setTimeout(() => {
+      outgoing.classList.remove(outClass);
+      outgoing.style.position = '';
+    }, 400);
+
+    requestAnimationFrame(() => updateModeSlider());
+  } else {
+    // Desktop: existing cross-fade
+    const outH = outgoing.offsetHeight;
+    outgoing.classList.add('view-exiting');
+    outgoing.classList.remove('active');
+
+    incoming.classList.add('active');
+
+    requestAnimationFrame(() => {
+      updateModeSlider();
+      const cleanup = () => {
+        outgoing.classList.remove('view-exiting');
+        outgoing.removeEventListener('transitionend', cleanup);
+      };
+      outgoing.addEventListener('transitionend', cleanup, { once: true });
+      setTimeout(() => outgoing.classList.remove('view-exiting'), 300);
+    });
+  }
+}
+
+function updateModeSlider() {
+  // Desktop header slider
+  const slider = document.getElementById('mode-slider');
+  const activeBtn = document.querySelector('.mode-toggle button.active');
+  if (slider && activeBtn) {
+    const toggle = activeBtn.parentElement;
+    const toggleRect = toggle.getBoundingClientRect();
+    const btnRect = activeBtn.getBoundingClientRect();
+    slider.style.width = btnRect.width + 'px';
+    slider.style.transform = `translateX(${btnRect.left - toggleRect.left - 3}px)`;
+  }
+
+  // Floating pill slider (mobile)
+  updateFloatingPill();
+}
+
+function updateFloatingPill() {
+  const pill       = document.getElementById('floating-pill');
+  const pillSlider = document.getElementById('floating-pill-slider');
+  const pillS      = document.getElementById('pill-btn-single');
+  const pillB      = document.getElementById('pill-btn-batch');
+  if (!pill || !pillSlider || !pillS || !pillB) return;
+
+  // Sync pill button states with current mode
+  if (currentMode === 'single') {
+    pillS.classList.add('active');    pillS.setAttribute('aria-pressed', 'true');
+    pillB.classList.remove('active'); pillB.setAttribute('aria-pressed', 'false');
+  } else {
+    pillB.classList.add('active');    pillB.setAttribute('aria-pressed', 'true');
+    pillS.classList.remove('active'); pillS.setAttribute('aria-pressed', 'false');
+  }
+
+  const activeBtn = currentMode === 'single' ? pillS : pillB;
+  const pillRect  = pill.getBoundingClientRect();
+  const btnRect   = activeBtn.getBoundingClientRect();
+  pillSlider.style.width     = btnRect.width + 'px';
+  pillSlider.style.transform = `translateX(${btnRect.left - pillRect.left - 5}px)`;
 }
 
 /* ═══════════════════════════════════════════════
@@ -2481,15 +4016,26 @@ function addSplitRow(clearExisting = false) {
 
   // Swipe wrapper (clips the sliding row and holds the delete action behind it)
   const wrapper = document.createElement('div');
-  wrapper.className = 'split-row-swipe-wrapper';
+  wrapper.className = 'split-row-swipe-wrapper animate-in';
   wrapper.dataset.splitId = id;
+  // Remove animation class after it finishes so snap transitions aren't interfered with
+  wrapper.addEventListener('animationend', () => wrapper.classList.remove('animate-in'), { once: true });
 
-  // Red delete action (revealed on swipe-left, mobile only)
+  // Red delete button (circular, revealed on swipe-left)
   const deleteAction = document.createElement('div');
   deleteAction.className = 'split-swipe-delete-action';
   deleteAction.setAttribute('aria-label', 'Delete split row');
-  deleteAction.innerHTML = `<span class="swipe-delete-icon">🗑</span><span>Delete</span>`;
-  deleteAction.addEventListener('click', () => swipeDeleteRow(id, wrapper));
+  deleteAction.innerHTML = `
+    <button class="split-swipe-delete-btn" aria-label="Delete">
+      <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="3 6 5 6 21 6"/>
+        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+        <path d="M10 11v6"/>
+        <path d="M14 11v6"/>
+        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+      </svg>
+    </button>`;
+  deleteAction.querySelector('.split-swipe-delete-btn').addEventListener('click', () => swipeDeleteRow(id, wrapper));
   wrapper.appendChild(deleteAction);
 
   const row = document.createElement('div');
@@ -2503,6 +4049,11 @@ function addSplitRow(clearExisting = false) {
     : '';
 
   row.innerHTML = `
+    <span class="split-field-label split-payee-label">Payee</span>
+    <div class="dropdown-wrap split-payee-wrap" style="flex:1;min-width:0;">
+      <input type="text" id="sp-payee-${id}" placeholder="Payee" aria-label="Split payee" autocomplete="off">
+      <div class="dropdown-list" id="sp-payee-list-${id}" role="listbox"></div>
+    </div>
     <span class="split-field-label">Category</span>
     <div class="dropdown-wrap" style="flex:1;min-width:0;">
       <input type="text" id="sc-${id}" placeholder="Search category" aria-label="Category"
@@ -2515,7 +4066,12 @@ function addSplitRow(clearExisting = false) {
              value="${defaultAmount}"
              aria-label="Amount" oninput="updateRemaining()">
     </div>
-    <div class="split-row-note">
+    <button type="button" class="split-note-toggle" id="sn-toggle-${id}"
+            onclick="toggleSplitNote(${id})" aria-expanded="false" aria-controls="sn-wrap-${id}">
+      <span>Add note</span>
+      <span class="note-chevron">▼</span>
+    </button>
+    <div class="split-row-note" id="sn-wrap-${id}">
       <span class="split-field-label">Note</span>
       <input type="text" id="sn-${id}" placeholder="Optional note" aria-label="Note">
     </div>
@@ -2527,12 +4083,12 @@ function addSplitRow(clearExisting = false) {
   // Attach swipe gesture to this row
   attachSwipeGesture(wrapper, row, id);
 
-  // Append Splitwise user select if enabled
+  // Conditionally show SW user select
   if (sw.enabled) {
     const swRow = document.createElement('div');
     swRow.className = 'sw-user-row';
     swRow.innerHTML = `
-      <label>Splitwise →</label>
+      <label>SW →</label>
       <select class="sw-user-select" aria-label="Splitwise user for this split">
         ${getSplitwiseUserOptions('')}
       </select>`;
@@ -2554,178 +4110,274 @@ function addSplitRow(clearExisting = false) {
     'name'
   );
 
+  // Wire split payee dropdown — searchable like parent payee
+  const spPayeeInput = document.getElementById(`sp-payee-${id}`);
+  const spPayeeList  = document.getElementById(`sp-payee-list-${id}`);
+  setupSearchableInput(
+    spPayeeInput, spPayeeList,
+    () => getSortedPayees(),
+    item => {
+      spPayeeInput.value = item.name;
+      spPayeeInput.dataset.id = item.id;
+    },
+    'name'
+  );
+
   updateDeleteButtons();
   updateRemaining();
+  updateSplitPayeeVisibility();
 }
 
 /* ═══════════════════════════════════════════════
-   SWIPE-TO-DELETE GESTURE (mobile split rows)
-   — touch events for touchscreens/iPad
+   SWIPE-TO-DELETE GESTURE (iOS-style circular button)
+   — touch events for touchscreens / iPad
    — wheel deltaX for macOS trackpad two-finger swipe
-═══════════════════════════════════════════════ */
-const SWIPE_THRESHOLD   = 40;   // px to commit open/close
-const SWIPE_DELETE_WIDTH = 80;  // must match CSS width of .split-swipe-delete-action
-const SWIPE_ACTIVE_BREAKPOINT = 640; // only active on mobile widths
 
-// Track which wrapper is currently open so we can close it when another opens
+   State machine (two states while finger is down):
+     PEEK  : dragged 0 → OPEN_OFFSET   → button scales 0→1, row follows finger
+     FULL  : dragged past FULL_TRIGGER  → button locks at scale 1.15 + tint,
+             releasing fires delete
+
+   On finger-up, snaps cleanly to:
+     • closed  (dragged < OPEN_THRESHOLD from closed, or swiped right past close threshold)
+     • open    (dragged ≥ OPEN_THRESHOLD, or re-swiped from open)
+     • delete  (dragged ≥ FULL_TRIGGER at release)
+═══════════════════════════════════════════════ */
+const SWIPE_OPEN_OFFSET   = 88;   // px — resting open position
+const SWIPE_OPEN_THRESHOLD = 44;  // px — half of open offset to commit open
+const SWIPE_FULL_TRIGGER  = 180;  // px — cross this to enter "release = delete" state
+
 let _openSwipeWrapper = null;
 
-function closeAllSwipeRows(except = null) {
-  if (_openSwipeWrapper && _openSwipeWrapper !== except) {
-    _openSwipeWrapper.classList.remove('swipe-open', 'swiping');
-    _openSwipeWrapper.classList.add('swipe-closing');
-    _openSwipeWrapper.querySelector('.split-row').style.transform = '';
-    setTimeout(() => {
-      if (_openSwipeWrapper) _openSwipeWrapper.classList.remove('swipe-closing');
-    }, 220);
-    _openSwipeWrapper = null;
+// ── Inline style helpers (no CSS class involvement during drag) ──────────────
+
+function _applyLive(row, btn, offset) {
+  // offset is always ≤ 0
+  const abs = -offset;
+
+  // Row follows finger 1:1
+  row.style.transform = `translateX(${offset}px)`;
+
+  // Button: scale 0→1 over [0, OPEN_OFFSET], then 1→1.15 over [OPEN_OFFSET, FULL_TRIGGER]
+  let scale, opacity;
+  if (abs <= SWIPE_OPEN_OFFSET) {
+    const t = abs / SWIPE_OPEN_OFFSET;
+    scale   = t;
+    opacity = Math.min(1, t * 1.5);
+  } else {
+    const t = Math.min(1, (abs - SWIPE_OPEN_OFFSET) / (SWIPE_FULL_TRIGGER - SWIPE_OPEN_OFFSET));
+    scale   = 1 + t * 0.15;
+    opacity = 1;
   }
+
+  btn.style.transform  = `scale(${scale.toFixed(4)})`;
+  btn.style.opacity    = opacity.toFixed(4);
+  btn.style.background = abs >= SWIPE_FULL_TRIGGER ? '#c0392b' : '';
+}
+
+function _clearInline(row, btn) {
+  row.style.transform  = '';
+  btn.style.transform  = '';
+  btn.style.opacity    = '';
+  btn.style.background = '';
+}
+
+// ── Snap helpers (add transition class, set inline target, remove class after) ─
+
+function _snapTo(wrapper, row, btn, targetRowX, targetBtnScale, targetBtnOpacity, snapClass, done) {
+  // 1. Set transitions via class
+  wrapper.classList.add(snapClass);
+  // 2. Set inline target values (transitions will animate to these)
+  row.style.transform  = `translateX(${targetRowX}px)`;
+  btn.style.transform  = `scale(${targetBtnScale})`;
+  btn.style.opacity    = String(targetBtnOpacity);
+  btn.style.background = '';
+  // 3. Remove transition class after animation completes
+  setTimeout(() => {
+    wrapper.classList.remove(snapClass);
+    if (done) done();
+  }, 240);
+}
+
+function closeAllSwipeRows(except = null) {
+  if (!_openSwipeWrapper || _openSwipeWrapper === except) return;
+  const w   = _openSwipeWrapper;
+  const r   = w.querySelector('.split-row');
+  const btn = w.querySelector('.split-swipe-delete-btn');
+  _openSwipeWrapper = null;
+  w.classList.remove('swipe-open', 'swiping');
+  _snapTo(w, r, btn, 0, 0, 0, 'snap-close', () => _clearInline(r, btn));
+}
+
+function _commitOpen(wrapper) {
+  closeAllSwipeRows(wrapper);
+  const row = wrapper.querySelector('.split-row');
+  const btn = wrapper.querySelector('.split-swipe-delete-btn');
+  wrapper.classList.remove('swiping');
+  wrapper.classList.add('swipe-open');
+  _openSwipeWrapper = wrapper;
+  _snapTo(wrapper, row, btn, -SWIPE_OPEN_OFFSET, 1, 1, 'snap-open', null);
+}
+
+function _commitClose(wrapper) {
+  const row = wrapper.querySelector('.split-row');
+  const btn = wrapper.querySelector('.split-swipe-delete-btn');
+  wrapper.classList.remove('swipe-open', 'swiping');
+  if (_openSwipeWrapper === wrapper) _openSwipeWrapper = null;
+  _snapTo(wrapper, row, btn, 0, 0, 0, 'snap-close', () => _clearInline(row, btn));
 }
 
 function swipeDeleteRow(id, wrapper) {
   const rows = document.querySelectorAll('#split-rows .split-row');
-  if (rows.length <= 1) {
-    // Can't delete last row — snap back
-    closeAllSwipeRows();
-    return;
-  }
-  wrapper.classList.add('swipe-deleting');
-  setTimeout(() => {
-    deleteSplitRow(id);
-  }, 200);
+  if (rows.length <= 1) { _commitClose(wrapper); return; }
+  wrapper.classList.remove('swipe-open', 'swiping');
+  wrapper.classList.add('snap-delete');
+  if (_openSwipeWrapper === wrapper) _openSwipeWrapper = null;
+  setTimeout(() => deleteSplitRow(id), 220);
 }
 
+// ── Core gesture attach ──────────────────────────────────────────────────────
+
 function attachSwipeGesture(wrapper, row, id) {
-  // ── Touch events (touchscreen / iPad) ──────────────────────────────────────
-  let touchStartX = 0;
-  let touchStartY = 0;
-  let touchDeltaX = 0;
-  let isTouchSwiping = false;
-  let touchLocked = false; // locked to vertical scroll — ignore horizontal
+  const btn = () => wrapper.querySelector('.split-swipe-delete-btn');
+
+  // currentOffset: the pixel position the row was at when this touch/drag started
+  // (so starting from open feels continuous, not jumpy)
+  let startOffset  = 0;  // row's X at touchstart
+  let startX       = 0;
+  let startY       = 0;
+  let axis         = null; // 'h' | 'v' | null (undecided)
+
+  function getRestingOffset() {
+    return wrapper.classList.contains('swipe-open') ? -SWIPE_OPEN_OFFSET : 0;
+  }
+
+  // ── Touch ─────────────────────────────────────────────────────────────────
 
   row.addEventListener('touchstart', e => {
-    if (window.innerWidth > SWIPE_ACTIVE_BREAKPOINT) return;
-    touchStartX = e.touches[0].clientX;    touchStartY = e.touches[0].clientY;
-    touchDeltaX = 0;
-    isTouchSwiping = false;
-    touchLocked = false;
+    // If a snap animation is running, read the computed position so we start
+    // from wherever the row actually is (prevents jump on quick re-grab)
+    const computed = window.getComputedStyle(row).transform;
+    if (computed && computed !== 'none') {
+      const mat = new DOMMatrix(computed);
+      startOffset = mat.m41; // translateX component
+    } else {
+      startOffset = getRestingOffset();
+    }
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    axis   = null;
     wrapper.classList.add('swiping');
+    // Remove any ongoing snap class so transitions don't interfere with live drag
+    wrapper.classList.remove('snap-open', 'snap-close');
   }, { passive: true });
 
   row.addEventListener('touchmove', e => {
-    if (window.innerWidth > SWIPE_ACTIVE_BREAKPOINT) return;
-    const dx = e.touches[0].clientX - touchStartX;
-    const dy = e.touches[0].clientY - touchStartY;
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
 
-    // If we haven't locked direction yet, decide based on dominant axis
-    if (!isTouchSwiping && !touchLocked) {
-      if (Math.abs(dy) > Math.abs(dx) + 4) {
-        touchLocked = true; // vertical scroll wins
-        wrapper.classList.remove('swiping');
-        return;
-      }
-      if (Math.abs(dx) > 6) {
-        isTouchSwiping = true;
-      }
+    // Axis lock — decide once after a few px of movement
+    if (!axis) {
+      if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+      axis = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v';
+      if (axis === 'v') { wrapper.classList.remove('swiping'); return; }
     }
-
-    if (touchLocked || !isTouchSwiping) return;
-
-    // Prevent page scroll while swiping horizontally
+    if (axis === 'v') return;
     e.preventDefault();
 
-    touchDeltaX = dx;
-    const isOpen = wrapper.classList.contains('swipe-open');
-    // Current offset: if already open, start from -SWIPE_DELETE_WIDTH
-    const base = isOpen ? -SWIPE_DELETE_WIDTH : 0;
-    let offset = base + dx;
-    // Clamp: can't swipe right past 0, can't swipe left past -SWIPE_DELETE_WIDTH * 1.1
-    offset = Math.min(0, Math.max(-(SWIPE_DELETE_WIDTH * 1.1), offset));
-    row.style.transform = `translateX(${offset}px)`;
+    // Clamp: can't go right of 0, no hard left limit (slight resistance past FULL_TRIGGER)
+    let offset = startOffset + dx;
+    if (offset > 0) offset = 0;
+    // Soft resistance past full trigger so it doesn't slide infinitely
+    if (-offset > SWIPE_FULL_TRIGGER) {
+      const over = (-offset) - SWIPE_FULL_TRIGGER;
+      offset = -(SWIPE_FULL_TRIGGER + over * 0.25);
+    }
+
+    _applyLive(row, btn(), offset);
   }, { passive: false });
 
-  row.addEventListener('touchend', () => {
-    if (window.innerWidth > SWIPE_ACTIVE_BREAKPOINT) return;
+  row.addEventListener('touchend', e => {
+    if (axis !== 'h') { wrapper.classList.remove('swiping'); axis = null; return; }
     wrapper.classList.remove('swiping');
-    row.style.transform = '';
+    axis = null;
 
-    if (touchLocked || !isTouchSwiping) return;
+    // Read actual current position from inline style (most accurate after live drag)
+    const mat = new DOMMatrix(row.style.transform || 'none');
+    const currentOffset = isNaN(mat.m41) ? getRestingOffset() : mat.m41;
+    const abs = -currentOffset;
 
-    const isOpen = wrapper.classList.contains('swipe-open');
-    const base = isOpen ? -SWIPE_DELETE_WIDTH : 0;
-    const finalOffset = base + touchDeltaX;
-
-    if (!isOpen && finalOffset < -SWIPE_THRESHOLD) {
-      // Open this row, close any other
-      closeAllSwipeRows(wrapper);
-      wrapper.classList.add('swipe-open');
-      _openSwipeWrapper = wrapper;
-    } else if (isOpen && finalOffset > -(SWIPE_DELETE_WIDTH - SWIPE_THRESHOLD)) {
-      // Close
-      wrapper.classList.remove('swipe-open');
-      if (_openSwipeWrapper === wrapper) _openSwipeWrapper = null;
-    } else if (isOpen) {
-      // Keep open
-      wrapper.classList.add('swipe-open');
+    if (abs >= SWIPE_FULL_TRIGGER) {
+      swipeDeleteRow(id, wrapper);
+    } else if (abs >= SWIPE_OPEN_THRESHOLD) {
+      _commitOpen(wrapper);
+    } else {
+      _commitClose(wrapper);
     }
   }, { passive: true });
 
-  // ── Wheel / trackpad (macOS two-finger horizontal swipe) ───────────────────
-  let wheelAccum = 0;
-  let wheelTimer = null;
+  // ── Trackpad / wheel ───────────────────────────────────────────────────────
+  // wheelAccum tracks the total horizontal delta since the gesture started.
+  // We reset it on the first event after idle so each gesture starts fresh.
+
+  let wheelAccum  = 0;
+  let wheelTimer  = null;
+  let wheelActive = false;
 
   row.addEventListener('wheel', e => {
-    // Only act on predominantly horizontal scrolls
-    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
-
+    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY) * 0.5) return;
     e.preventDefault();
     e.stopPropagation();
 
+    if (!wheelActive) {
+      // First event of a new gesture — start from current resting position
+      wheelActive = true;
+      wheelAccum  = 0;
+      wrapper.classList.add('swiping');
+      wrapper.classList.remove('snap-open', 'snap-close');
+    }
+
     wheelAccum += e.deltaX;
 
-    // Live-drag the row while the user is swiping
-    const isOpen = wrapper.classList.contains('swipe-open');
-    const base = isOpen ? -SWIPE_DELETE_WIDTH : 0;
-    let offset = base - wheelAccum;
-    offset = Math.min(0, Math.max(-(SWIPE_DELETE_WIDTH * 1.1), offset));
-    wrapper.classList.add('swiping');
-    row.style.transform = `translateX(${offset}px)`;
+    const base   = getRestingOffset();
+    let   offset = base - wheelAccum;
+    if (offset > 0) offset = 0;
+    if (-offset > SWIPE_FULL_TRIGGER) {
+      const over = (-offset) - SWIPE_FULL_TRIGGER;
+      offset = -(SWIPE_FULL_TRIGGER + over * 0.25);
+    }
 
-    // Debounce: commit the gesture after the user stops scrolling
+    _applyLive(row, btn(), offset);
+
+    // Commit when the user stops scrolling
     clearTimeout(wheelTimer);
     wheelTimer = setTimeout(() => {
       wrapper.classList.remove('swiping');
-      row.style.transform = '';
+      wheelActive = false;
 
-      const finalOffset = base - wheelAccum;
-      if (!isOpen && finalOffset < -SWIPE_THRESHOLD) {
-        closeAllSwipeRows(wrapper);
-        wrapper.classList.add('swipe-open');
-        _openSwipeWrapper = wrapper;
-      } else if (isOpen && finalOffset > -(SWIPE_DELETE_WIDTH - SWIPE_THRESHOLD)) {
-        wrapper.classList.remove('swipe-open');
-        if (_openSwipeWrapper === wrapper) _openSwipeWrapper = null;
-      } else if (isOpen) {
-        wrapper.classList.add('swipe-open');
+      const mat = new DOMMatrix(row.style.transform || 'none');
+      const currentOffset = isNaN(mat.m41) ? getRestingOffset() : mat.m41;
+      const abs = -currentOffset;
+
+      if (abs >= SWIPE_FULL_TRIGGER) {
+        swipeDeleteRow(id, wrapper);
+      } else if (abs >= SWIPE_OPEN_THRESHOLD) {
+        _commitOpen(wrapper);
+      } else {
+        _commitClose(wrapper);
       }
       wheelAccum = 0;
     }, 80);
   }, { passive: false });
 }
 
-// Close any open swipe row when tapping elsewhere on the page
+// Close open row when tapping/clicking elsewhere
 document.addEventListener('touchstart', e => {
-  if (!_openSwipeWrapper) return;
-  if (!_openSwipeWrapper.contains(e.target)) {
-    closeAllSwipeRows();
-  }
+  if (_openSwipeWrapper && !_openSwipeWrapper.contains(e.target)) closeAllSwipeRows();
 }, { passive: true });
 
 document.addEventListener('mousedown', e => {
-  if (!_openSwipeWrapper) return;
-  if (!_openSwipeWrapper.contains(e.target)) {
-    closeAllSwipeRows();
-  }
+  if (_openSwipeWrapper && !_openSwipeWrapper.contains(e.target)) closeAllSwipeRows();
 });
 
 function deleteSplitRow(id) {
@@ -2738,6 +4390,7 @@ function deleteSplitRow(id) {
     (wrapper || row).remove();
   }
   updateDeleteButtons();
+  updateSplitPayeeVisibility();
   // If back to one split, restore the total as its amount
   const remaining = document.querySelectorAll('#split-rows .split-row');
   if (remaining.length === 1) {
@@ -2748,22 +4401,91 @@ function deleteSplitRow(id) {
   updateRemaining();
 }
 
+function toggleSplitNote(id) {
+  const toggle = document.getElementById(`sn-toggle-${id}`);
+  const wrap   = document.getElementById(`sn-wrap-${id}`);
+  if (!toggle || !wrap) return;
+  const isOpen = wrap.classList.toggle('open');
+  toggle.classList.toggle('open', isOpen);
+  toggle.setAttribute('aria-expanded', String(isOpen));
+  toggle.querySelector('span:first-child').textContent = isOpen ? 'Remove note' : 'Add note';
+  if (isOpen) {
+    // Focus the note input when expanded
+    const noteInput = document.getElementById(`sn-${id}`);
+    if (noteInput) setTimeout(() => noteInput.focus(), 50);
+  }
+}
+
 function updateDeleteButtons() {
   const rows = document.querySelectorAll('#split-rows .split-row');
   rows.forEach(row => {
-    // Dim the swipe delete action when it's the only row
+    // Dim the swipe delete button when it's the only row (can't delete last)
     const wrapper = row.closest('.split-row-swipe-wrapper');
     if (wrapper) {
-      const swipeAction = wrapper.querySelector('.split-swipe-delete-action');
-      if (swipeAction) {
-        swipeAction.style.opacity = rows.length <= 1 ? '0.4' : '';
-        swipeAction.style.pointerEvents = rows.length <= 1 ? 'none' : '';
+      const btn = wrapper.querySelector('.split-swipe-delete-btn');
+      if (btn) {
+        btn.style.opacity      = rows.length <= 1 ? '0.4' : '';
+        btn.style.pointerEvents = rows.length <= 1 ? 'none' : '';
       }
     }
   });
 }
 
+/**
+ * Show/hide split payee fields based on number of splits.
+ * Only show when there are 2+ splits in single entry mode.
+ * When going from 1 to 2 splits, default the first split's payee to the parent payee.
+ */
+function updateSplitPayeeVisibility() {
+  const rows = document.querySelectorAll('#split-rows .split-row');
+  const show = rows.length >= 2;
+  rows.forEach(row => {
+    const id = row.dataset.id;
+    const payeeWrap = row.querySelector('.split-payee-wrap');
+    const payeeLabel = row.querySelector('.split-payee-label');
+    if (payeeWrap) payeeWrap.style.display = show ? '' : 'none';
+    if (payeeLabel) payeeLabel.style.display = show ? '' : 'none';
+  });
+
+  // Expand the split entries panel when 2+ splits exist
+  const twoCol = document.querySelector('#view-single .two-col');
+  if (twoCol) {
+    if (rows.length >= 2) {
+      twoCol.classList.add('splits-expanded');
+    } else {
+      twoCol.classList.remove('splits-expanded');
+    }
+  }
+
+  // When a second split is created, default the first split's payee to the parent payee
+  if (show && rows.length === 2) {
+    const firstId = rows[0].dataset.id;
+    const firstPayeeInput = document.getElementById(`sp-payee-${firstId}`);
+    if (firstPayeeInput && !firstPayeeInput.value.trim()) {
+      const parentPayee = document.getElementById('s-payee')?.value?.trim() || '';
+      if (parentPayee) {
+        firstPayeeInput.value = parentPayee;
+      }
+    }
+  }
+}
+
+function sizeAmountInput() {
+  const el = document.getElementById('s-amount');
+  if (!el) return;
+  // Measure the actual rendered text width with a canvas so the ₱ hugs the digits
+  const text = el.value || el.placeholder || '0.00';
+  const style = window.getComputedStyle(el);
+  const canvas = sizeAmountInput._canvas || (sizeAmountInput._canvas = document.createElement('canvas'));
+  const ctx = canvas.getContext('2d');
+  ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+  const measured = ctx.measureText(text).width;
+  // Add a small buffer for the caret (6px) and letter-spacing overhang
+  el.style.width = Math.ceil(measured + 8) + 'px';
+}
+
 function onTotalAmountInput() {
+  sizeAmountInput();
   // If there's exactly one split row, keep its amount in sync with the total
   const rows = document.querySelectorAll('#split-rows .split-row');
   if (rows.length === 1) {
@@ -2808,10 +4530,22 @@ function autoBalance() {
   });
   if (emptyIds.length === 0) return;
   const remaining = total - sumFilled;
-  const share = remaining / emptyIds.length;
-  emptyIds.forEach(id => {
+  // Distribute equally, rounded to 2 decimal places
+  const share = Math.floor((remaining / emptyIds.length) * 100) / 100;
+  // Calculate the total distributed and apply any rounding remainder to the first split
+  const distributed = share * emptyIds.length;
+  const remainder = Math.round((remaining - distributed) * 100) / 100;
+
+  emptyIds.forEach((id, idx) => {
     const inp = document.getElementById(`sa-${id}`);
-    if (inp) inp.value = fmt(share);
+    if (inp) {
+      if (idx === 0) {
+        // First split gets the extra cent(s) from rounding
+        inp.value = fmt(share + remainder);
+      } else {
+        inp.value = fmt(share);
+      }
+    }
   });
   updateRemaining();
 }
@@ -2839,6 +4573,7 @@ function newSplit(overrides) {
     category: '',
     amount: '',
     note: '',
+    payee: '',
     swUserId: '',
   }, overrides);
 }
@@ -2862,7 +4597,6 @@ const COL_DEFAULTS = {
   category: 140,
   amount:   100,
   note:     120,
-  actions:  140,
 };
 
 const COL_MIN = 48; // minimum column width in px
@@ -2884,6 +4618,7 @@ function applyColWidths(widths) {
   const ths = table.querySelectorAll('thead th[data-col]');
   ths.forEach(th => {
     const col = th.dataset.col;
+    if (col === 'actions') return; // actions column auto-sizes
     if (widths[col]) th.style.width = widths[col] + 'px';
   });
   // Update table min-width to sum of all columns
@@ -3172,12 +4907,233 @@ function updateDuplicateBadges() {
 }
 
 /* ═══════════════════════════════════════════════
+   BATCH — CONTEXT MENU (right-click / long-press)
+═══════════════════════════════════════════════ */
+let ctxMenuTxId = null;
+let longPressTimer = null;
+
+function showBatchCtxMenu(x, y, txId) {
+  const menu = document.getElementById('batch-ctx-menu');
+  ctxMenuTxId = txId;
+
+  // Position the menu, clamped within viewport
+  menu.style.left = '0';
+  menu.style.top  = '0';
+  menu.classList.add('visible');
+
+  const mw = menu.offsetWidth;
+  const mh = menu.offsetHeight;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  let left = x;
+  let top  = y;
+  if (left + mw > vw - 8) left = vw - mw - 8;
+  if (top + mh > vh - 8)  top  = vh - mh - 8;
+  if (left < 8) left = 8;
+  if (top < 8)  top  = 8;
+
+  menu.style.left = left + 'px';
+  menu.style.top  = top + 'px';
+}
+
+function hideBatchCtxMenu() {
+  const menu = document.getElementById('batch-ctx-menu');
+  menu.classList.remove('visible');
+  ctxMenuTxId = null;
+}
+
+function initBatchCtxMenu() {
+  const menu = document.getElementById('batch-ctx-menu');
+
+  // Handle menu item clicks
+  menu.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const item = e.target.closest('.ctx-menu-item');
+    if (!item || ctxMenuTxId == null) return;
+    const action = item.dataset.action;
+    const txId = ctxMenuTxId;
+    hideBatchCtxMenu();
+
+    switch (action) {
+      case 'split':   addBatchSplit(txId); break;
+      case 'balance': batchAutoBalance(txId); break;
+      case 'remove':  removeBatchTx(txId); break;
+    }
+  });
+
+  // Hide on click outside
+  document.addEventListener('click', (e) => {
+    if (!menu.contains(e.target)) hideBatchCtxMenu();
+  });
+
+  // Hide on Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') hideBatchCtxMenu();
+  });
+
+  // Hide on scroll
+  document.addEventListener('scroll', hideBatchCtxMenu, true);
+}
+
+function attachBatchRowContextEvents(pRow, txId) {
+  // Right-click (desktop)
+  pRow.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    showBatchCtxMenu(e.clientX, e.clientY, txId);
+  });
+
+  // Long-press (mobile) — 500ms threshold
+  let touchStartX = 0, touchStartY = 0;
+
+  pRow.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    longPressTimer = setTimeout(() => {
+      // Prevent text selection / default context menu
+      e.preventDefault();
+      showBatchCtxMenu(touchStartX, touchStartY, txId);
+    }, 500);
+  }, { passive: false });
+
+  pRow.addEventListener('touchmove', (e) => {
+    // Cancel if finger moves more than 10px (scrolling)
+    const dx = Math.abs(e.touches[0].clientX - touchStartX);
+    const dy = Math.abs(e.touches[0].clientY - touchStartY);
+    if (dx > 10 || dy > 10) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+  });
+
+  pRow.addEventListener('touchend', () => {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  });
+
+  pRow.addEventListener('touchcancel', () => {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   BATCH — COLUMN SORTING
+═══════════════════════════════════════════════ */
+function toggleBatchSort(key) {
+  if (batchSortState && batchSortState.key === key) {
+    if (batchSortState.dir === 'asc') {
+      batchSortState = { key, dir: 'desc' };
+    } else {
+      batchSortState = null;
+    }
+  } else {
+    batchSortState = { key, dir: 'asc' };
+  }
+  renderBatchTable();
+  updateDuplicateBadges();
+}
+
+function getSortedBatchData() {
+  if (!batchSortState) return batchData;
+  const { key, dir } = batchSortState;
+  const sorted = [...batchData];
+
+  sorted.sort((a, b) => {
+    let valA, valB;
+
+    switch (key) {
+      case 'date':
+        valA = a.date || '';
+        valB = b.date || '';
+        return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      case 'account':
+        valA = (a.account || '').toLowerCase();
+        valB = (b.account || '').toLowerCase();
+        return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      case 'total':
+        valA = parseFloat(a.total) || 0;
+        valB = parseFloat(b.total) || 0;
+        break;
+      case 'payee':
+        valA = (a.payee || '').toLowerCase();
+        valB = (b.payee || '').toLowerCase();
+        return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      case 'memo':
+        valA = (a.memo || '').toLowerCase();
+        valB = (b.memo || '').toLowerCase();
+        return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      case 'category':
+        valA = (a.splits[0]?.category || '').toLowerCase();
+        valB = (b.splits[0]?.category || '').toLowerCase();
+        return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      case 'amount':
+        valA = parseFloat(a.splits[0]?.amount) || 0;
+        valB = parseFloat(b.splits[0]?.amount) || 0;
+        break;
+      case 'note':
+        valA = (a.splits[0]?.note || '').toLowerCase();
+        valB = (b.splits[0]?.note || '').toLowerCase();
+        return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      default:
+        return 0;
+    }
+
+    if (valA < valB) return dir === 'asc' ? -1 : 1;
+    if (valA > valB) return dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  return sorted;
+}
+
+/* ═══════════════════════════════════════════════
    BATCH — TABLE RENDER
 ═══════════════════════════════════════════════ */
 function renderBatchTable() {
   const tbody = document.getElementById('batch-tbody');
   tbody.innerHTML = '';
-  batchData.forEach((tx, txIdx) => {
+
+  // Update header sort indicators
+  const ths = document.querySelectorAll('#batch-table thead th[data-col]');
+  ths.forEach(th => {
+    const col = th.dataset.col;
+    if (col === 'num' || col === 'actions') return;
+    th.classList.add('sortable');
+    th.classList.toggle('sorted', batchSortState && batchSortState.key === col);
+
+    // Add or update sort indicator
+    let indicator = th.querySelector('.sort-indicator');
+    if (!indicator) {
+      indicator = document.createElement('span');
+      indicator.className = 'sort-indicator';
+      // Insert before the resize handle if present
+      const resizeHandle = th.querySelector('.col-resize-handle');
+      if (resizeHandle) {
+        th.insertBefore(indicator, resizeHandle);
+      } else {
+        th.appendChild(indicator);
+      }
+    }
+    if (batchSortState && batchSortState.key === col) {
+      indicator.textContent = batchSortState.dir === 'asc' ? ' ▲' : ' ▼';
+    } else {
+      indicator.textContent = ' ▲';
+    }
+
+    // Attach click handler (only once)
+    if (!th.dataset.sortBound) {
+      th.dataset.sortBound = '1';
+      th.addEventListener('click', (e) => {
+        // Don't sort if clicking the resize handle
+        if (e.target.classList.contains('col-resize-handle')) return;
+        toggleBatchSort(col);
+      });
+    }
+  });
+
+  const sortedData = getSortedBatchData();
+  sortedData.forEach((tx, txIdx) => {
     const txNum = txIdx + 1;
     const multiSplit = tx.splits.length > 1;
     const splitId0   = tx.splits[0]?.id;
@@ -3201,7 +5157,9 @@ function renderBatchTable() {
       </div>` : '';
 
     pRow.innerHTML = `
+      <td class="row-selector-cell"></td>
       <td class="td-num"><span class="td-num-val">${txNum}</span></td>
+      <td class="edit-checkbox-cell hidden-cell"><span class="edit-checkbox" data-tx-id="${tx.id}" onclick="toggleEditCheckbox(this)"></span></td>
       <td><input type="date" value="${tx.date}" aria-label="Date"
             onchange="updateTxField(${tx.id},'date',this.value)"></td>
       <td>
@@ -3242,7 +5200,7 @@ function renderBatchTable() {
       <td>${multiSplit ? '<span class="text-muted">—</span>' : `
         <input type="text" value="${escHtml(inlineNote)}" placeholder="Note"
                aria-label="Note" oninput="updateSplitField(${tx.id},${splitId0},'note',this.value)">
-        ${sw.enabled && multiSplit ? `
+        ${sw.enabled ? `
         <div class="sw-user-row" style="margin-top:6px;">
           <label>SW →</label>
           <select class="sw-user-select" onchange="updateSplitField(${tx.id},${splitId0},'swUserId',this.value)" aria-label="Splitwise user for this split">
@@ -3250,16 +5208,11 @@ function renderBatchTable() {
           </select>
         </div>` : ''}`}
       </td>
-      <td>
-        <div class="td-actions">
-          <button class="btn btn-outline btn-sm" onclick="addBatchSplit(${tx.id})">+ Split</button>
-          <button class="btn btn-ghost btn-sm"   onclick="batchAutoBalance(${tx.id})">Balance</button>
-          <button class="btn btn-danger-ghost btn-sm" onclick="removeBatchTx(${tx.id})">Remove</button>
-        </div>
-        ${swPayerHtml}
-      </td>
     `;
     tbody.appendChild(pRow);
+
+    // Attach right-click / long-press context menu
+    attachBatchRowContextEvents(pRow, tx.id);
 
     // Wire account dropdown — sorted by usage
     const accInput = document.getElementById(`bt-acc-${tx.id}`);
@@ -3334,8 +5287,23 @@ function renderBatchTable() {
         cRow.dataset.txId = tx.id;
         cRow.dataset.spId = sp.id;
         cRow.innerHTML = `
-          <td class="td-num"></td>
-          <td></td><td></td><td></td><td></td><td></td>
+          <td class="row-selector-cell"></td>
+          <td class="td-num">
+            <button class="btn-minus-badge-left" onclick="removeBatchSplit(${tx.id},${sp.id})"
+              ${tx.splits.length <= 1 ? 'disabled' : ''} aria-label="Remove split" title="Remove split">−</button>
+          </td>
+          <td class="edit-checkbox-cell hidden-cell"></td>
+          <td></td><td></td><td></td>
+          <td>
+            <div class="dropdown-wrap">
+              <input type="text" value="${escHtml(sp.payee || '')}" placeholder="Split payee" aria-label="Split payee"
+                     autocomplete="off"
+                     oninput="updateSplitField(${tx.id},${sp.id},'payee',this.value)"
+                     id="bt-sp-payee-${tx.id}-${sp.id}">
+              <div class="dropdown-list" id="bt-sp-payee-list-${tx.id}-${sp.id}" role="listbox"></div>
+            </div>
+          </td>
+          <td></td>
           <td>
             <div class="dropdown-wrap">
               <input type="text" value="${escHtml(sp.category)}" placeholder="Category"
@@ -3348,12 +5316,7 @@ function renderBatchTable() {
           <td><input type="number" value="${escHtml(sp.amount)}" placeholder="0.00" step="0.01" inputmode="decimal"
                 aria-label="Amount" oninput="updateSplitField(${tx.id},${sp.id},'amount',this.value)"></td>
           <td><input type="text" value="${escHtml(sp.note)}" placeholder="Note"
-                aria-label="Note" oninput="updateSplitField(${tx.id},${sp.id},'note',this.value)"></td>
-          <td>
-            <div class="td-actions">
-              <button class="btn btn-danger-ghost btn-sm" onclick="removeBatchSplit(${tx.id},${sp.id})"
-                ${tx.splits.length <= 1 ? 'disabled' : ''}>Remove Split</button>
-            </div>
+                aria-label="Note" oninput="updateSplitField(${tx.id},${sp.id},'note',this.value)">
             ${sw.enabled ? `
             <div class="sw-user-row" style="margin-top:6px;">
               <label>SW →</label>
@@ -3364,6 +5327,19 @@ function renderBatchTable() {
           </td>
         `;
         tbody.appendChild(cRow);
+
+        // Wire split payee dropdown for child row — searchable
+        const spPayeeInput = document.getElementById(`bt-sp-payee-${tx.id}-${sp.id}`);
+        const spPayeeList  = document.getElementById(`bt-sp-payee-list-${tx.id}-${sp.id}`);
+        if (spPayeeInput && spPayeeList) {
+          setupSearchableInput(spPayeeInput, spPayeeList,
+            () => getSortedPayees(),
+            item => {
+              spPayeeInput.value = item.name;
+              spPayeeInput.dataset.id = item.id;
+              updateSplitField(tx.id, sp.id, 'payee', item.name);
+            }, 'name');
+        }
 
         // Wire category dropdown for child row — sorted by payee usage
         const catInput = document.getElementById(`bt-cat-${tx.id}-${sp.id}`);
@@ -3481,6 +5457,7 @@ function addBatchSplit(txId) {
   tx.splits.forEach(sp => { sp.amount = ''; });
   tx.splits.push(newSplit());
   renderBatchTable();
+  updateDuplicateBadges();
 }
 
 function removeBatchSplit(txId, spId) {
@@ -3492,11 +5469,13 @@ function removeBatchSplit(txId, spId) {
     tx.splits[0].amount = tx.total || '';
   }
   renderBatchTable();
+  updateDuplicateBadges();
 }
 
 function removeBatchTx(txId) {
   batchData = batchData.filter(t => t.id !== txId);
   renderBatchTable();
+  updateDuplicateBadges();
 }
 
 function batchAutoBalance(txId) {
@@ -3516,6 +5495,7 @@ function batchAutoBalance(txId) {
   const share = (total - sumFilled) / emptySplits.length;
   emptySplits.forEach(sp => { sp.amount = fmt(share); });
   renderBatchTable();
+  updateDuplicateBadges();
 }
 
 /* ═══════════════════════════════════════════════
@@ -3607,36 +5587,126 @@ function savePreset() {
   const inp = document.getElementById('preset-name-input');
   const name = inp.value.trim();
   if (!name) return;
-  if (!presets.includes(name)) {
-    presets.push(name);
-    localStorage.setItem('splitnab_presets', JSON.stringify(presets));
-    renderPresets();
-  }
+
+  // Gather Transaction Details
+  const payeeInput   = document.getElementById('s-payee');
+  const accountInput = document.getElementById('s-account');
+  const payee        = payeeInput.value.trim();
+  const payeeId      = payeeInput.dataset.id || '';
+  const account      = accountInput.value.trim();
+  const accountId    = accountInput.dataset.id || '';
+
+  // Gather split rows — payee + category only
+  const splits = [];
+  document.querySelectorAll('#split-rows .split-row').forEach(row => {
+    const rid         = row.dataset.id;
+    const spPayeeEl   = document.getElementById(`sp-payee-${rid}`);
+    const catEl       = document.getElementById(`sc-${rid}`);
+    splits.push({
+      payee:      spPayeeEl ? spPayeeEl.value.trim()       : '',
+      payeeId:    spPayeeEl ? (spPayeeEl.dataset.id || '') : '',
+      category:   catEl     ? catEl.value.trim()           : '',
+      categoryId: catEl     ? (catEl.dataset.id || '')     : '',
+    });
+  });
+
+  // Remove old preset with same name, then add new one
+  presets = presets.filter(p => p.name !== name);
+  presets.push({ name, payee, payeeId, account, accountId, splits });
+  localStorage.setItem('splitnab_presets', JSON.stringify(presets));
+
+  renderPresets();
+  renderPresetSuggestions();
+
   inp.value = '';
+  // Close panel
+  document.getElementById('preset-panel').classList.remove('open');
+  document.getElementById('preset-btn').setAttribute('aria-expanded', 'false');
   showToast('success', `Preset "${name}" saved.`);
 }
 
 function deletePreset(name) {
-  presets = presets.filter(p => p !== name);
+  presets = presets.filter(p => p.name !== name);
   localStorage.setItem('splitnab_presets', JSON.stringify(presets));
   renderPresets();
+  renderPresetSuggestions();
+}
+
+function applyPreset(preset) {
+  // Fill Transaction Details
+  const payeeInput   = document.getElementById('s-payee');
+  const accountInput = document.getElementById('s-account');
+
+  if (preset.payee) {
+    payeeInput.value      = preset.payee;
+    payeeInput.dataset.id = preset.payeeId || '';
+  }
+  if (preset.account) {
+    accountInput.value      = preset.account;
+    accountInput.dataset.id = preset.accountId || '';
+  }
+
+  // Rebuild split rows to match preset splits
+  if (Array.isArray(preset.splits) && preset.splits.length > 0) {
+    // Remove all existing split rows
+    const container = document.getElementById('split-rows');
+    container.innerHTML = '';
+    splitRowId = 0;
+
+    // Re-add one row per preset split
+    preset.splits.forEach(s => {
+      addSplitRow();
+      const newId     = splitRowId;          // addSplitRow increments splitRowId
+      const spPayeeEl = document.getElementById(`sp-payee-${newId}`);
+      const catEl     = document.getElementById(`sc-${newId}`);
+
+      if (spPayeeEl && s.payee) {
+        spPayeeEl.value      = s.payee;
+        spPayeeEl.dataset.id = s.payeeId || '';
+      }
+      if (catEl && s.category) {
+        catEl.value      = s.category;
+        catEl.dataset.id = s.categoryId || '';
+      }
+    });
+  }
+
+  updateRemaining();
+  showToast('success', `Preset "${preset.name}" applied.`);
 }
 
 function renderPresets() {
   const list = document.getElementById('preset-list');
   list.innerHTML = '';
   if (presets.length === 0) {
-    list.innerHTML = '<span class="text-muted">No presets saved.</span>';
+    list.innerHTML = '<span style="font-size:12px;color:var(--text-muted);">No presets saved.</span>';
     return;
   }
-  presets.forEach(name => {
+  presets.forEach(p => {
+    const name = p.name || p;   // graceful fallback if somehow old format crept in
     const item = document.createElement('div');
     item.className = 'preset-item';
     item.innerHTML = `
       <span>${escHtml(name)}</span>
-      <button class="preset-delete" onclick="deletePreset('${escHtml(name)}')" aria-label="Delete preset ${escHtml(name)}">×</button>
+      <button class="preset-delete" onclick="deletePreset('${escHtml(name).replace(/'/g,'\\\'')}')" aria-label="Delete preset ${escHtml(name)}">×</button>
     `;
     list.appendChild(item);
+  });
+}
+
+function renderPresetSuggestions() {
+  const container = document.getElementById('preset-suggestions');
+  if (!container) return;
+  container.innerHTML = '';
+  presets.forEach(p => {
+    const name = p.name || p;
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'preset-chip';
+    chip.setAttribute('aria-label', `Apply preset: ${name}`);
+    chip.innerHTML = `<span class="preset-chip-icon">⚡</span>${escHtml(name)}`;
+    chip.addEventListener('click', () => applyPreset(p));
+    container.appendChild(chip);
   });
 }
 
@@ -3667,8 +5737,33 @@ function showToast(type, message) {
   `;
   area.appendChild(div);
 
-  const delay = type === 'error' ? 7000 : type === 'warning' ? 6000 : 4000;
-  setTimeout(() => dismissToast(id), delay);
+  // Auto-dismiss after 10 seconds, but pause while any toast is hovered.
+  // After mouse leaves, wait 5 seconds before dismissing.
+  let timer = null;
+  let remaining = 10000;
+  let startTime = Date.now();
+
+  function startTimer() {
+    startTime = Date.now();
+    timer = setTimeout(() => dismissToast(id), remaining);
+  }
+
+  function pauseTimer() {
+    if (timer) { clearTimeout(timer); timer = null; }
+    remaining -= (Date.now() - startTime);
+    if (remaining < 0) remaining = 0;
+  }
+
+  function resetAfterLeave() {
+    // After mouse leaves, wait 5 seconds then dismiss
+    remaining = 5000;
+    startTimer();
+  }
+
+  div.addEventListener('mouseenter', pauseTimer);
+  div.addEventListener('mouseleave', resetAfterLeave);
+
+  startTimer();
 }
 
 function dismissToast(id) {
@@ -3807,11 +5902,12 @@ async function saveToYNABSingle() {
     const catName  = catInput?.value.trim() || '';
     const amt      = parseNum(document.getElementById(`sa-${id}`)?.value);
     const note     = document.getElementById(`sn-${id}`)?.value.trim() || '';
+    const splitPayee = document.getElementById(`sp-payee-${id}`)?.value.trim() || '';
 
     if (!catName) { showToast('error', 'Every split row needs a category.'); return; }
     if (!amt)     { showToast('error', 'Every split row needs an amount.');  return; }
 
-    splitDefs.push({ catName, amt, note });
+    splitDefs.push({ catName, amt, note, splitPayee });
     splitTotal += amt;
   }
 
@@ -3822,7 +5918,7 @@ async function saveToYNABSingle() {
 
   // Resolve categories (may create new ones — must be async, do before disabling button)
   const subtransactions = [];
-  for (const { catName, amt, note } of splitDefs) {
+  for (const { catName, amt, note, splitPayee } of splitDefs) {
     let catObj;
     try {
       catObj = await resolveCategory(catName);
@@ -3834,19 +5930,32 @@ async function saveToYNABSingle() {
       showToast('error', `Category "${catName}" not found in YNAB. Enable "Auto-create missing categories" in Settings, or select an existing category.`);
       return;
     }
-    subtransactions.push({
+    const subTx = {
       amount:      -amountToMilliunits(amt),
       category_id: catObj.id,
       memo:        note || undefined,
-    });
+    };
+    // Resolve split payee if provided and different from parent
+    if (splitPayee) {
+      const splitPayeeObj = resolvePayee(splitPayee);
+      if (splitPayeeObj) {
+        if (splitPayeeObj.id) {
+          subTx.payee_id = splitPayeeObj.id;
+        } else {
+          subTx.payee_name = splitPayeeObj.name;
+        }
+      }
+    }
+    subtransactions.push(subTx);
   }
 
-  const btn = document.getElementById('save-ynab-btn');
-  btn.disabled = true;
-  btn.textContent = 'Saving…';
+  const isSingleSplit = subtransactions.length === 1;
+
+  const btn      = document.getElementById('save-ynab-btn');
+  const btnMobile = document.getElementById('save-ynab-btn-mobile');
+  [btn, btnMobile].forEach(b => { if (!b) return; b.disabled = true; b.textContent = 'Saving…'; });
 
   try {
-    const isSingleSplit = subtransactions.length === 1;
     const payload = {
       transaction: {
         account_id:  accountObj.id,
@@ -3881,8 +5990,7 @@ async function saveToYNABSingle() {
   } catch (err) {
     showToast('error', 'YNAB error: ' + err.message);
   } finally {
-    btn.disabled = false;
-    btn.textContent = 'Save to YNAB';
+    [btn, btnMobile].forEach(b => { if (!b) return; b.disabled = false; b.textContent = 'Save'; });
   }
 }
 
@@ -3940,9 +6048,9 @@ async function saveToYNABBatch() {
   }
 
   // ── All valid — now save ──
-  const btn = document.getElementById('save-ynab-btn');
-  btn.disabled = true;
-  btn.textContent = 'Saving…';
+  const btn       = document.getElementById('save-ynab-btn');
+  const btnMobile = document.getElementById('save-ynab-btn-mobile');
+  [btn, btnMobile].forEach(b => { if (!b) return; b.disabled = true; b.textContent = 'Saving…'; });
 
   let succeeded = 0;
   let failed = 0;
@@ -3958,11 +6066,23 @@ async function saveToYNABBatch() {
       for (const sp of tx.splits) {
         const catObj = await resolveCategory(sp.category);
         if (!catObj) throw new Error(`Category "${sp.category}" not found in YNAB`);
-        subtransactions.push({
+        const subTx = {
           amount:      -amountToMilliunits(sp.amount),
           category_id: catObj.id,
           memo:        sp.note || undefined,
-        });
+        };
+        // Resolve split payee if provided
+        if (sp.payee) {
+          const splitPayeeObj = resolvePayee(sp.payee);
+          if (splitPayeeObj) {
+            if (splitPayeeObj.id) {
+              subTx.payee_id = splitPayeeObj.id;
+            } else {
+              subTx.payee_name = splitPayeeObj.name;
+            }
+          }
+        }
+        subtransactions.push(subTx);
       }
 
       const isSingleSplit = subtransactions.length === 1;
@@ -4007,8 +6127,7 @@ async function saveToYNABBatch() {
     }
   }
 
-  btn.disabled = false;
-  btn.textContent = 'Save to YNAB';
+  [btn, btnMobile].forEach(b => { if (!b) return; b.disabled = false; b.textContent = 'Save'; });
 
   if (failed === 0) {
     showToast('success', `${succeeded} transaction${succeeded !== 1 ? 's' : ''} saved to YNAB.`);
@@ -4022,6 +6141,14 @@ async function saveToYNABBatch() {
 function showFieldError(id) {
   const el = document.getElementById(id);
   if (el) el.classList.add('visible');
+  // For the hero amount field, also ring the wrapper
+  if (id === 's-amount-err') {
+    const wrap = document.getElementById('s-amount-wrap');
+    if (wrap) {
+      wrap.classList.add('has-error');
+      setTimeout(() => wrap.classList.remove('has-error'), 3000);
+    }
+  }
   setTimeout(() => el && el.classList.remove('visible'), 3000);
 }
 
@@ -4036,20 +6163,55 @@ function clearSingleEntry() {
   splitRowId = 0;
   addSplitRow();
   updateRemaining();
+  sizeAmountInput();
 }
 
 function onSplitwiseToggle(checkbox) {
   sw.enabled = checkbox.checked;
+  // Sync all splitwise toggles
+  ['splitwise-toggle', 'splitwise-toggle-mobile', 'splitwise-toggle-batch'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el !== checkbox) el.checked = sw.enabled;
+  });
   const panel = document.getElementById('sw-panel');
+  const twoCol = document.querySelector('#view-single .two-col');
+  // Mobile inline panels
+  const inlinePanelSingle = document.getElementById('sw-inline-panel-single');
+  const inlinePanelBatch  = document.getElementById('sw-inline-panel-batch');
   if (sw.enabled) {
-    panel.classList.add('open');
+    if (panel) panel.classList.add('open');
+    if (twoCol) twoCol.classList.add('splitwise-expanded');
+    if (inlinePanelSingle) inlinePanelSingle.classList.add('open');
+    if (inlinePanelBatch)  inlinePanelBatch.classList.add('open');
     // Load data for all accounts that haven't been loaded yet
     loadAllSwAccounts();
   } else {
-    panel.classList.remove('open');
+    if (panel) panel.classList.remove('open');
+    if (twoCol) twoCol.classList.remove('splitwise-expanded');
+    if (inlinePanelSingle) inlinePanelSingle.classList.remove('open');
+    if (inlinePanelBatch)  inlinePanelBatch.classList.remove('open');
     // Re-render to remove Splitwise selects from split rows
     refreshSplitwiseUI();
   }
+  syncBottomBarPadding();
+}
+
+// Mobile-only wrappers — they simply delegate to the main toggle handler
+function onSplitwiseToggleMobile(checkbox) { onSplitwiseToggle(checkbox); }
+function onSplitwiseToggleBatch(checkbox)  { onSplitwiseToggle(checkbox); }
+
+function syncBottomBarPadding() {
+  requestAnimationFrame(() => {
+    const isMobile = window.innerWidth <= 640;
+    if (isMobile) {
+      // On mobile, pad enough for the floating pill + safe area inset
+      const safeBottom = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sab') || '0') || 0;
+      document.body.style.paddingBottom = (110 + safeBottom) + 'px';
+    } else {
+      const bar = document.querySelector('.bottom-bar');
+      if (bar) document.body.style.paddingBottom = bar.offsetHeight + 'px';
+    }
+  });
 }
 
 /* ═══════════════════════════════════════════════
@@ -4137,26 +6299,47 @@ async function loadAllSwAccounts() {
 }
 
 function updateSwPanelStatus(msg, isError) {
-  const el = document.getElementById('sw-panel-status');
-  if (!el) return;
-  el.textContent = msg;
-  el.className = 'sw-status-badge' + (isError ? ' error' : '');
+  const ids = [
+    'sw-panel-status',
+    'sw-panel-status-inline-single',
+    'sw-panel-status-inline-batch',
+  ];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'sw-status-badge' + (isError ? ' error' : '');
+    // Keep inline badges styled consistently
+    if (id !== 'sw-panel-status') {
+      el.style.cssText = 'font-size:12px;padding:3px 8px;border-radius:999px;font-weight:500;margin-left:8px;'
+        + (isError
+          ? 'background:var(--error-light);color:var(--error);'
+          : 'background:var(--success-light);color:var(--success);');
+    }
+  });
 }
 
 /**
  * Populate the "Paying account" dropdown in the Splitwise panel.
  */
 function renderSwActiveAccountSelect() {
-  const sel = document.getElementById('sw-active-account-select');
-  if (!sel) return;
-  sel.innerHTML = '';
-  sw.accounts.forEach((acct, i) => {
-    const opt = document.createElement('option');
-    opt.value = i;
-    const userName = acct.user ? [acct.user.first_name, acct.user.last_name].filter(Boolean).join(' ') : '';
-    opt.textContent = acct.label + (userName ? ' (' + userName + ')' : '') + (acct.error ? ' ⚠' : '');
-    if (i === sw.activeAccountIndex) opt.selected = true;
-    sel.appendChild(opt);
+  const selIds = [
+    'sw-active-account-select',
+    'sw-active-account-select-inline',
+    'sw-active-account-select-inline-batch',
+  ];
+  selIds.forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.innerHTML = '';
+    sw.accounts.forEach((acct, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      const userName = acct.user ? [acct.user.first_name, acct.user.last_name].filter(Boolean).join(' ') : '';
+      opt.textContent = acct.label + (userName ? ' (' + userName + ')' : '') + (acct.error ? ' ⚠' : '');
+      if (i === sw.activeAccountIndex) opt.selected = true;
+      sel.appendChild(opt);
+    });
   });
 }
 
@@ -4403,7 +6586,7 @@ async function saveSwSettings() {
  * Called after toggling Splitwise on/off or switching active account.
  */
 function refreshSplitwiseUI() {
-  // Single entry: re-render split rows to add/remove sw-user-row elements
+  // Single entry: add/remove sw-user-row (SW select only) from split rows
   document.querySelectorAll('#split-rows .split-row').forEach(row => {
     const id = row.dataset.id;
     let swRow = row.querySelector('.sw-user-row');
@@ -4415,7 +6598,7 @@ function refreshSplitwiseUI() {
         row.appendChild(swRow);
       }
       swRow.innerHTML = `
-        <label>Splitwise →</label>
+        <label>SW →</label>
         <select class="sw-user-select" aria-label="Splitwise user for this split">
           ${getSplitwiseUserOptions(currentVal)}
         </select>`;
@@ -4425,7 +6608,10 @@ function refreshSplitwiseUI() {
   });
 
   // Batch: full re-render (adds/removes sw columns)
-  if (currentMode === 'batch') renderBatchTable();
+  if (currentMode === 'batch') {
+    renderBatchTable();
+    updateDuplicateBadges();
+  }
 }
 
 /* ═══════════════════════════════════════════════
@@ -4662,7 +6848,7 @@ function bpiParseTransactions(fullText) {
 
     const m = BPI_TRANSACTION_RE.exec(line);
     if (m) {
-      let postingRaw = m[1], txnRaw = m[2], description = m[3],
+      let postingRaw = m[2], txnRaw = m[1], description = m[3],
           amountStr = m[4], crFlag = m[5];
       const isCredit = Boolean(crFlag);
 
@@ -4699,7 +6885,7 @@ function bpiParseTransactions(fullText) {
       const endsWithAmount = /[\d,]+\.\d{2}(CR)?\s*$/.test(line);
 
       if (fxHeader && !endsWithAmount) {
-        let postingRaw = fxHeader[1], txnRaw = fxHeader[2], description = fxHeader[3];
+        let postingRaw = fxHeader[2], txnRaw = fxHeader[1], description = fxHeader[3];
 
         if (pendingDescription) {
           description = pendingDescription + ' ' + description;
@@ -4975,7 +7161,7 @@ async function importBpiPdf(file) {
     showToast('error', 'Failed to parse PDF: ' + (err.message || err));
   } finally {
     btn.disabled = false;
-    btn.textContent = '\u2191 Import BPI PDF';
+    btn.textContent = '\u2191 Import PDF';
   }
 }
 
@@ -5214,6 +7400,228 @@ function cancelCleanup() {
 }
 
 /* ═══════════════════════════════════════════════
+   BATCH — ROW SELECTION & NAVIGATION
+═══════════════════════════════════════════════ */
+let batchSelectedIds = new Set();
+let batchFocusedTxId = null;
+let batchEditMode = false;
+let batchFocusMode = false;
+let batchEditChecked = new Set();
+
+function getBatchParentRows() {
+  return Array.from(document.querySelectorAll('#batch-tbody tr.parent-row'));
+}
+
+function getTxIdFromRow(row) {
+  return row ? parseInt(row.dataset.txId) : null;
+}
+
+function updateBatchSelectionUI() {
+  const rows = getBatchParentRows();
+  rows.forEach(row => {
+    const txId = getTxIdFromRow(row);
+    row.classList.toggle('row-selected', batchSelectedIds.has(txId));
+    row.classList.toggle('row-focused', txId === batchFocusedTxId);
+  });
+
+  // Update selection actions visibility
+  const actionsEl = document.getElementById('batch-selection-actions');
+  const countEl = document.getElementById('batch-selection-count');
+  if (batchSelectedIds.size > 0) {
+    actionsEl.classList.add('visible');
+    countEl.textContent = batchSelectedIds.size + ' selected';
+  } else {
+    actionsEl.classList.remove('visible');
+  }
+}
+
+function batchSelectRow(txId, opts = {}) {
+  const { shift = false, toggle = false } = opts;
+  const rows = getBatchParentRows();
+  const txIds = rows.map(r => getTxIdFromRow(r));
+
+  if (shift && batchFocusedTxId !== null) {
+    // Range select from focused to clicked
+    const startIdx = txIds.indexOf(batchFocusedTxId);
+    const endIdx = txIds.indexOf(txId);
+    if (startIdx !== -1 && endIdx !== -1) {
+      const lo = Math.min(startIdx, endIdx);
+      const hi = Math.max(startIdx, endIdx);
+      for (let i = lo; i <= hi; i++) {
+        batchSelectedIds.add(txIds[i]);
+      }
+    }
+  } else if (toggle) {
+    if (batchSelectedIds.has(txId)) {
+      batchSelectedIds.delete(txId);
+    } else {
+      batchSelectedIds.add(txId);
+    }
+  } else {
+    batchSelectedIds.clear();
+    batchSelectedIds.add(txId);
+  }
+
+  batchFocusedTxId = txId;
+  updateBatchSelectionUI();
+}
+
+function batchClearSelection() {
+  batchSelectedIds.clear();
+  batchFocusedTxId = null;
+  updateBatchSelectionUI();
+}
+
+function batchNavigate(direction, shift = false) {
+  const rows = getBatchParentRows();
+  if (rows.length === 0) return;
+  const txIds = rows.map(r => getTxIdFromRow(r));
+
+  let currentIdx = txIds.indexOf(batchFocusedTxId);
+  if (currentIdx === -1) currentIdx = 0;
+
+  let newIdx = currentIdx + direction;
+  if (newIdx < 0) newIdx = 0;
+  if (newIdx >= txIds.length) newIdx = txIds.length - 1;
+
+  const newTxId = txIds[newIdx];
+
+  if (shift) {
+    batchSelectedIds.add(newTxId);
+    batchFocusedTxId = newTxId;
+  } else {
+    batchSelectedIds.clear();
+    batchSelectedIds.add(newTxId);
+    batchFocusedTxId = newTxId;
+  }
+
+  updateBatchSelectionUI();
+
+  // Scroll into view
+  const targetRow = rows[newIdx];
+  if (targetRow) {
+    targetRow.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+}
+
+// Attach click handlers to parent rows after render
+function attachBatchSelectionEvents() {
+  const rows = getBatchParentRows();
+  rows.forEach(row => {
+    // Click on row-selector-cell or the row itself (but not on inputs/buttons)
+    row.addEventListener('mousedown', (e) => {
+      // Only handle clicks on the row-selector-cell or if no input/button is target
+      const target = e.target;
+      const isSelector = target.classList.contains('row-selector-cell') || target.closest('.row-selector-cell');
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'BUTTON' || target.closest('button') || target.closest('.dropdown-wrap');
+
+      if (isSelector) {
+        e.preventDefault();
+        const txId = getTxIdFromRow(row);
+        batchSelectRow(txId, { shift: e.shiftKey, toggle: !e.shiftKey && batchSelectedIds.has(txId) });
+      }
+    });
+  });
+}
+
+// Selection actions
+function batchSelectionSplit() {
+  batchSelectedIds.forEach(txId => addBatchSplit(txId));
+}
+
+function batchSelectionBalance() {
+  batchSelectedIds.forEach(txId => batchAutoBalance(txId));
+}
+
+function batchSelectionRemove() {
+  if (batchSelectedIds.size === 0) return;
+  const ids = [...batchSelectedIds];
+  batchData = batchData.filter(t => !ids.includes(t.id));
+  batchSelectedIds.clear();
+  batchFocusedTxId = null;
+  renderBatchTable();
+  updateDuplicateBadges();
+  updateBatchSelectionUI();
+}
+
+// Edit mode
+function toggleBatchEditMode() {
+  batchEditMode = !batchEditMode;
+  batchEditChecked.clear();
+  const card = document.querySelector('#view-batch .card');
+  if (card) {
+    card.classList.toggle('batch-edit-mode', batchEditMode);
+  }
+  const btn = document.getElementById('batch-edit-btn');
+  if (btn) {
+    btn.style.background = batchEditMode ? 'var(--accent-light)' : '';
+    btn.style.color = batchEditMode ? 'var(--accent)' : '';
+    btn.style.borderColor = batchEditMode ? 'var(--accent)' : '';
+  }
+  updateBatchSelectionUI();
+}
+
+function toggleEditCheckbox(el) {
+  const txId = parseInt(el.dataset.txId);
+  el.classList.toggle('checked');
+  if (el.classList.contains('checked')) {
+    batchSelectedIds.add(txId);
+  } else {
+    batchSelectedIds.delete(txId);
+  }
+  batchFocusedTxId = txId;
+  updateBatchSelectionUI();
+}
+
+// Focus mode (maximize)
+function toggleBatchFocusMode() {
+  batchFocusMode = !batchFocusMode;
+  const card = document.querySelector('#view-batch .card');
+  if (!card) return;
+
+  const btn = document.getElementById('batch-maximize-btn');
+
+  if (batchFocusMode) {
+    card.classList.add('batch-focus-mode');
+    if (btn) btn.innerHTML = '✕ <span style="font-size:12px;">Exit Focus</span>';
+    document.body.style.overflow = 'hidden';
+  } else {
+    card.classList.remove('batch-focus-mode');
+    if (btn) btn.innerHTML = '⛶ <span style="font-size:12px;">Focus</span>';
+    document.body.style.overflow = '';
+  }
+}
+
+// Keyboard navigation for batch table
+document.addEventListener('keydown', (e) => {
+  // Only handle when batch view is active and no modal is open
+  const batchView = document.getElementById('view-batch');
+  if (!batchView || !batchView.classList.contains('active')) return;
+
+  // Don't intercept if user is typing in an input
+  const active = document.activeElement;
+  if (active && (active.tagName === 'INPUT' || active.tagName === 'SELECT' || active.tagName === 'TEXTAREA')) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    batchNavigate(1, e.shiftKey);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    batchNavigate(-1, e.shiftKey);
+  } else if (e.key === 'Escape' && batchSelectedIds.size > 0) {
+    batchClearSelection();
+  }
+});
+
+// Patch renderBatchTable to re-attach selection events after render
+const _origRenderBatchTable = renderBatchTable;
+renderBatchTable = function() {
+  _origRenderBatchTable();
+  attachBatchSelectionEvents();
+  updateBatchSelectionUI();
+};
+
+/* ═══════════════════════════════════════════════
    KEYBOARD: ESC closes modal
 ═══════════════════════════════════════════════ */
 document.addEventListener('keydown', e => {
@@ -5224,6 +7632,317 @@ document.addEventListener('keydown', e => {
       panel.classList.remove('open');
       document.getElementById('preset-btn').setAttribute('aria-expanded', 'false');
     }
+  }
+});
+
+// Keep floating pill slider and body padding in sync when orientation/size changes
+window.addEventListener('resize', () => {
+  syncBottomBarPadding();
+  updateFloatingPill();
+});
+
+/* ═══════════════════════════════════════════════
+   SWIPE GESTURE — real-time card-slide between Single/Batch on mobile
+═══════════════════════════════════════════════ */
+(function initSwipeGesture() {
+  const container = document.querySelector('.view-container');
+  if (!container) return;
+
+  const mobileQuery = window.matchMedia('(max-width: 640px)');
+  let startX = 0;
+  let startY = 0;
+  let currentX = 0;
+  let dragging = false;
+  let directionLocked = false; // true once we know it's horizontal
+  let isVertical = false;      // true if user is scrolling vertically
+
+  const THRESHOLD = 0.25;      // 25% of container width to commit
+  const VELOCITY_THRESHOLD = 0.3; // px/ms — fast flick commits regardless
+  let startTime = 0;
+
+  function getViews() {
+    return {
+      single: document.getElementById('view-single'),
+      batch: document.getElementById('view-batch'),
+    };
+  }
+
+  function setTransitionsEnabled(enabled) {
+    const { single, batch } = getViews();
+    const val = enabled
+      ? 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease'
+      : 'none';
+    single.style.transition = val;
+    batch.style.transition = val;
+  }
+
+  function positionViews(dx) {
+    const { single, batch } = getViews();
+    const w = container.offsetWidth;
+
+    if (currentMode === 'single') {
+      // Single is active (at 0), batch is off-screen to the right (+100%)
+      const progress = Math.max(-w, Math.min(0, dx));
+      single.style.transform = `translateX(${progress}px)`;
+      single.style.opacity = String(1 - Math.abs(progress) / w * 0.3);
+      batch.style.position = 'absolute';
+      batch.style.top = '0';
+      batch.style.left = '0';
+      batch.style.width = '100%';
+      batch.style.opacity = String(0.7 + Math.abs(progress) / w * 0.3);
+      batch.style.transform = `translateX(${w + progress}px)`;
+      batch.style.pointerEvents = 'none';
+    } else {
+      // Batch is active (at 0), single is off-screen to the left (-100%)
+      const progress = Math.min(w, Math.max(0, dx));
+      batch.style.transform = `translateX(${progress}px)`;
+      batch.style.opacity = String(1 - Math.abs(progress) / w * 0.3);
+      single.style.position = 'absolute';
+      single.style.top = '0';
+      single.style.left = '0';
+      single.style.width = '100%';
+      single.style.opacity = String(0.7 + Math.abs(progress) / w * 0.3);
+      single.style.transform = `translateX(${-w + progress}px)`;
+      single.style.pointerEvents = 'none';
+    }
+  }
+
+  function resetViewStyles() {
+    const { single, batch } = getViews();
+    [single, batch].forEach(v => {
+      v.style.transform = '';
+      v.style.opacity = '';
+      v.style.position = '';
+      v.style.top = '';
+      v.style.left = '';
+      v.style.width = '';
+      v.style.pointerEvents = '';
+      v.style.transition = '';
+    });
+  }
+
+  function snapBack() {
+    setTransitionsEnabled(true);
+    const { single, batch } = getViews();
+    const w = container.offsetWidth;
+
+    if (currentMode === 'single') {
+      single.style.transform = 'translateX(0)';
+      single.style.opacity = '1';
+      batch.style.transform = `translateX(${w}px)`;
+      batch.style.opacity = '0.7';
+    } else {
+      batch.style.transform = 'translateX(0)';
+      batch.style.opacity = '1';
+      single.style.transform = `translateX(${-w}px)`;
+      single.style.opacity = '0.7';
+    }
+
+    setTimeout(() => { resetViewStyles(); container.classList.remove('swiping'); }, 360);
+  }
+
+  function commitSwipe(newMode) {
+    setTransitionsEnabled(true);
+    const { single, batch } = getViews();
+    const w = container.offsetWidth;
+
+    if (newMode === 'batch') {
+      single.style.transform = `translateX(${-w}px)`;
+      single.style.opacity = '0.7';
+      batch.style.transform = 'translateX(0)';
+      batch.style.opacity = '1';
+    } else {
+      batch.style.transform = `translateX(${w}px)`;
+      batch.style.opacity = '0.7';
+      single.style.transform = 'translateX(0)';
+      single.style.opacity = '1';
+    }
+
+    setTimeout(() => {
+      resetViewStyles();
+      container.classList.remove('swiping');
+      // Apply the mode change through the normal function but skip animation
+      // since we already animated it
+      const prev = currentMode;
+      currentMode = newMode;
+      const incoming = newMode === 'single' ? single : batch;
+      const outgoing = newMode === 'single' ? batch : single;
+
+      incoming.classList.add('active');
+      outgoing.classList.remove('active');
+
+      // Update all button states
+      const btnS = document.getElementById('btn-single');
+      const btnB = document.getElementById('btn-batch');
+      const inBtn = newMode === 'single' ? btnS : btnB;
+      const outBtn = newMode === 'single' ? btnB : btnS;
+      inBtn.classList.add('active');
+      outBtn.classList.remove('active');
+      inBtn.setAttribute('aria-pressed', 'true');
+      outBtn.setAttribute('aria-pressed', 'false');
+
+      if (newMode === 'single') {
+        document.getElementById('preset-btn').closest('.popover-wrap').style.display = '';
+      } else {
+        document.getElementById('preset-btn').closest('.popover-wrap').style.display = 'none';
+        document.getElementById('preset-panel').classList.remove('open');
+        renderBatchTable();
+        updateDuplicateBadges();
+        applyColWidths(loadColWidths());
+      }
+
+      updateModeSlider();
+    }, 360);
+  }
+
+  container.addEventListener('touchstart', (e) => {
+    if (!mobileQuery.matches) return;
+    const tag = e.target.tagName.toLowerCase();
+    if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+    // Don't intercept horizontal scrollable elements (like batch table)
+    if (e.target.closest('.batch-table-scroll')) return;
+
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    currentX = startX;
+    startTime = Date.now();
+    dragging = false;
+    directionLocked = false;
+    isVertical = false;
+  }, { passive: true });
+
+  container.addEventListener('touchmove', (e) => {
+    if (isVertical) return;
+    if (!mobileQuery.matches) return;
+
+    const x = e.touches[0].clientX;
+    const y = e.touches[0].clientY;
+    const dx = x - startX;
+    const dy = y - startY;
+
+    // Lock direction after 10px of movement
+    if (!directionLocked && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
+      directionLocked = true;
+      if (Math.abs(dy) > Math.abs(dx)) {
+        isVertical = true;
+        return;
+      }
+      // It's horizontal — check if the swipe direction is valid
+      if (dx < 0 && currentMode === 'batch') return;  // can't go further right
+      if (dx > 0 && currentMode === 'single') return; // can't go further left
+      dragging = true;
+      container.classList.add('swiping');
+      setTransitionsEnabled(false);
+    }
+
+    if (!dragging) return;
+
+    currentX = x;
+    const offset = currentX - startX;
+
+    // Prevent browser scroll while we're dragging horizontally
+    e.preventDefault();
+    positionViews(offset);
+  }, { passive: false });
+
+  container.addEventListener('touchend', (e) => {
+    if (!dragging) {
+      isVertical = false;
+      directionLocked = false;
+      return;
+    }
+    dragging = false;
+    directionLocked = false;
+    isVertical = false;
+
+    const dx = currentX - startX;
+    const w = container.offsetWidth;
+    const elapsed = Date.now() - startTime;
+    const velocity = Math.abs(dx) / elapsed; // px/ms
+
+    const pastThreshold = Math.abs(dx) / w > THRESHOLD;
+    const fastFlick = velocity > VELOCITY_THRESHOLD && Math.abs(dx) > 30;
+
+    if (pastThreshold || fastFlick) {
+      // Commit the swipe
+      if (dx < 0 && currentMode === 'single') {
+        commitSwipe('batch');
+      } else if (dx > 0 && currentMode === 'batch') {
+        commitSwipe('single');
+      } else {
+        snapBack();
+      }
+    } else {
+      snapBack();
+    }
+  }, { passive: true });
+
+  container.addEventListener('touchcancel', () => {
+    if (dragging) {
+      dragging = false;
+      snapBack();
+    }
+    directionLocked = false;
+    isVertical = false;
+  }, { passive: true });
+})();
+</script>
+
+<!-- liquidGL: real WebGL refraction for floating mode pill -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/gh/naughtyduk/liquidGL@latest/scripts/liquidGL.js" defer></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // Only init on mobile viewports where the floating pill is visible
+  const mq = window.matchMedia("(max-width: 640px)");
+
+  function initLiquidGL() {
+    if (!mq.matches) return;
+    if (typeof liquidGL === "undefined") return;
+
+    const pill = document.querySelector(".floating-mode-pill");
+    if (!pill) return;
+
+    try {
+      liquidGL({
+        target: ".floating-mode-pill",
+        snapshot: "body",
+        resolution: 2.0,
+        refraction: 0.01,
+        bevelDepth: 0.05,
+        bevelWidth: 0.15,
+        frost: 2,
+        shadow: true,
+        specular: true,
+        reveal: "fade",
+        tilt: false,
+        magnify: 1,
+        on: {
+          init() {
+            // Strip CSS glass once WebGL is rendering
+            pill.classList.add("liquidgl-active");
+            // Ensure liquidGL canvases don't block button clicks
+            const canvases = pill.querySelectorAll("canvas");
+            canvases.forEach(c => { c.style.pointerEvents = "none"; });
+            // Also check sibling canvases (shadow/tilt layers)
+            const prev = pill.previousElementSibling;
+            const next = pill.nextElementSibling;
+            if (prev && prev.tagName === "CANVAS") prev.style.pointerEvents = "none";
+            if (next && next.tagName === "CANVAS") next.style.pointerEvents = "none";
+          }
+        }
+      });
+    } catch (e) {
+      // WebGL not available — keep CSS fallback
+      console.warn("liquidGL init failed, using CSS fallback:", e);
+    }
+  }
+
+  // Wait a tick for both deferred scripts to load
+  if (document.readyState === "complete") {
+    setTimeout(initLiquidGL, 100);
+  } else {
+    window.addEventListener("load", () => setTimeout(initLiquidGL, 100));
   }
 });
 </script>
